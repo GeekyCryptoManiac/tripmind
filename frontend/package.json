@@ -1,0 +1,11 @@
+{
+  "name": "tripmind-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Dependencies not installed yet. Run: npm install'",
+    "build": "echo 'Dependencies not installed yet'",
+    "preview": "echo 'Dependencies not installed yet'"
+  }
+}
