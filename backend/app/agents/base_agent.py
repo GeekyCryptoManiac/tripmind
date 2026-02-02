@@ -1,0 +1,228 @@
+"""
+TripMind Base Agent
+"""
+
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.tools import StructuredTool
+from sqlalchemy.orm import Session
+from typing import Dict, Any
+
+from .tools import (
+    plan_and_save_trip,
+    get_user_trips,
+    get_trip_details,
+    update_trip,
+    answer_travel_question
+)
+from ..config import settings
+
+
+class TripMindAgent:
+    """Core AI agent for trip planning."""
+    
+    def __init__(self, db: Session, user_id: int):
+        """Initialize the agent."""
+        self.db = db
+        self.user_id = user_id
+        
+        self.llm = ChatOpenAI(
+            model="gpt-4-0125-preview",
+            temperature=0.7,
+            api_key=settings.OPENAI_API_KEY
+        )
+        print("[Agent] LLM initialized successfully")
+        
+        self.tools = self._create_tools()
+        self.agent_executor = self._create_agent()
+    
+    def _create_tools(self) -> list:
+        """Create LangChain tools."""
+        
+        # Tool 1: Plan and save trip (combined!)
+        def plan_trip_wrapper(
+            destination: str,
+            start_date: str = None,
+            end_date: str = None,
+            duration_days: int = None,
+            budget: float = None,
+            travelers_count: int = 1,
+            preferences: list = None
+        ) -> dict:
+            """Plan and save a new trip"""
+            return plan_and_save_trip(
+                destination=destination,
+                user_id=self.user_id,
+                db=self.db,
+                start_date=start_date,
+                end_date=end_date,
+                duration_days=duration_days,
+                budget=budget,
+                travelers_count=travelers_count,
+                preferences=preferences
+            )
+        
+        plan_tool = StructuredTool.from_function(
+            func=plan_trip_wrapper,
+            name="plan_trip",
+            description=(
+                "Plan and save a new trip. Use when user wants to plan a trip. "
+                "Extracts details from message and saves to database automatically."
+            )
+        )
+        
+        # Tool 2: Get user trips
+        def get_trips_wrapper() -> list:
+            return get_user_trips(self.user_id, self.db)
+        
+        get_trips_tool = StructuredTool.from_function(
+            func=get_trips_wrapper,
+            name="get_user_trips",
+            description="Get all trips for current user."
+        )
+        
+        # Tool 3: Get trip details  
+        def get_trip_wrapper(trip_id: int) -> dict:
+            return get_trip_details(trip_id, self.db)
+        
+        trip_details_tool = StructuredTool.from_function(
+            func=get_trip_wrapper,
+            name="get_trip_details",
+            description="Get details of a specific trip by ID."
+        )
+        
+        # Tool 4: Update trip
+        def update_trip_wrapper(
+            trip_id: int,
+            destination: str = None,
+            start_date: str = None,
+            end_date: str = None,
+            duration_days: int = None,
+            budget: float = None,
+            travelers_count: int = None,
+            status: str = None
+        ) -> dict:
+            return update_trip(
+                trip_id, self.db, destination, start_date, 
+                end_date, duration_days, budget, travelers_count, status
+            )
+        
+        update_tool = StructuredTool.from_function(
+            func=update_trip_wrapper,
+            name="update_trip",
+            description="Update an existing trip."
+        )
+        
+        # Tool 5: Answer questions
+        question_tool = StructuredTool.from_function(
+            func=answer_travel_question,
+            name="answer_question",
+            description="Answer general travel questions."
+        )
+        
+        return [plan_tool, get_trips_tool, trip_details_tool, update_tool, question_tool]
+    
+    def _create_agent(self) -> AgentExecutor:
+        """Create agent with system prompt."""
+        
+        system_prompt = """You are TripMind, an AI travel planning assistant.
+
+YOUR TOOLS:
+- plan_trip: Plan and save a new trip (ONE tool call does everything!)
+- get_user_trips: Show user their trips
+- get_trip_details: Get specific trip info
+- update_trip: Modify existing trip
+- answer_question: Answer travel questions
+
+WHEN USER WANTS TO PLAN A TRIP:
+Just call plan_trip with all the details you can extract.
+Example: "Plan a 5-day trip to Paris for $2000"
+→ Call: plan_trip(destination="Paris", duration_days=5, budget=2000)
+→ Done! Confirm to user what was saved.
+
+Keep responses friendly and concise!"""
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")
+        ])
+        
+        agent = create_openai_functions_agent(
+            llm=self.llm,
+            tools=self.tools,
+            prompt=prompt
+        )
+        
+        return AgentExecutor(
+            agent=agent,
+            tools=self.tools,
+            verbose=True,
+            handle_parsing_errors=True,
+            max_iterations=5
+        )
+    
+    async def process_message(self, message: str) -> Dict[str, Any]:
+        """Process user message."""
+        try:
+            print(f"\n[Agent] Processing: {message}")
+            result = await self.agent_executor.ainvoke({"input": message})
+            
+            # Get the trip_id from intermediate steps if trip was created
+            trip_data = None
+            intermediate_steps = result.get("intermediate_steps", [])
+            
+            for step in intermediate_steps:
+                action = step[0]
+                observation = step[1]
+                
+                # Check if plan_trip was called and got a trip_id
+                if hasattr(action, 'tool') and action.tool == "plan_trip":
+                    if isinstance(observation, dict) and observation.get('trip_id'):
+                        trip_id = observation['trip_id']
+                        # Fetch the full trip from database
+                        from ..models import Trip
+                        trip = self.db.query(Trip).filter(Trip.id == trip_id).first()
+                        if trip:
+                            trip_data = {
+                                "id": trip.id,
+                                "user_id": trip.user_id,
+                                "destination": trip.destination,
+                                "start_date": trip.start_date.isoformat() if trip.start_date else None,
+                                "end_date": trip.end_date.isoformat() if trip.end_date else None,
+                                "budget": trip.budget,
+                                "status": trip.status,
+                                "trip_metadata": trip.trip_metadata,
+                                "created_at": trip.created_at.isoformat(),
+                                "updated_at": trip.updated_at.isoformat() if trip.updated_at else None,
+                            }
+            
+            return {
+                "response": str(result.get("output", "I couldn't process that.")),  # Changed from "message" to "response"
+                "action_taken": self._infer_action(str(result.get("output", ""))),
+                "trip_data": trip_data  # Now includes actual trip data
+            }
+            
+        except Exception as e:
+            print(f"[Agent] Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            return {
+                "response": "I encountered an issue. Could you try rephrasing?",  # Changed from "message" to "response"
+                "action_taken": "error",
+                "trip_data": None
+            }
+    
+    def _infer_action(self, output: str) -> str:
+        """Infer action from output."""
+        output_lower = output.lower()
+        
+        if any(word in output_lower for word in ["saved", "created", "planned"]):
+            return "created_trip"
+        elif "trips" in output_lower:
+            return "retrieved_trips"
+        else:
+            return "answered_question"
