@@ -6,177 +6,161 @@ import {
   Geography,
   ZoomableGroup
 } from 'react-simple-maps';
-import type { Trip } from '../types';
+import type { Trip, CountryData } from '../types';
 import { groupTripsByCountry, getCountryColor, getCountryHoverColor } from '../utils/countryMapping';
 
 interface WorldMapProps {
   trips: Trip[];
-  onCountryClick?: (countryCode: string) => void;
+  onCountryClick?: (trips: Trip[], countryName: string) => void;
 }
 
-// TopoJSON URL for world map data (Natural Earth 110m)
+// What we store on hover — both the grouped data and the display name from the geo
+interface HoverInfo {
+  data: CountryData;
+  geoName: string; // e.g. "Germany" — from geo.properties.name
+}
+
 const MAP_DATA_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
 const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
-    const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
-    
-    // Group trips by country and determine colors
-    const countryData = groupTripsByCountry(trips);
-    
-    // 🔍 DIAGNOSTIC: Log what we have
-    console.log('=== DIAGNOSTIC START ===');
-    console.log('Total trips:', trips.length);
-    console.log('Trips:', trips.map(t => ({ id: t.id, destination: t.destination, status: t.status })));
-    console.log('Country Data Map:', Array.from(countryData.entries()));
-    console.log('Expected country codes:', Array.from(countryData.keys()));
-    
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="relative w-full" style={{ height: '600px' }}>
-          <ComposableMap
-            projection="geoMercator"
-            projectionConfig={{
-              scale: 140,
-              center: [0, 20],
-            }}
-            className="w-full h-full"
-          >
-            <ZoomableGroup
-              zoom={1}
-              center={[0, 20]}
-              minZoom={1}
-              maxZoom={8}
-            >
-              <Geographies geography={MAP_DATA_URL}>
-                {({ geographies }) => {
-                  // 🔍 DIAGNOSTIC: Log first 5 geographies to see structure
-                  console.log('Sample geographies:', geographies.slice(0, 5).map(g => ({
-                    id: g.id,
-                    properties: g.properties
-                  })));
-                  
-                  // 🔍 DIAGNOSTIC: Log Germany and Australia specifically
-                  const germany = geographies.find(g => 
-                    g.properties?.name === 'Germany' || 
-                    g.properties?.iso_a3 === 'DEU'
-                  );
-                  const australia = geographies.find(g => 
-                    g.properties?.name === 'Australia' || 
-                    g.properties?.iso_a3 === 'AUS'
-                  );
-                  
-                  if (germany) {
-                    console.log('🇩🇪 Germany geography:', {
-                      id: germany.id,
-                      properties: germany.properties
-                    });
-                  }
-                  if (australia) {
-                    console.log('🇦🇺 Australia geography:', {
-                      id: australia.id,
-                      properties: australia.properties
-                    });
-                  }
-                  
-                  console.log('=== DIAGNOSTIC END ===');
-                  
-                  return geographies.map((geo) => {
-                    const countryName = geo.properties?.name?.toLowerCase();
-                    const country = countryName 
-                        ? Array.from(countryData.values()).find(c => 
-                            c.trips.some(t => t.destination.toLowerCase() === countryName)
-                            )
-                        : undefined;
-                    const isHovered = hoveredCountry === countryName;
-                    
-                    // Determine color based on trip status
-                    const fillColor = isHovered
-                      ? getCountryHoverColor(country?.status || null)
-                      : getCountryColor(country?.status || null);
-                    
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={fillColor}
-                        stroke="#FFFFFF"
-                        strokeWidth={0.5}
-                        style={{
-                          default: {
-                            outline: 'none',
-                          },
-                          hover: {
-                            outline: 'none',
-                            cursor: country ? 'pointer' : 'default',
-                          },
-                          pressed: {
-                            outline: 'none',
-                          },
-                        }}
-                        onMouseEnter={() => {
-                          if (country) {
-                            setHoveredCountry(countryName);
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          setHoveredCountry(null);
-                        }}
-                        onClick={() => {
-                          if (country && onCountryClick) {
-                            onCountryClick(countryName);
-                          }
-                        }}
-                      />
+  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
+
+  // Group trips by country code — keyed by "DEU", "AUS", etc.
+  const countryData = groupTripsByCountry(trips);
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="relative w-full" style={{ height: '600px' }}>
+        <ComposableMap
+          projection="geoMercator"
+          projectionConfig={{ scale: 140, center: [0, 20] }}
+          className="w-full h-full"
+        >
+          <ZoomableGroup zoom={1} center={[0, 20]} minZoom={1} maxZoom={8}>
+            <Geographies geography={MAP_DATA_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const geoName: string = geo.properties?.name || '';
+                  const geoNameLower = geoName.toLowerCase();
+
+                  // Find matching CountryData by checking trip destinations
+                  const country = geoNameLower
+                    ? Array.from(countryData.values()).find((c) =>
+                        c.trips.some((t) => t.destination.toLowerCase() === geoNameLower)
+                      )
+                    : undefined;
+
+                  const isHovered =
+                    hoverInfo &&
+                    hoverInfo.data.trips.some(
+                      (t) => t.destination.toLowerCase() === geoNameLower
                     );
-                  });
-                }}
-              </Geographies>
-            </ZoomableGroup>
-          </ComposableMap>
-          
-          {/* Hover Tooltip */}
-          {hoveredCountry && countryData.has(hoveredCountry) && (
-            <div className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs z-10">
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {countryData.get(hoveredCountry)?.trips[0]?.destination || hoveredCountry}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {countryData.get(hoveredCountry)?.tripCount} {countryData.get(hoveredCountry)?.tripCount === 1 ? 'trip' : 'trips'}
-                  </p>
-                </div>
-                
-                <div className="pt-2 border-t border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded"
-                      style={{ 
-                        backgroundColor: getCountryColor(countryData.get(hoveredCountry)?.status || null) 
+
+                  const fillColor = isHovered
+                    ? getCountryHoverColor(country?.status || null)
+                    : getCountryColor(country?.status || null);
+
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={fillColor}
+                      stroke="#FFFFFF"
+                      strokeWidth={0.5}
+                      style={{
+                        default: { outline: 'none' },
+                        hover: {
+                          outline: 'none',
+                          cursor: country ? 'pointer' : 'default',
+                        },
+                        pressed: { outline: 'none' },
                       }}
-                    ></div>
-                    <span className="text-xs font-medium text-gray-700 capitalize">
-                      {countryData.get(hoveredCountry)?.status}
+                      onMouseEnter={() => {
+                        if (country) setHoverInfo({ data: country, geoName });
+                      }}
+                      onMouseLeave={() => setHoverInfo(null)}
+                      onTouchStart={() => {
+                        if (country) setHoverInfo({ data: country, geoName });
+                      }}
+                      onClick={() => {
+                        if (country && onCountryClick) {
+                          onCountryClick(country.trips, geoName);
+                        }
+                      }}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ZoomableGroup>
+        </ComposableMap>
+
+        {/* Tooltip — now correctly driven by hoverInfo */}
+        {hoverInfo && (
+          <div className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
+            {/* Header: geo country name */}
+            <p className="text-sm font-semibold text-gray-900">{hoverInfo.geoName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {hoverInfo.data.tripCount}{' '}
+              {hoverInfo.data.tripCount === 1 ? 'trip' : 'trips'}
+            </p>
+
+            {/* Single trip — just show status */}
+            {hoverInfo.data.tripCount === 1 && (
+              <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-100">
+                <div
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{
+                    backgroundColor: getCountryColor(hoverInfo.data.status),
+                  }}
+                />
+                <span className="text-xs text-gray-700">
+                  {hoverInfo.data.trips[0].destination}
+                </span>
+                <span className="text-xs text-gray-400 capitalize">
+                  ({hoverInfo.data.trips[0].status})
+                </span>
+              </div>
+            )}
+
+            {/* Multiple trips — list them all */}
+            {hoverInfo.data.tripCount > 1 && (
+              <div className="mt-2.5 pt-2.5 border-t border-gray-100 space-y-1.5">
+                {hoverInfo.data.trips.map((trip) => (
+                  <div key={trip.id} className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor: getCountryColor(
+                          trip.status as 'planning' | 'booked' | 'completed'
+                        ),
+                      }}
+                    />
+                    <span className="text-xs text-gray-700">{trip.destination}</span>
+                    <span className="text-xs text-gray-400 capitalize">
+                      ({trip.status})
                     </span>
                   </div>
-                </div>
-                
-                <p className="text-xs text-blue-600 mt-2">
-                  Click to view trips →
-                </p>
+                ))}
               </div>
-            </div>
-          )}
-          
-          {/* Map Controls Info */}
-          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded px-3 py-2">
-            <p className="text-xs text-gray-600">
-              🖱️ Scroll to zoom • Drag to pan
+            )}
+
+            {/* CTA hint */}
+            <p className="text-xs text-blue-600 mt-2.5">
+              {hoverInfo.data.tripCount === 1
+                ? 'Click to view trip →'
+                : 'Click to select a trip →'}
             </p>
           </div>
+        )}
+
+        {/* Controls hint */}
+        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded px-3 py-2">
+          <p className="text-xs text-gray-600">🖱️ Scroll to zoom • Drag to pan</p>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
 export default WorldMap;

@@ -1,36 +1,98 @@
 /**
  * ChatInterface Component
- * Main chat UI where users interact with the AI agent
+ * 
+ * Two modes:
+ *   General (default) → full-page layout, real backend API, used by ChatPage
+ *   Trip (embedded)   → compact layout, mock service, used inside TripDetailsPage
+ * 
+ * All new props are optional — ChatPage needs zero changes.
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { apiService } from '../services/api';
-import type { ChatMessage, ChatResponse } from '../types';
+import { getChatService } from '../services/chatService';
+import type { ChatMessage } from '../types';
+import type { ChatType, TripChatContext } from '../types/chat';
 import TripCard from './TripCard';
 
 interface ChatInterfaceProps {
   userId: number;
+  chatType?: ChatType;           // 'general' | 'trip'  — default 'general'
+  tripId?: number;               // Required when chatType === 'trip'
+  tripContext?: TripChatContext;  // Passed to service for contextual responses
+  embedded?: boolean;            // true → no header, h-full instead of h-screen
 }
 
-export default function ChatInterface({ userId }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
+// ── Simple inline markdown renderer ──────────────────────────
+// Converts **bold** to <strong> without dangerouslySetInnerHTML.
+// Keeps everything else as plain text with newline support.
+function renderMessageContent(text: string) {
+  const lines = text.split('\n');
+  return lines.map((line, lineIdx) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return (
+      <span key={lineIdx}>
+        {parts.map((part, partIdx) =>
+          part.startsWith('**') && part.endsWith('**') ? (
+            <strong key={partIdx}>{part.slice(2, -2)}</strong>
+          ) : (
+            <span key={partIdx}>{part}</span>
+          )
+        )}
+        {lineIdx < lines.length - 1 && <br />}
+      </span>
+    );
+  });
+}
+
+export default function ChatInterface({
+  userId,
+  chatType = 'general',
+  tripId,
+  tripContext,
+  embedded = false,
+}: ChatInterfaceProps) {
+  // ── Initial greeting depends on chat type ──────────────────
+  const getInitialMessage = (): ChatMessage => {
+    if (chatType === 'trip' && tripContext) {
+      return {
+        role: 'assistant',
+        content: [
+          `Hi! I'm your AI assistant for your **${tripContext.destination}** trip. 🌍`,
+          '',
+          'I can help you with:',
+          `  • Planning your ${tripContext.durationDays ? tripContext.durationDays + '-day ' : ''}itinerary`,
+          `  • Budget management${tripContext.budget ? ` ($${tripContext.budget.toLocaleString()} total)` : ''}`,
+          '  • Flights & accommodation',
+          '  • Packing & preparation',
+          '',
+          'What would you like to know?',
+        ].join('\n'),
+        timestamp: new Date().toISOString(),
+      };
+    }
+    return {
       role: 'assistant',
-      content: 'Hi! I\'m your AI travel assistant. Tell me where you\'d like to go!',
+      content: "Hi! I'm your AI travel assistant. Tell me where you'd like to go!",
       timestamp: new Date().toISOString(),
-    },
-  ]);
+    };
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>([getInitialMessage()]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [lastResponse, setLastResponse] = useState<ChatResponse | null>(null);
-  
+  const [lastTripData, setLastTripData] = useState<any>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Get the right service once (general → Real, trip → Mock while flag is on)
+  const chatService = getChatService(chatType);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // ── Send ────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -40,47 +102,44 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
       timestamp: new Date().toISOString(),
     };
 
-    console.log('[Frontend] Sending message:', input);
-    
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      console.log('[Frontend] Calling API...');
-      const response = await apiService.sendMessage({
+      const response = await chatService.sendMessage({
         user_id: userId,
         message: input,
+        trip_id: tripId,
+        tripContext,
+        conversationHistory: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
       });
 
-      console.log('[Frontend] Received response:', response);
-      console.log('[Frontend] Response text:', response.message);  // Changed from response.response to response.message
-      console.log('[Frontend] Trip data:', response.trip_data);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: response.message,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
 
-      const agentMessage: ChatMessage = {
-        role: 'assistant',
-        content: response.message,  // Changed from response.response to response.message
-        timestamp: new Date().toISOString(),
-      };
-
-      console.log('[Frontend] Adding agent message:', agentMessage);
-
-      setMessages((prev) => {
-        const newMessages = [...prev, agentMessage];
-        console.log('[Frontend] New messages array:', newMessages);
-        return newMessages;
-      });
-      
-      setLastResponse(response);
-
+      if (response.trip_data) {
+        setLastTripData(response.trip_data);
+      }
     } catch (error) {
-      console.error('[Frontend] Error:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error('[ChatInterface] Error:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -94,17 +153,31 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  console.log('[Frontend] Rendering with messages:', messages);
-
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-800">
-          ✈️ TripMind
-        </h1>
-        <p className="text-sm text-gray-600">AI Travel Planning Assistant</p>
-      </div>
+    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-gray-50`}>
+      {/* ── Header ──────────────────────────────────────────── */}
+      {!embedded ? (
+        // Full-page header (general chat)
+        <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
+          <h1 className="text-2xl font-bold text-gray-800">✈️ TripMind</h1>
+          <p className="text-sm text-gray-600">AI Travel Planning Assistant</p>
+        </div>
+      ) : (
+        // Compact context banner (trip chat, embedded)
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">💬</span>
+            <p className="text-sm font-semibold text-blue-800">
+              Trip Assistant — {tripContext?.destination}
+            </p>
+          </div>
+          <span className="text-xs text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full font-medium">
+            Trip-specific
+          </span>
+        </div>
+      )}
 
+      {/* ── Messages list ───────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <div
@@ -118,7 +191,9 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
                   : 'bg-white text-gray-800 shadow-sm border border-gray-200'
               }`}
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {renderMessageContent(msg.content)}
+              </p>
               <p
                 className={`text-xs mt-2 ${
                   msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'
@@ -130,36 +205,43 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
           </div>
         ))}
 
+        {/* Typing indicator */}
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
               <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
               </div>
             </div>
           </div>
         )}
 
-        {lastResponse?.trip_data && (
+        {/* Trip card preview (general chat only — when agent creates a trip) */}
+        {lastTripData && chatType === 'general' && (
           <div className="flex justify-center">
-            <TripCard trip={lastResponse.trip_data} />
+            <TripCard trip={lastTripData} />
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
+      {/* ── Input bar ───────────────────────────────────────── */}
       <div className="bg-white border-t border-gray-200 p-4">
-        <div className="max-w-4xl mx-auto flex gap-2">
+        <div className="flex gap-2">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type your message... (Shift+Enter for new line)"
-            className="flex-1 resize-none border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={
+              chatType === 'trip'
+                ? `Ask about your ${tripContext?.destination || 'trip'}...`
+                : 'Type your message... (Shift+Enter for new line)'
+            }
+            className="flex-1 resize-none border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={2}
             disabled={isLoading}
           />
@@ -171,8 +253,10 @@ export default function ChatInterface({ userId }: ChatInterfaceProps) {
             {isLoading ? 'Sending...' : 'Send'}
           </button>
         </div>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          Try: "Plan a 5-day trip to Tokyo in March with a $2000 budget"
+        <p className="text-xs text-gray-400 text-center mt-2">
+          {embedded
+            ? 'Try: "What\'s the best budget breakdown?" or "Help me plan my itinerary"'
+            : 'Try: "Plan a 5-day trip to Tokyo in March with a $2000 budget"'}
         </p>
       </div>
     </div>
