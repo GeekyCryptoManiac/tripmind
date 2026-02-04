@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import StructuredTool
 from sqlalchemy.orm import Session
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .tools import (
     plan_and_save_trip,
@@ -22,10 +22,24 @@ from ..config import settings
 class TripMindAgent:
     """Core AI agent for trip planning."""
     
-    def __init__(self, db: Session, user_id: int):
-        """Initialize the agent."""
+    def __init__(self, db: Session, user_id: int, trip_id: Optional[int] = None):
+        """
+        Initialize the agent.
+        
+        Args:
+            db: Database session
+            user_id: The current user's ID
+            trip_id: Optional — if provided, fetches this trip and injects
+                     its details into the system prompt for trip-specific chat
+        """
         self.db = db
         self.user_id = user_id
+        self.trip_id = trip_id
+        
+        # If trip_id provided, fetch the trip now so we can bake it into the prompt
+        self.trip_context = None
+        if trip_id is not None:
+            self.trip_context = self._fetch_trip_context(trip_id)
         
         self.llm = ChatOpenAI(
             model="gpt-4-0125-preview",
@@ -36,6 +50,37 @@ class TripMindAgent:
         
         self.tools = self._create_tools()
         self.agent_executor = self._create_agent()
+    
+    def _fetch_trip_context(self, trip_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Fetch a trip from the database and format it as a context dict.
+        Returns None if trip not found or doesn't belong to this user.
+        """
+        from ..models import Trip
+        
+        trip = self.db.query(Trip).filter(
+            Trip.id == trip_id,
+            Trip.user_id == self.user_id  # Security: only allow user's own trips
+        ).first()
+        
+        if not trip:
+            print(f"[Agent] Warning: Trip {trip_id} not found for user {self.user_id}")
+            return None
+        
+        print(f"[Agent] Loaded trip context: {trip.destination} (ID: {trip.id})")
+        
+        return {
+            "id": trip.id,
+            "destination": trip.destination,
+            "start_date": trip.start_date,
+            "end_date": trip.end_date,
+            "duration_days": trip.duration_days,
+            "budget": trip.budget,
+            "travelers_count": trip.travelers_count,
+            "status": trip.status,
+            "preferences": trip.trip_metadata.get("preferences", []) if trip.trip_metadata else [],
+            "notes": trip.trip_metadata.get("notes", "") if trip.trip_metadata else "",
+        }
     
     def _create_tools(self) -> list:
         """Create LangChain tools."""
@@ -123,10 +168,13 @@ class TripMindAgent:
         
         return [plan_tool, get_trips_tool, trip_details_tool, update_tool, question_tool]
     
-    def _create_agent(self) -> AgentExecutor:
-        """Create agent with system prompt."""
-        
-        system_prompt = """You are TripMind, an AI travel planning assistant.
+    def _build_system_prompt(self) -> str:
+        """
+        Build the system prompt. If trip_context is loaded, append a
+        CURRENT TRIP section so the agent answers in context of that trip
+        without needing to call get_trip_details first.
+        """
+        base_prompt = """You are TripMind, an AI travel planning assistant.
 
 YOUR TOOLS:
 - plan_trip: Plan and save a new trip (ONE tool call does everything!)
@@ -142,6 +190,38 @@ Example: "Plan a 5-day trip to Paris for $2000"
 → Done! Confirm to user what was saved.
 
 Keep responses friendly and concise!"""
+
+        # If we have trip context, append it so the agent is already aware
+        if self.trip_context:
+            trip = self.trip_context
+            trip_section = f"""
+
+─── CURRENT TRIP CONTEXT ───
+You are currently in a chat about a SPECIFIC trip. Answer questions relative to this trip.
+
+Trip ID: {trip['id']}
+Destination: {trip['destination']}
+Status: {trip['status']}
+Start Date: {trip['start_date'] or 'Not set'}
+End Date: {trip['end_date'] or 'Not set'}
+Duration: {trip['duration_days'] or 'Not set'} days
+Budget: ${trip['budget'] or 'Not set'}
+Travelers: {trip['travelers_count']}
+Preferences: {', '.join(trip['preferences']) if trip['preferences'] else 'None specified'}
+Notes: {trip['notes'] or 'None'}
+
+When the user asks about "the trip", "my trip", "this trip", etc., they mean THIS trip.
+You can help with planning details, suggest activities, answer questions about the destination,
+or update this trip if asked. Use the update_trip tool with trip_id={trip['id']} if updates are needed."""
+            
+            return base_prompt + trip_section
+        
+        return base_prompt
+    
+    def _create_agent(self) -> AgentExecutor:
+        """Create agent with system prompt."""
+        
+        system_prompt = self._build_system_prompt()
         
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
@@ -200,9 +280,9 @@ Keep responses friendly and concise!"""
                             }
             
             return {
-                "response": str(result.get("output", "I couldn't process that.")),  # Changed from "message" to "response"
+                "response": str(result.get("output", "I couldn't process that.")),
                 "action_taken": self._infer_action(str(result.get("output", ""))),
-                "trip_data": trip_data  # Now includes actual trip data
+                "trip_data": trip_data
             }
             
         except Exception as e:
@@ -211,7 +291,7 @@ Keep responses friendly and concise!"""
             traceback.print_exc()
             
             return {
-                "response": "I encountered an issue. Could you try rephrasing?",  # Changed from "message" to "response"
+                "response": "I encountered an issue. Could you try rephrasing?",
                 "action_taken": "error",
                 "trip_data": None
             }

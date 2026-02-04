@@ -26,14 +26,15 @@ class MockChatService implements IChatService {
 
 // ── Real Service (general chat NOW, trip chat in Week 5) ──────
 class RealChatService implements IChatService {
-  async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
-    const response = await apiService.sendMessage({
-      user_id: request.user_id,
-      message: request.message,
-    });
-    return response; // ChatResponse is compatible with SendMessageResponse
+    async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
+      const response = await apiService.sendMessage({
+        user_id: request.user_id,
+        message: request.message,
+        ...(request.trip_id !== undefined && { trip_id: request.trip_id }),
+      });
+      return response;
+    }
   }
-}
 
 // ── Factory ───────────────────────────────────────────────────
 /**

@@ -18,6 +18,20 @@ class ChatRequest(BaseModel):
     """Schema for chat messages sent to the agent"""
     message: str = Field(..., min_length=1, description="User's message to the agent")
     user_id: int = Field(..., gt=0, description="ID of the user sending the message")
+    trip_id: Optional[int] = Field(None, gt=0, description="Optional trip ID for trip-specific chat context")
+
+class TripUpdate(BaseModel):
+    """Schema for partial trip updates — all fields optional.
+    Reusable: notes persistence (Week 4 Day 2), edit modal (Week 4 Day 3), etc."""
+    destination:     Optional[str]   = None
+    start_date:      Optional[str]   = None
+    end_date:        Optional[str]   = None
+    duration_days:   Optional[int]   = None
+    budget:          Optional[float] = None
+    travelers_count: Optional[int]   = None
+    status:          Optional[str]   = None
+    notes:           Optional[str]   = None  # Convenience → merged into trip_metadata
+
 
 
 # ============= Response Schemas =============

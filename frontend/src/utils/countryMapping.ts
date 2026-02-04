@@ -92,6 +92,7 @@ export const DESTINATION_TO_COUNTRY_CODE: Record<string, string> = {
   'iceland': 'ISL',
   'romania': 'ROU',
   'bulgaria': 'BGR',
+  'estonia': 'EST',
   
   // Europe - Major Cities
   'paris': 'FRA',
@@ -121,6 +122,7 @@ export const DESTINATION_TO_COUNTRY_CODE: Record<string, string> = {
   'moscow': 'RUS',
   'st petersburg': 'RUS',
   'reykjavik': 'ISL',
+  'tallinn': 'EST',
   
   // North America - Countries
   'united states': 'USA',

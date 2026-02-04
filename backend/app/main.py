@@ -12,13 +12,15 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
+
 
 from .database import get_db, engine
 from .models import Base, User, Trip
 from .schemas import (
     ChatRequest, ChatResponse,
     UserCreate, UserResponse,
-    TripResponse, TripList
+    TripResponse, TripList, TripUpdate
 )
 from .agents.base_agent import TripMindAgent
 from .config import settings
@@ -165,7 +167,7 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     try:
         # Initialize agent
         print(f"\n[API] Initializing agent for user {request.user_id}")
-        agent = TripMindAgent(db=db, user_id=request.user_id)
+        agent = TripMindAgent(db=db, user_id=request.user_id,trip_id=request.trip_id)
         
         # Process message
         print(f"[API] Processing message: {request.message}")
@@ -255,6 +257,43 @@ async def get_trip(trip_id: int, db: Session = Depends(get_db)):
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
     
+    return trip
+
+@app.put("/api/trips/{trip_id}", response_model=TripResponse)
+async def update_trip(trip_id: int, updates: TripUpdate, db: Session = Depends(get_db)):
+    """
+    Partially update a trip.
+    
+    Only fields included in the request body are changed.
+    `notes` is a convenience field — it gets merged into trip_metadata
+    so the caller doesn't have to manage the JSON structure itself.
+    
+    Reusable: notes auto-save (Day 2), edit modal (Day 3), agent updates, etc.
+    """
+    trip = db.query(Trip).filter(Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # ── Top-level fields ──────────────────────────────────────
+    if updates.destination     is not None: trip.destination     = updates.destination
+    if updates.start_date      is not None: trip.start_date      = updates.start_date
+    if updates.end_date        is not None: trip.end_date        = updates.end_date
+    if updates.duration_days   is not None: trip.duration_days   = updates.duration_days
+    if updates.budget          is not None: trip.budget          = updates.budget
+    if updates.travelers_count is not None: trip.travelers_count = updates.travelers_count
+    if updates.status          is not None: trip.status          = updates.status
+
+    # ── Notes → merged into trip_metadata ─────────────────────
+    if updates.notes is not None:
+        metadata = dict(trip.trip_metadata) if trip.trip_metadata else {}
+        metadata["notes"] = updates.notes
+        trip.trip_metadata = metadata  # reassign so SQLAlchemy detects the change
+
+    # ── Timestamp ─────────────────────────────────────────────
+    trip.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(trip)
     return trip
 
 

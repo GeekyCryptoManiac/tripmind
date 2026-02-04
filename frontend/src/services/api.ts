@@ -81,6 +81,11 @@ export const apiService = {
     return response.data;
   },
 
+  async updateTrip(tripId: number, updates: Record<string, any>): Promise<Trip> {
+    const response = await api.put<Trip>(`/api/trips/${tripId}`, updates);
+    return response.data;
+  },
+
   async deleteTrip(tripId: number): Promise<void> {
     await api.delete(`/api/trips/${tripId}`);
   },

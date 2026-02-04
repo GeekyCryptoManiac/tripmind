@@ -6,5 +6,5 @@
  *   false → Trip chat uses RealChatService (calls FastAPI)       — Week 5+
  */
 export const CONFIG = {
-    USE_MOCK_CHAT: true,
+    USE_MOCK_CHAT: false,
   };

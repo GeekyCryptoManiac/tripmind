@@ -14,6 +14,7 @@ import type { ChatMessage } from '../types';
 import type { ChatType, TripChatContext } from '../types/chat';
 import TripCard from './TripCard';
 
+
 interface ChatInterfaceProps {
   userId: number;
   chatType?: ChatType;           // 'general' | 'trip'  — default 'general'
