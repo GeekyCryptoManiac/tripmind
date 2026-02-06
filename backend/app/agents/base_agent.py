@@ -14,7 +14,8 @@ from .tools import (
     get_user_trips,
     get_trip_details,
     update_trip,
-    answer_travel_question
+    answer_travel_question,
+    generate_itinerary
 )
 from ..config import settings
 
@@ -165,8 +166,26 @@ class TripMindAgent:
             name="answer_question",
             description="Answer general travel questions."
         )
+
+        # Tool 6: Generate itinerary
+        def generate_itinerary_wrapper(
+            trip_id: int,
+            preferences: list = None
+        ) -> dict:
+            return generate_itinerary(trip_id, self.db, preferences)
         
-        return [plan_tool, get_trips_tool, trip_details_tool, update_tool, question_tool]
+        itinerary_tool = StructuredTool.from_function(
+            func=generate_itinerary_wrapper,
+            name="generate_itinerary",
+            description=(
+                "Generate a day-by-day itinerary for a trip. Creates structured "
+                "activities, and optionally mock flights/hotels if needed."
+            )
+        )
+        
+        
+        
+        return [plan_tool, get_trips_tool, trip_details_tool, update_tool, question_tool, itinerary_tool]
     
     def _build_system_prompt(self) -> str:
         """
@@ -181,13 +200,15 @@ YOUR TOOLS:
 - get_user_trips: Show user their trips
 - get_trip_details: Get specific trip info
 - update_trip: Modify existing trip
+- generate_itinerary: Generate day-by-day itinerary
 - answer_question: Answer travel questions
 
-WHEN USER WANTS TO PLAN A TRIP:
-Just call plan_trip with all the details you can extract.
-Example: "Plan a 5-day trip to Paris for $2000"
-→ Call: plan_trip(destination="Paris", duration_days=5, budget=2000)
-→ Done! Confirm to user what was saved.
+WHEN USER ASKS TO GENERATE ITINERARY:
+- For trips 1-5 days: Generate detailed itinerary
+- For trips 6+ days: Warn user that generation may be partial due to length
+  Example response: "Your trip is X days long. I'll generate as much as possible, 
+  but you may need to add remaining days manually or ask me to generate specific days later."
+- Then call generate_itinerary regardless
 
 Keep responses friendly and concise!"""
 
