@@ -27,8 +27,13 @@ from .agents.base_agent import TripMindAgent
 from .config import settings
 
 # Create all database tables on startup
-with engine.begin() as conn:
-    Base.metadata.create_all(conn)
+try:
+    with engine.begin() as conn:
+        Base.metadata.create_all(conn)
+    print("✅ Database tables ready")
+except Exception as e:
+    print(f"⚠️ create_all failed: {e}")
+    # Don't crash — let the app start anyway
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -70,6 +75,9 @@ async def root():
         }
     }
 
+@app.get("/ping")
+async def ping():
+    return {"ping": "pong"}
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
