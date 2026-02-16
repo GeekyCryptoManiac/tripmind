@@ -18,7 +18,6 @@ interface EmptyDayStateProps {
   
   export default function EmptyDayState({
     day,
-    totalDays,
     daysGenerated,
     destination,
     onGenerate,
