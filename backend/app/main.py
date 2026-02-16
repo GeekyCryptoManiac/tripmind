@@ -11,6 +11,7 @@ This is the web server that:
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from datetime import datetime
 
@@ -26,7 +27,7 @@ from .agents.base_agent import TripMindAgent
 from .config import settings
 
 # Create all database tables on startup
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(engine)
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -71,12 +72,8 @@ async def root():
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-    """
-    Detailed health check including database connectivity.
-    """
     try:
-        # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))  # ✅ wrapped in text()
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
