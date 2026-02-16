@@ -27,7 +27,8 @@ from .agents.base_agent import TripMindAgent
 from .config import settings
 
 # Create all database tables on startup
-Base.metadata.create_all(engine)
+with engine.begin() as conn:
+    Base.metadata.create_all(conn)
 
 # Initialize FastAPI application
 app = FastAPI(
