@@ -11,12 +11,20 @@
  * Sub-components:
  *   - TripDetailsHero
  *   - TripDetailsProgress
+ *   - StatusBanner          ← Week 5: phase-aware banner
  *   - TripSummaryCard
  *   - OverviewTab
  *   - ItineraryTab
  *   - TravelTab
  *   - ChatInterface (inline - just a wrapper)
  *   - TripEditModal (already extracted)
+ *
+ * Week 5 changes:
+ *   - Import useTripPhase from utils/tripStatus
+ *   - Import StatusBanner
+ *   - Compute { phase, daysUntil, currentDay } from trip
+ *   - Render <StatusBanner> between progress bar and tab nav
+ *   - Pass phase + currentDay down to OverviewTab + ItineraryTab (Days 2–3)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -34,6 +42,10 @@ import TripSummaryCard from './TripSummaryCard';
 import OverviewTab from './OverviewTab';
 import ItineraryTab from './ItineraryTab';
 import TravelTab from './TravelTab';
+// ── Week 5 additions ──────────────────────────────────────────
+import StatusBanner from './StatusBanner';
+import { useTripPhase } from '../../utils/tripStatus';
+// ─────────────────────────────────────────────────────────────
 import {
   type TabType,
   type TravelSubTab,
@@ -195,6 +207,13 @@ export default function TripDetailsPage() {
     ? new Date(trip.start_date).getFullYear()
     : null;
 
+  // ── Week 5: Trip phase detection ──────────────────────────
+  // Called here (after null guard) so trip is always a Trip object.
+  // Passed down to StatusBanner; will also be passed to OverviewTab
+  // (Day 2: checklist, Day 4: live tools) and ItineraryTab (Day 3: today-view).
+  const { phase, daysUntil, currentDay } = useTripPhase(trip);
+  // ─────────────────────────────────────────────────────────
+
   // ──────────────────────────────────────────────────────────
   // RENDER
   // ──────────────────────────────────────────────────────────
@@ -215,6 +234,19 @@ export default function TripDetailsPage() {
         completedCount={completedCount}
         isExpanded={progressExpanded}
         onToggle={() => setProgressExpanded(!progressExpanded)}
+      />
+
+      {/* ══════════════════════════════════════════════════════
+          STATUS BANNER (Week 5)
+          Sits between the progress bar and the sticky tab nav.
+          Returns null for 'planning' phase — no extra chrome.
+          ══════════════════════════════════════════════════════ */}
+      <StatusBanner
+        phase={phase}
+        daysUntil={daysUntil}
+        currentDay={currentDay}
+        totalDays={trip.duration_days ?? 1}
+        destination={trip.destination}
       />
 
       {/* ══════════════════════════════════════════════════════
@@ -297,27 +329,40 @@ export default function TripDetailsPage() {
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <OverviewTab trip={trip} />
+                  {/*
+                   * Week 5 Days 2 & 4: OverviewTab will receive phase prop
+                   * to conditionally render PreTripChecklist and LiveToolsPanel.
+                   * Adding it now so Day 2 only touches OverviewTab, not index.tsx.
+                   */}
+                  <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
                 </motion.div>
               )}
 
               {/* ▸ ITINERARY TAB ─────────────────────────────── */}
-              {activeTab === 'itinerary' && (
+                {activeTab === 'itinerary' && (
                 <motion.div
-                  key="itinerary"
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
+                    key="itinerary"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
                 >
-                  <ItineraryTab
+                    {/*
+                     * Week 5 Day 3: ItineraryTab will receive phase + currentDay
+                     * to auto-select today's day and show the TODAY badge.
+                     * Adding them now so Day 3 only touches ItineraryTab.
+                     */}
+                    <ItineraryTab
                     trip={trip}
                     notes={notes}
                     saveStatus={saveStatus}
                     onNotesChange={setNotes}
-                  />
+                    onTripUpdate={setTrip}
+                    phase={phase}
+                    currentDay={currentDay}
+                    />
                 </motion.div>
-              )}
+                )}
 
               {/* ▸ TRAVEL TAB ────────────────────────────────── */}
               {activeTab === 'travel' && (

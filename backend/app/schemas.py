@@ -22,7 +22,9 @@ class ChatRequest(BaseModel):
 
 class TripUpdate(BaseModel):
     """Schema for partial trip updates — all fields optional.
-    Reusable: notes persistence (Week 4 Day 2), edit modal (Week 4 Day 3), etc."""
+    Reusable: notes persistence (Week 4), edit modal, checklist (Week 5 Day 2),
+    expenses (Week 5 Day 5), etc."""
+    # ── Top-level columns ─────────────────────────────────────
     destination:     Optional[str]   = None
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
@@ -30,8 +32,13 @@ class TripUpdate(BaseModel):
     budget:          Optional[float] = None
     travelers_count: Optional[int]   = None
     status:          Optional[str]   = None
-    notes:           Optional[str]   = None  # Convenience → merged into trip_metadata
 
+    # ── trip_metadata convenience fields ──────────────────────
+    # Each of these gets merged into trip_metadata by the endpoint,
+    # so callers don't have to manage the JSON structure themselves.
+    notes:     Optional[str]  = None   # free-text trip notes
+    checklist: Optional[List[Dict[str, Any]]] = None  # Week 5 Day 2: pre-trip checklist items
+    expenses:  Optional[List[Dict[str, Any]]] = None  # Week 5 Day 5: expense entries
 
 
 # ============= Response Schemas =============

@@ -263,18 +263,21 @@ async def get_trip(trip_id: int, db: Session = Depends(get_db)):
 async def update_trip(trip_id: int, updates: TripUpdate, db: Session = Depends(get_db)):
     """
     Partially update a trip.
-    
+
     Only fields included in the request body are changed.
-    `notes` is a convenience field — it gets merged into trip_metadata
-    so the caller doesn't have to manage the JSON structure itself.
-    
-    Reusable: notes auto-save (Day 2), edit modal (Day 3), agent updates, etc.
+    The following fields are convenience aliases — they get merged
+    into trip_metadata so callers don't manage the JSON themselves:
+      - notes     (Week 4: auto-save)
+      - checklist (Week 5 Day 2: pre-trip checklist)
+      - expenses  (Week 5 Day 5: expense tracking)
     """
+    from sqlalchemy.orm.attributes import flag_modified
+
     trip = db.query(Trip).filter(Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
-    # ── Top-level fields ──────────────────────────────────────
+    # ── Top-level columns ─────────────────────────────────────
     if updates.destination     is not None: trip.destination     = updates.destination
     if updates.start_date      is not None: trip.start_date      = updates.start_date
     if updates.end_date        is not None: trip.end_date        = updates.end_date
@@ -283,11 +286,25 @@ async def update_trip(trip_id: int, updates: TripUpdate, db: Session = Depends(g
     if updates.travelers_count is not None: trip.travelers_count = updates.travelers_count
     if updates.status          is not None: trip.status          = updates.status
 
-    # ── Notes → merged into trip_metadata ─────────────────────
-    if updates.notes is not None:
+    # ── trip_metadata merge ───────────────────────────────────
+    # Any metadata field: copy the dict first (never mutate in place —
+    # SQLAlchemy won't detect in-place mutations on JSON columns),
+    # update the key, then reassign + flag_modified for safety.
+    needs_metadata_save = (
+        updates.notes     is not None or
+        updates.checklist is not None or
+        updates.expenses  is not None
+    )
+
+    if needs_metadata_save:
         metadata = dict(trip.trip_metadata) if trip.trip_metadata else {}
-        metadata["notes"] = updates.notes
-        trip.trip_metadata = metadata  # reassign so SQLAlchemy detects the change
+
+        if updates.notes     is not None: metadata["notes"]     = updates.notes
+        if updates.checklist is not None: metadata["checklist"] = updates.checklist
+        if updates.expenses  is not None: metadata["expenses"]  = updates.expenses
+
+        trip.trip_metadata = metadata          # reassign → SQLAlchemy sees new object
+        flag_modified(trip, "trip_metadata")   # belt-and-suspenders for JSON columns
 
     # ── Timestamp ─────────────────────────────────────────────
     trip.updated_at = datetime.utcnow()

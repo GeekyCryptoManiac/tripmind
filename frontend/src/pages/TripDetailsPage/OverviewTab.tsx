@@ -1,24 +1,48 @@
 /**
  * OverviewTab
- * 
+ *
  * Overview tab content showing:
+ *   - [pre-trip]  Pre-Trip Checklist  (Week 5 Day 2)
+ *   - [active]    Live Tools Panel    (Week 5 Day 4)
  *   - About This Trip description
- *   - Key Details grid (Destination, Duration, Budget, Travelers)
+ *   - Key Details grid
  *   - Travel Dates card
+ *   - 💸 Expense Tracker             (Week 5 Day 5 — always visible)
  *   - Travel Alerts placeholder
  *   - AI Recommendations placeholder
  */
 
 import type { Trip } from '../../types';
+import type { TripPhase } from '../../utils/tripStatus';
 import { formatDate } from './helpers';
+import PreTripChecklist from './PreTripChecklist';
+import LiveToolsPanel from './LiveToolsPanel';
+import ExpenseTracker from './ExpenseTracker';
 
 interface OverviewTabProps {
   trip: Trip;
+  phase: TripPhase;
+  onTripUpdate: (updated: Trip) => void;
 }
 
-export default function OverviewTab({ trip }: OverviewTabProps) {
+export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabProps) {
   return (
     <div className="space-y-5">
+
+      {/* ══════════════════════════════════════════════════════
+          PRE-TRIP CHECKLIST (Week 5 Day 2)
+          ══════════════════════════════════════════════════════ */}
+      {phase === 'pre-trip' && (
+        <PreTripChecklist trip={trip} onTripUpdate={onTripUpdate} />
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          LIVE TOOLS PANEL (Week 5 Day 4)
+          ══════════════════════════════════════════════════════ */}
+      {phase === 'active' && (
+        <LiveToolsPanel trip={trip} />
+      )}
+
       {/* About this trip */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h3 className="text-base font-semibold text-gray-900 mb-2">About This Trip</h3>
@@ -73,6 +97,12 @@ export default function OverviewTab({ trip }: OverviewTabProps) {
           </div>
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════════════
+          EXPENSE TRACKER (Week 5 Day 5)
+          Always visible — useful in all trip phases.
+          ══════════════════════════════════════════════════════ */}
+      <ExpenseTracker trip={trip} onTripUpdate={onTripUpdate} />
 
       {/* Travel Alerts — placeholder */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
