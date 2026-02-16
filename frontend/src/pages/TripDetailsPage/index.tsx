@@ -25,6 +25,10 @@
  *   - Compute { phase, daysUntil, currentDay } from trip
  *   - Render <StatusBanner> between progress bar and tab nav
  *   - Pass phase + currentDay down to OverviewTab + ItineraryTab (Days 2–3)
+ *
+ * Week 6 Day 3:
+ *   - Import exportTripPDF from utils/exportPDF
+ *   - "Share Trip" button replaced with "Export PDF"
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -45,6 +49,8 @@ import TravelTab from './TravelTab';
 // ── Week 5 additions ──────────────────────────────────────────
 import StatusBanner from './StatusBanner';
 import { useTripPhase } from '../../utils/tripStatus';
+// ── Week 6 Day 3 ──────────────────────────────────────────────
+import { exportTripPDF } from '../../utils/exportPDF';
 // ─────────────────────────────────────────────────────────────
 import {
   type TabType,
@@ -298,8 +304,15 @@ export default function TripDetailsPage() {
                   >
                     ✏️ Edit Trip
                   </button>
-                  <button className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    📤 Share Trip
+                  {/* Week 6 Day 3: "Share Trip" replaced with PDF export */}
+                  <button
+                    onClick={() => {
+                      exportTripPDF(trip);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    📄 Export PDF
                   </button>
                   <div className="border-t border-gray-100" />
                   <button className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
@@ -329,30 +342,20 @@ export default function TripDetailsPage() {
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/*
-                   * Week 5 Days 2 & 4: OverviewTab will receive phase prop
-                   * to conditionally render PreTripChecklist and LiveToolsPanel.
-                   * Adding it now so Day 2 only touches OverviewTab, not index.tsx.
-                   */}
                   <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
                 </motion.div>
               )}
 
               {/* ▸ ITINERARY TAB ─────────────────────────────── */}
-                {activeTab === 'itinerary' && (
+              {activeTab === 'itinerary' && (
                 <motion.div
-                    key="itinerary"
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.2 }}
+                  key="itinerary"
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2 }}
                 >
-                    {/*
-                     * Week 5 Day 3: ItineraryTab will receive phase + currentDay
-                     * to auto-select today's day and show the TODAY badge.
-                     * Adding them now so Day 3 only touches ItineraryTab.
-                     */}
-                    <ItineraryTab
+                  <ItineraryTab
                     trip={trip}
                     notes={notes}
                     saveStatus={saveStatus}
@@ -360,9 +363,9 @@ export default function TripDetailsPage() {
                     onTripUpdate={setTrip}
                     phase={phase}
                     currentDay={currentDay}
-                    />
+                  />
                 </motion.div>
-                )}
+              )}
 
               {/* ▸ TRAVEL TAB ────────────────────────────────── */}
               {activeTab === 'travel' && (
