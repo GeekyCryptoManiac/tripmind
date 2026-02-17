@@ -116,25 +116,22 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """
     # Check if user with this email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered. Please use a different email."
-        )
-    
-    # Create new user
-    db_user = User(
+    db_user = None
+    if not existing_user:
+        db_user = User(
         email=user.email,
         full_name=user.full_name
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+ 
+    # Create new user
     
-    return db_user
+    return db_user if db_user is not None else existing_user
 
 
-@app.get("/api/users/{user_id}", response_model=UserResponse)
+@app.get("/api/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     """
     Get user information by ID.
