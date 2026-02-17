@@ -70,7 +70,7 @@ async def ping():
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
     try:
-        db.execute(text("SELECT 1"))  # ✅ SQLAlchemy 2.x fix
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
@@ -86,8 +86,6 @@ async def health_check(db: Session = Depends(get_db)):
 
 @app.post("/api/users", response_model=UserResponse, status_code=201)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if user already exists — strict check is correct
-    # because frontend now sends unique UUID-based guest emails
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(
@@ -126,7 +124,15 @@ async def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
         agent = TripMindAgent(db=db, user_id=request.user_id, trip_id=request.trip_id)
         
         print(f"[API] Processing message: {request.message}")
-        response = await agent.process_message(message=request.message)
+        print(f"[API] Chat history length: {len(request.chat_history)}")
+
+        # Convert Pydantic models to dicts for the agent
+        history_dicts = [m.model_dump() for m in request.chat_history]
+
+        response = await agent.process_message(
+            message=request.message,
+            chat_history=history_dicts      # ← passes memory to agent
+        )
         
         print(f"[API] Agent response: {response}")
         

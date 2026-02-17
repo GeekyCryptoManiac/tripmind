@@ -13,12 +13,21 @@ class UserCreate(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=100)
 
+class ChatHistoryMessage(BaseModel):
+    """A single message in the chat history."""
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str = Field(..., description="Message content")
+
 
 class ChatRequest(BaseModel):
     """Schema for chat messages sent to the agent"""
     message: str = Field(..., min_length=1, description="User's message to the agent")
     user_id: int = Field(..., gt=0, description="ID of the user sending the message")
     trip_id: Optional[int] = Field(None, gt=0, description="Optional trip ID for trip-specific chat context")
+    chat_history: Optional[List[ChatHistoryMessage]] = Field(
+        default=[],
+        description="Prior messages in this conversation, oldest first"
+    )
 
 class TripUpdate(BaseModel):
     """Schema for partial trip updates — all fields optional.

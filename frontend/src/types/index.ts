@@ -5,6 +5,10 @@
  *   - ChecklistItem  (Day 2: pre-trip checklist)
  *   - Expense        (Day 5: expense tracking)
  *   - TripMetadata updated with checklist? and expenses?
+ *
+ * Week 6 additions:
+ *   - ChatHistoryMessage  (Day 5: chat memory)
+ *   - ChatRequest updated with trip_id and chat_history
  */
 
 // ── User types ────────────────────────────────────────────────
@@ -43,9 +47,20 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+/**
+ * A single message in the history sent to the backend.
+ * No timestamp — the agent only needs role + content.
+ */
+export interface ChatHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface ChatRequest {
   user_id: number;
   message: string;
+  trip_id?: number;                         // For trip-specific chat context
+  chat_history?: ChatHistoryMessage[];      // Full prior conversation, oldest first
 }
 
 export interface ChatResponse {
@@ -126,30 +141,22 @@ export interface ItineraryConfig {
 }
 
 // ── Week 5: Pre-Trip Checklist ────────────────────────────────
-/**
- * Represents a single pre-trip checklist item.
- * Saved as an array in trip_metadata.checklist via updateTrip().
- */
 export interface ChecklistItem {
-  id: string;               // e.g. "passport", "flights", "insurance"
-  label: string;            // Display text shown in the UI
+  id: string;
+  label: string;
   checked: boolean;
-  checked_at?: string;      // ISO timestamp of when it was checked (optional)
+  checked_at?: string;
 }
 
 // ── Week 5: Expense Tracking ──────────────────────────────────
-/**
- * Represents a single expense entry.
- * Saved as an array in trip_metadata.expenses via updateTrip().
- */
 export interface Expense {
-  id: string;               // uuid or timestamp-based ID
+  id: string;
   amount: number;
-  currency: string;         // e.g. "SGD", "USD", "EUR"
+  currency: string;
   category: ExpenseCategory;
   description: string;
-  date: string;             // YYYY-MM-DD — the day the expense occurred
-  created_at: string;       // ISO timestamp of when it was logged
+  date: string;
+  created_at: string;
 }
 
 export type ExpenseCategory =
@@ -169,6 +176,6 @@ export interface TripMetadata {
   notes?: string;
   description?: string;
   preferences?: string[];
-  checklist?: ChecklistItem[];       // Week 5 Day 2: pre-trip checklist
-  expenses?: Expense[];              // Week 5 Day 5: expense tracking
+  checklist?: ChecklistItem[];
+  expenses?: Expense[];
 }

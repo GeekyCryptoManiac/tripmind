@@ -7,17 +7,21 @@ import {
   ZoomableGroup
 } from 'react-simple-maps';
 import type { Trip, CountryData } from '../types';
-import { groupTripsByCountry, getCountryColor, getCountryHoverColor } from '../utils/countryMapping';
+import {
+  groupTripsByCountry,
+  getCountryColor,
+  getCountryHoverColor,
+  getAlpha3FromGeoName,
+} from '../utils/countryMapping';
 
 interface WorldMapProps {
   trips: Trip[];
   onCountryClick?: (trips: Trip[], countryName: string) => void;
 }
 
-// What we store on hover — both the grouped data and the display name from the geo
 interface HoverInfo {
   data: CountryData;
-  geoName: string; // e.g. "Germany" — from geo.properties.name
+  geoName: string;
 }
 
 const MAP_DATA_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
@@ -25,7 +29,7 @@ const MAP_DATA_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.
 const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
-  // Group trips by country code — keyed by "DEU", "AUS", etc.
+  // Keyed by alpha-3 (e.g. "RUS", "DEU")
   const countryData = groupTripsByCountry(trips);
 
   return (
@@ -41,24 +45,22 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const geoName: string = geo.properties?.name || '';
-                  const geoNameLower = geoName.toLowerCase();
 
-                  // Find matching CountryData by checking trip destinations
-                  const country = geoNameLower
-                    ? Array.from(countryData.values()).find((c) =>
-                        c.trips.some((t) => t.destination.toLowerCase() === geoNameLower)
-                      )
-                    : undefined;
+                  // ── FIX: resolve geo name → alpha-3 → look up countryData ──
+                  // Previously matched by destination string vs geo name,
+                  // which broke for cities ("Moscow" ≠ "Russia").
+                  // Now we convert the geo's own country name to alpha-3 first.
+                  const alpha3 = getAlpha3FromGeoName(geoName);
+                  const country = alpha3 ? countryData.get(alpha3) : undefined;
 
                   const isHovered =
-                    hoverInfo &&
-                    hoverInfo.data.trips.some(
-                      (t) => t.destination.toLowerCase() === geoNameLower
-                    );
+                    hoverInfo !== null &&
+                    alpha3 !== null &&
+                    hoverInfo.data.countryCode === alpha3;
 
                   const fillColor = isHovered
-                    ? getCountryHoverColor(country?.status || null)
-                    : getCountryColor(country?.status || null);
+                    ? getCountryHoverColor(country?.status ?? null)
+                    : getCountryColor(country?.status ?? null);
 
                   return (
                     <Geography
@@ -95,24 +97,20 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
           </ZoomableGroup>
         </ComposableMap>
 
-        {/* Tooltip — now correctly driven by hoverInfo */}
+        {/* Tooltip */}
         {hoverInfo && (
           <div className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
-            {/* Header: geo country name */}
             <p className="text-sm font-semibold text-gray-900">{hoverInfo.geoName}</p>
             <p className="text-xs text-gray-500 mt-0.5">
               {hoverInfo.data.tripCount}{' '}
               {hoverInfo.data.tripCount === 1 ? 'trip' : 'trips'}
             </p>
 
-            {/* Single trip — just show status */}
             {hoverInfo.data.tripCount === 1 && (
               <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-100">
                 <div
                   className="w-2.5 h-2.5 rounded-full"
-                  style={{
-                    backgroundColor: getCountryColor(hoverInfo.data.status),
-                  }}
+                  style={{ backgroundColor: getCountryColor(hoverInfo.data.status) }}
                 />
                 <span className="text-xs text-gray-700">
                   {hoverInfo.data.trips[0].destination}
@@ -123,7 +121,6 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
               </div>
             )}
 
-            {/* Multiple trips — list them all */}
             {hoverInfo.data.tripCount > 1 && (
               <div className="mt-2.5 pt-2.5 border-t border-gray-100 space-y-1.5">
                 {hoverInfo.data.trips.map((trip) => (
@@ -145,7 +142,6 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
               </div>
             )}
 
-            {/* CTA hint */}
             <p className="text-xs text-blue-600 mt-2.5">
               {hoverInfo.data.tripCount === 1
                 ? 'Click to view trip →'
@@ -154,7 +150,6 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
           </div>
         )}
 
-        {/* Controls hint */}
         <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded px-3 py-2">
           <p className="text-xs text-gray-600">🖱️ Scroll to zoom • Drag to pan</p>
         </div>
