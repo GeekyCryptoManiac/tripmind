@@ -6,8 +6,9 @@ from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import StructuredTool
+from langchain.schema import HumanMessage, AIMessage
 from sqlalchemy.orm import Session
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from .tools import (
     plan_and_save_trip,
@@ -37,7 +38,6 @@ class TripMindAgent:
         self.user_id = user_id
         self.trip_id = trip_id
         
-        # If trip_id provided, fetch the trip now so we can bake it into the prompt
         self.trip_context = None
         if trip_id is not None:
             self.trip_context = self._fetch_trip_context(trip_id)
@@ -61,7 +61,7 @@ class TripMindAgent:
         
         trip = self.db.query(Trip).filter(
             Trip.id == trip_id,
-            Trip.user_id == self.user_id  # Security: only allow user's own trips
+            Trip.user_id == self.user_id
         ).first()
         
         if not trip:
@@ -86,7 +86,7 @@ class TripMindAgent:
     def _create_tools(self) -> list:
         """Create LangChain tools."""
         
-        # Tool 1: Plan and save trip (combined!)
+        # Tool 1: Plan and save trip
         def plan_trip_wrapper(
             destination: str,
             start_date: str = None,
@@ -128,7 +128,7 @@ class TripMindAgent:
             description="Get all trips for current user."
         )
         
-        # Tool 3: Get trip details  
+        # Tool 3: Get trip details
         def get_trip_wrapper(trip_id: int) -> dict:
             return get_trip_details(trip_id, self.db)
         
@@ -150,7 +150,7 @@ class TripMindAgent:
             status: str = None
         ) -> dict:
             return update_trip(
-                trip_id, self.db, destination, start_date, 
+                trip_id, self.db, destination, start_date,
                 end_date, duration_days, budget, travelers_count, status
             )
         
@@ -183,8 +183,6 @@ class TripMindAgent:
             )
         )
         
-        
-        
         return [plan_tool, get_trips_tool, trip_details_tool, update_tool, question_tool, itinerary_tool]
     
     def _build_system_prompt(self) -> str:
@@ -203,16 +201,75 @@ YOUR TOOLS:
 - generate_itinerary: Generate day-by-day itinerary
 - answer_question: Answer travel questions
 
-WHEN USER ASKS TO GENERATE ITINERARY:
+─── DESTINATION VALIDATION ───
+Before calling plan_trip, verify the destination is a real, travelable place on Earth.
+
+DO NOT call plan_trip if the destination is:
+- Not a real place (e.g. "the Moon", "Mars", "Hogwarts", "Narnia", "Wakanda")
+- A vague description instead of a place (e.g. "somewhere warm", "a beach", "paradise")
+- A single character or clearly a typo with no recognisable destination
+
+If the destination is invalid, respond naturally explaining why you can't plan that trip.
+Example: "The Moon isn't somewhere I can plan a trip to just yet! Did you mean somewhere
+on Earth? I'd love to help you plan a trip to a real destination."
+
+─── BUDGET & CURRENCY ───
+The system stores all budgets in USD.
+
+If the user states a budget in another currency (e.g. "100 SGD", "500 EUR", "£200"):
+1. Acknowledge the currency they used
+2. Ask them to confirm the USD equivalent, OR convert it yourself using approximate rates
+   and confirm: "100 SGD is roughly $74 USD — shall I use that?"
+3. Only call plan_trip or update_trip once the USD amount is confirmed
+
+Never silently store a non-USD amount as if it were USD.
+
+Common approximate rates for reference:
+- 1 SGD ≈ 0.74 USD
+- 1 EUR ≈ 1.08 USD
+- 1 GBP ≈ 1.27 USD
+- 1 AUD ≈ 0.65 USD
+- 1 JPY ≈ 0.0067 USD
+
+─── DATE VALIDATION ───
+Before saving dates, check:
+- Dates must be in the future. If the user gives a past date, flag it:
+  "June 2020 has already passed — did you mean June 2026?"
+- End date must be after start date. If not, ask for clarification.
+- Vague dates like "next summer" or "Christmas" should be clarified before saving:
+  "When you say next summer, do you mean around June-August 2026?"
+- Extremely long trips (over 90 days) should be confirmed:
+  "Just confirming — you'd like to plan a trip for X days?"
+
+─── CONVERSATION INTENT ───
+Not every message is a trip planning request. Before calling any tool, identify intent:
+
+GREETING or SMALL TALK → respond conversationally, do not call any tool
+  Examples: "hi", "hello", "how are you", "thanks", "ok", "sounds good"
+
+QUESTION about a destination → use answer_question, do not call plan_trip
+  Examples: "what's the weather like in Tokyo?", "is Bali safe to visit?"
+
+TRIP PLANNING request → call plan_trip
+  Examples: "I want to go to Japan", "plan a trip to Bali in June"
+
+UPDATE request → call update_trip with the known trip_id
+  Examples: "change the budget to $2000", "update my dates to December"
+
+─── CONVERSATION MEMORY ───
+You have access to the full conversation history. Always read it before responding.
+- Resolve pronouns ("it", "that", "this trip") from prior messages
+- Treat short follow-up messages as continuations, not new requests
+- Never create a duplicate trip for a destination already discussed in this conversation
+
+─── WHEN USER ASKS TO GENERATE ITINERARY ───
 - For trips 1-5 days: Generate detailed itinerary
-- For trips 6+ days: Warn user that generation may be partial due to length
-  Example response: "Your trip is X days long. I'll generate as much as possible, 
-  but you may need to add remaining days manually or ask me to generate specific days later."
-- Then call generate_itinerary regardless
+- For trips 6+ days: Warn the user that generation may be partial, then proceed
+  Example: "Your trip is X days long. I'll generate the first 5 days — you can ask
+  me to continue or edit the rest manually."
 
 Keep responses friendly and concise!"""
 
-        # If we have trip context, append it so the agent is already aware
         if self.trip_context:
             trip = self.trip_context
             trip_section = f"""
@@ -265,13 +322,64 @@ or update this trip if asked. Use the update_trip tool with trip_id={trip['id']}
             max_iterations=5
         )
     
-    async def process_message(self, message: str) -> Dict[str, Any]:
-        """Process user message."""
+    def _build_lc_history(self, chat_history: List[Dict[str, str]]) -> list:
+        """
+        Convert raw chat history dicts into LangChain message objects.
+
+        Accepts items as either dicts (from JSON) or Pydantic model instances
+        (from ChatHistoryMessage schema) — handles both safely.
+
+        Args:
+            chat_history: List of {"role": "user"|"assistant", "content": "..."}
+
+        Returns:
+            List of HumanMessage / AIMessage objects ready for the prompt.
+        """
+        lc_messages = []
+
+        for msg in chat_history:
+            role    = msg.get("role")    if isinstance(msg, dict) else msg.role
+            content = msg.get("content") if isinstance(msg, dict) else msg.content
+
+            if not role or not content:
+                continue
+
+            if role == "user":
+                lc_messages.append(HumanMessage(content=content))
+            elif role == "assistant":
+                lc_messages.append(AIMessage(content=content))
+            # Any other role (e.g. "system") is intentionally ignored —
+            # system context is injected via the system prompt, not history.
+
+        print(f"[Agent] Built {len(lc_messages)} history messages for context")
+        return lc_messages
+
+    async def process_message(
+        self,
+        message: str,
+        chat_history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Process user message with optional conversation history.
+
+        Args:
+            message: The current user message
+            chat_history: Prior messages as list of dicts with 'role' and 'content'.
+                          Oldest messages first. Comes from ChatRequest.chat_history.
+        """
+        lc_history = self._build_lc_history(chat_history) if chat_history else []
+
         try:
             print(f"\n[Agent] Processing: {message}")
-            result = await self.agent_executor.ainvoke({"input": message})
+            if lc_history:
+                print(f"[Agent] With {len(lc_history)} history messages")
+
+            result = await self.agent_executor.ainvoke({
+                "input": message,
+                "chat_history": lc_history,
+            })
             
-            # Get the trip_id from intermediate steps if trip was created
+            # Extract trip_data from intermediate steps if a trip was created
             trip_data = None
             intermediate_steps = result.get("intermediate_steps", [])
             
@@ -279,11 +387,9 @@ or update this trip if asked. Use the update_trip tool with trip_id={trip['id']}
                 action = step[0]
                 observation = step[1]
                 
-                # Check if plan_trip was called and got a trip_id
                 if hasattr(action, 'tool') and action.tool == "plan_trip":
                     if isinstance(observation, dict) and observation.get('trip_id'):
                         trip_id = observation['trip_id']
-                        # Fetch the full trip from database
                         from ..models import Trip
                         trip = self.db.query(Trip).filter(Trip.id == trip_id).first()
                         if trip:
