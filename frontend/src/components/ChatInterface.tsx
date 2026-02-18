@@ -1,11 +1,12 @@
 /**
- * ChatInterface Component
- * 
- * Two modes:
- *   General (default) → full-page layout, real backend API, used by ChatPage
- *   Trip (embedded)   → compact layout, mock service, used inside TripDetailsPage
- * 
- * All new props are optional — ChatPage needs zero changes.
+ * ChatInterface — Redesigned Week 7 (Qubi-inspired)
+ *
+ * Unified design for both general and trip chat.
+ * Clean bubbles, spacious layout, lavender gradient background.
+ *
+ * Two modes (same UI, different context):
+ *   - General: full-page, creates trips via agent
+ *   - Trip: embedded in TripDetailsPage, trip-specific assistance
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -13,19 +14,17 @@ import { getChatService } from '../services/chatService';
 import type { ChatMessage } from '../types';
 import type { ChatType, TripChatContext } from '../types/chat';
 import TripCard from './TripCard';
-
+import logoAsset from '../assets/tripMind_logo.png'; 
 
 interface ChatInterfaceProps {
   userId: number;
-  chatType?: ChatType;           // 'general' | 'trip'  — default 'general'
-  tripId?: number;               // Required when chatType === 'trip'
-  tripContext?: TripChatContext;  // Passed to service for contextual responses
-  embedded?: boolean;            // true → no header, h-full instead of h-screen
+  chatType?: ChatType;
+  tripId?: number;
+  tripContext?: TripChatContext;
+  embedded?: boolean;
 }
 
-// ── Simple inline markdown renderer ──────────────────────────
-// Converts **bold** to <strong> without dangerouslySetInnerHTML.
-// Keeps everything else as plain text with newline support.
+// ── Markdown renderer ─────────────────────────────────────────
 function renderMessageContent(text: string) {
   const lines = text.split('\n');
   return lines.map((line, lineIdx) => {
@@ -52,28 +51,18 @@ export default function ChatInterface({
   tripContext,
   embedded = false,
 }: ChatInterfaceProps) {
-  // ── Initial greeting depends on chat type ──────────────────
+  // ── Initial greeting ────────────────────────────────────────
   const getInitialMessage = (): ChatMessage => {
     if (chatType === 'trip' && tripContext) {
       return {
         role: 'assistant',
-        content: [
-          `Hi! I'm your AI assistant for your **${tripContext.destination}** trip. 🌍`,
-          '',
-          'I can help you with:',
-          `  • Planning your ${tripContext.durationDays ? tripContext.durationDays + '-day ' : ''}itinerary`,
-          `  • Budget management${tripContext.budget ? ` ($${tripContext.budget.toLocaleString()} total)` : ''}`,
-          '  • Flights & accommodation',
-          '  • Packing & preparation',
-          '',
-          'What would you like to know?',
-        ].join('\n'),
+        content: `Hi! I'm your AI assistant for **${tripContext.destination}**. I can help with itinerary planning, budget management, flights, accommodation, packing, and preparation. What would you like to know?`,
         timestamp: new Date().toISOString(),
       };
     }
     return {
       role: 'assistant',
-      content: "Hi! I'm your AI travel assistant. Tell me where you'd like to go!",
+      content: "Hi! I'm your AI travel assistant. Tell me where you'd like to go and I'll help you plan the perfect trip!",
       timestamp: new Date().toISOString(),
     };
   };
@@ -86,7 +75,6 @@ export default function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get the right service once (general → Real, trip → Mock while flag is on)
   const chatService = getChatService(chatType);
 
   useEffect(() => {
@@ -154,111 +142,148 @@ export default function ChatInterface({
     }
   };
 
-  return (
-    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-gray-50`}>
-      {/* ── Header ──────────────────────────────────────────── */}
-      {!embedded ? (
-        // Full-page header (general chat)
-        <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800">✈️ TripMind</h1>
-          <p className="text-sm text-gray-600">AI Travel Planning Assistant</p>
-        </div>
-      ) : (
-        // Compact context banner (trip chat, embedded)
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">💬</span>
-            <p className="text-sm font-semibold text-blue-800">
-              Trip Assistant — {tripContext?.destination}
-            </p>
-          </div>
-          <span className="text-xs text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full font-medium">
-            Trip-specific
-          </span>
-        </div>
-      )}
+  // ── Empty state ─────────────────────────────────────────────
+  const showEmptyState = messages.length === 1 && !isLoading;
 
-      {/* ── Messages list ───────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[70%] rounded-lg p-4 ${
-                msg.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-800 shadow-sm border border-gray-200'
-              }`}
-            >
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {renderMessageContent(msg.content)}
-              </p>
-              <p
-                className={`text-xs mt-2 ${
-                  msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'
-                }`}
-              >
-                {new Date(msg.timestamp).toLocaleTimeString()}
+  return (
+    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-gradient-to-br from-chat-bg to-purple-100`}>
+      
+      {/* ── Messages ───────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto">
+          
+          {/* Empty state — centered welcome */}
+          {showEmptyState && !embedded && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+              {/* AI icon */}
+              <div className="w-16 h-16 rounded-full bg-chat-avatar flex items-center justify-center mb-6">
+              <img 
+                  src={logoAsset} 
+                  alt="TripMind AI" 
+                  className="w-15 h-15 object-contain" // Slightly smaller than the container for "breathing room"
+                />
+              </div>
+              {/* Headline */}
+              <h1 className="text-4xl font-semibold text-ink mb-3">
+                How can we <span className="text-purple-600">assist</span> you today?
+              </h1>
+              {/* Subtitle */}
+              <p className="text-ink-secondary max-w-md leading-relaxed">
+                {chatType === 'trip' && tripContext
+                  ? `Get personalized help for your ${tripContext.destination} trip. Ask about itineraries, budgets, bookings, or anything else.`
+                  : "Tell me where you'd like to go. I'll build your itinerary, manage your budget, and keep every detail organized."}
               </p>
             </div>
-          </div>
-        ))}
+          )}
 
-        {/* Typing indicator */}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+          {/* Message list */}
+          {!showEmptyState && messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex gap-3 mb-6 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+            >
+              {/* Avatar */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${
+                msg.role === 'user'
+                  ? 'bg-purple-200 text-purple-800'
+                  : 'bg-chat-avatar text-white'
+              }`}>
+                {msg.role === 'user' ? 'U' : '🤖'}
+              </div>
+
+              {/* Message bubble */}
+              <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                <div className={`rounded-2xl px-5 py-3 ${
+                  msg.role === 'user'
+                    ? 'bg-chat-user text-ink'
+                    : 'bg-chat-ai text-ink shadow-sm ring-1 ring-black/5'
+                }`}>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {renderMessageContent(msg.content)}
+                  </p>
+                </div>
+                {/* Timestamp */}
+                <p className="text-xs text-ink-tertiary mt-1.5 px-2">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
             </div>
-          </div>
-        )}
+          ))}
 
-        {/* Trip card preview (general chat only — when agent creates a trip) */}
-        {lastTripData && chatType === 'general' && (
-          <div className="flex justify-center">
-            <TripCard trip={lastTripData} />
-          </div>
-        )}
+          {/* Typing indicator */}
+          {isLoading && (
+            <div className="flex gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-chat-avatar flex items-center justify-center flex-shrink-0">
+                <span className="text-sm">🤖</span>
+              </div>
+              <div className="bg-chat-ai rounded-2xl px-5 py-3 shadow-sm ring-1 ring-black/5">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          )}
 
-        <div ref={messagesEndRef} />
+          {/* Trip card preview (general chat only) */}
+          {lastTripData && chatType === 'general' && (
+            <div className="flex justify-center mb-6">
+              <TripCard trip={lastTripData} />
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* ── Input bar ───────────────────────────────────────── */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={
-              chatType === 'trip'
-                ? `Ask about your ${tripContext?.destination || 'trip'}...`
-                : 'Type your message... (Shift+Enter for new line)'
-            }
-            className="flex-1 resize-none border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={2}
-            disabled={isLoading}
-          />
+      {/* ── Input bar (fixed bottom) ───────────────────────── */}
+      <div className="border-t border-purple-200 bg-white/80 backdrop-blur-md p-4">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          {/* Left icon button */}
+          <button className="w-12 h-12 rounded-full bg-ink flex items-center justify-center flex-shrink-0 text-white hover:bg-ink/80 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </button>
+
+          {/* Input */}
+          <div className="flex-1 bg-chat-input rounded-full px-5 py-3 flex items-center gap-3 ring-1 ring-purple-200">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={
+                chatType === 'trip' && tripContext
+                  ? `Ask about your ${tripContext.destination} trip...`
+                  : 'Type your prompt here'
+              }
+              className="flex-1 resize-none bg-transparent text-sm text-ink placeholder-ink-tertiary focus:outline-none"
+              rows={1}
+              disabled={isLoading}
+            />
+            
+            {/* Microphone icon — commented out (not functioning) */}
+            {/* <button className="text-ink-tertiary hover:text-ink transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </button> */}
+          </div>
+
+          {/* Send button */}
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="w-12 h-12 rounded-full bg-chat-send flex items-center justify-center flex-shrink-0 text-ink hover:bg-purple-400 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Sending...' : 'Send'}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-400 text-center mt-2">
-          {embedded
-            ? 'Try: "What\'s the best budget breakdown?" or "Help me plan my itinerary"'
-            : 'Try: "Plan a 5-day trip to Tokyo in March with a $2000 budget"'}
-        </p>
       </div>
     </div>
   );

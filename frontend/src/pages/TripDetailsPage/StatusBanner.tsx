@@ -1,16 +1,15 @@
 /**
- * StatusBanner
+ * StatusBanner — Redesigned Week 7
  *
- * A full-width contextual banner rendered between the progress bar
- * and the tab navigation in TripDetailsPage.
+ * Contextual banner between progress bar and tab navigation.
+ * Returns null for 'planning' phase.
  *
- * Returns null for the 'planning' phase — no visual noise when
- * the trip is still being planned.
+ * Color palette harmonized with app-wide tokens:
+ *   pre-trip  → amber-50 (warm, matches planning status)
+ *   active    → emerald-50 (soft, matches booked status)
+ *   completed → brand-50 (our blue)
  *
- * Visual spec per handoff:
- *   pre-trip  → amber-50 bg, amber-200 border, amber-600 text
- *   active    → green-50 bg, green-200 border, green-700 text
- *   completed → gray-50 bg,  gray-200 border,  gray-500 text
+ * All emojis replaced with SVG icons for visual consistency.
  */
 
 import { motion } from 'framer-motion';
@@ -18,54 +17,80 @@ import type { TripPhase } from '../../utils/tripStatus';
 
 interface StatusBannerProps {
   phase: TripPhase;
-  daysUntil: number;     // days until trip starts  (pre-trip only)
-  currentDay: number;    // which day of trip today is (active only)
-  totalDays: number;     // trip.duration_days
-  destination: string;   // for personalised copy
+  daysUntil: number;
+  currentDay: number;
+  totalDays: number;
+  destination: string;
 }
 
-// ── Per-phase configuration ────────────────────────────────────
+// ── SVG Icons ─────────────────────────────────────────────────
+const ClockIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const AirplaneIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+      d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+// ── Per-phase configuration ───────────────────────────────────
 type PhaseConfig = {
-  wrapperBg:    string;
-  wrapperBorder: string;
-  badgeBg:      string;
-  badgeText:    string;
-  badgeLabel:   string;
-  titleColor:   string;
+  bg: string;
+  border: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeLabel: string;
+  titleColor: string;
   subtitleColor: string;
-  icon:         string;
+  iconColor: string;
+  icon: React.ComponentType;
 };
 
 const PHASE_CONFIG: Record<Exclude<TripPhase, 'planning'>, PhaseConfig> = {
   'pre-trip': {
-    wrapperBg:     'bg-amber-50',
-    wrapperBorder: 'border-amber-200',
-    badgeBg:       'bg-amber-100',
-    badgeText:     'text-amber-700',
-    badgeLabel:    'PRE-TRIP',
-    titleColor:    'text-amber-800',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200/50',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-700',
+    badgeLabel: 'PRE-TRIP',
+    titleColor: 'text-amber-800',
     subtitleColor: 'text-amber-700',
-    icon:          '⏳',
+    iconColor: 'text-amber-600',
+    icon: ClockIcon,
   },
   active: {
-    wrapperBg:     'bg-green-50',
-    wrapperBorder: 'border-green-200',
-    badgeBg:       'bg-green-100',
-    badgeText:     'text-green-700',
-    badgeLabel:    'LIVE',
-    titleColor:    'text-green-800',
-    subtitleColor: 'text-green-700',
-    icon:          '✈️',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200/50',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-700',
+    badgeLabel: 'LIVE',
+    titleColor: 'text-emerald-800',
+    subtitleColor: 'text-emerald-700',
+    iconColor: 'text-emerald-600',
+    icon: AirplaneIcon,
   },
   completed: {
-    wrapperBg:     'bg-gray-50',
-    wrapperBorder: 'border-gray-200',
-    badgeBg:       'bg-gray-100',
-    badgeText:     'text-gray-500',
-    badgeLabel:    'COMPLETED',
-    titleColor:    'text-gray-700',
-    subtitleColor: 'text-gray-500',
-    icon:          '✅',
+    bg: 'bg-brand-50',
+    border: 'border-brand-200/50',
+    badgeBg: 'bg-brand-100',
+    badgeText: 'text-brand-700',
+    badgeLabel: 'COMPLETED',
+    titleColor: 'text-brand-800',
+    subtitleColor: 'text-brand-700',
+    iconColor: 'text-brand-600',
+    icon: CheckCircleIcon,
   },
 };
 
@@ -76,25 +101,24 @@ export default function StatusBanner({
   totalDays,
   destination,
 }: StatusBannerProps) {
-  // Planning phase → no banner
   if (phase === 'planning') return null;
 
   const cfg = PHASE_CONFIG[phase];
+  const Icon = cfg.icon;
 
-  // ── Dynamic title & subtitle per phase ──────────────────────
+  // ── Dynamic copy ────────────────────────────────────────────
   const title = {
-    'pre-trip':  `Trip starts in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`,
-    active:      `Day ${currentDay} of ${totalDays} — Trip in Progress!`,
-    completed:   `Trip to ${destination} is complete`,
+    'pre-trip': `Trip starts in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`,
+    active: `Day ${currentDay} of ${totalDays} — Trip in Progress!`,
+    completed: `Trip to ${destination} is complete`,
   }[phase];
 
   const subtitle = {
-    'pre-trip':  `Get ready for ${destination}! Check your pre-trip checklist in the Overview tab.`,
-    active:      `You're currently in ${destination}. Check today's activities in the Itinerary tab.`,
-    completed:   `Hope it was an amazing adventure! Your trip details are preserved below.`,
+    'pre-trip': `Get ready for ${destination}! Check your pre-trip checklist in the Overview tab.`,
+    active: `You're currently in ${destination}. Check today's activities in the Itinerary tab.`,
+    completed: `Hope it was an amazing adventure! Your trip details are preserved below.`,
   }[phase];
 
-  // ── Inline progress bar (active only) ───────────────────────
   const progressPct = Math.min(100, Math.round((currentDay / Math.max(totalDays, 1)) * 100));
 
   return (
@@ -102,30 +126,23 @@ export default function StatusBanner({
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`${cfg.wrapperBg} border-b ${cfg.wrapperBorder}`}
+      className={`${cfg.bg} border-b ${cfg.border}`}
     >
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center gap-3">
-
           {/* Icon */}
-          <span className="text-xl flex-shrink-0" role="img" aria-hidden>
-            {cfg.icon}
-          </span>
+          <div className={`flex-shrink-0 ${cfg.iconColor}`}>
+            <Icon />
+          </div>
 
           {/* Text content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Phase badge */}
-              <span
-                className={`
-                  inline-flex items-center px-2 py-0.5 rounded-full
-                  text-xs font-bold tracking-wide
-                  ${cfg.badgeBg} ${cfg.badgeText}
-                `}
-              >
+              {/* Badge */}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide ${cfg.badgeBg} ${cfg.badgeText}`}>
                 {cfg.badgeLabel}
               </span>
-              {/* Main title */}
+              {/* Title */}
               <span className={`text-sm font-semibold ${cfg.titleColor}`}>
                 {title}
               </span>
@@ -135,29 +152,26 @@ export default function StatusBanner({
             </p>
           </div>
 
-          {/* ── Right side: contextual indicator ─────────────── */}
-
-          {/* Pre-trip: large countdown number */}
+          {/* Right indicator */}
           {phase === 'pre-trip' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="text-2xl font-bold text-amber-600 leading-none">
+              <div className="text-2xl font-bold text-amber-700 leading-none">
                 {daysUntil}
               </div>
-              <div className="text-xs text-amber-500 mt-0.5">
+              <div className="text-xs text-amber-600 mt-0.5">
                 days to go
               </div>
             </div>
           )}
 
-          {/* Active: mini progress bar */}
           {phase === 'active' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="text-xs text-green-600 font-medium mb-1">
+              <div className="text-xs text-emerald-700 font-medium mb-1">
                 {progressPct}% through
               </div>
-              <div className="w-28 bg-green-200 rounded-full h-1.5 overflow-hidden">
+              <div className="w-28 bg-emerald-200 rounded-full h-1.5 overflow-hidden">
                 <motion.div
-                  className="bg-green-500 h-1.5 rounded-full"
+                  className="bg-emerald-500 h-1.5 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPct}%` }}
                   transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
@@ -165,8 +179,6 @@ export default function StatusBanner({
               </div>
             </div>
           )}
-
-          {/* Completed: no right-side widget needed */}
         </div>
       </div>
     </motion.div>
