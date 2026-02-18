@@ -1,34 +1,12 @@
 /**
- * TripDetailsPage - Orchestrator
- * 
- * Responsibilities:
- *   - Fetch trip data from API
- *   - Manage all page state (activeTab, notes, modals, etc.)
- *   - Notes auto-save logic (debounced)
- *   - Compose sub-components
- *   - Handle loading/error states
- * 
- * Sub-components:
- *   - TripDetailsHero
- *   - TripDetailsProgress
- *   - StatusBanner          ← Week 5: phase-aware banner
- *   - TripSummaryCard
- *   - OverviewTab
- *   - ItineraryTab
- *   - TravelTab
- *   - ChatInterface (inline - just a wrapper)
- *   - TripEditModal (already extracted)
+ * TripDetailsPage — Redesigned Week 7
  *
- * Week 5 changes:
- *   - Import useTripPhase from utils/tripStatus
- *   - Import StatusBanner
- *   - Compute { phase, daysUntil, currentDay } from trip
- *   - Render <StatusBanner> between progress bar and tab nav
- *   - Pass phase + currentDay down to OverviewTab + ItineraryTab (Days 2–3)
- *
- * Week 6 Day 3:
- *   - Import exportTripPDF from utils/exportPDF
- *   - "Share Trip" button replaced with "Export PDF"
+ * Visual updates:
+ *   - Tab emojis replaced with SVG icons
+ *   - Brand blue instead of bright blue throughout
+ *   - Surface-bg instead of gray-50
+ *   - Simplified TripSummaryCard interface (self-contained status rendering)
+ *   - Warm color palette for loading/menu states
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -46,25 +24,73 @@ import TripSummaryCard from './TripSummaryCard';
 import OverviewTab from './OverviewTab';
 import ItineraryTab from './ItineraryTab';
 import TravelTab from './TravelTab';
-// ── Week 5 additions ──────────────────────────────────────────
 import StatusBanner from './StatusBanner';
 import { useTripPhase } from '../../utils/tripStatus';
-// ── Week 6 Day 3 ──────────────────────────────────────────────
 import { exportTripPDF } from '../../utils/exportPDF';
-// ─────────────────────────────────────────────────────────────
-import {
-  type TabType,
-  type TravelSubTab,
-  getStatusStyles,
-  getProgressTasks,
-} from './helpers';
+import { type TabType, type TravelSubTab, getProgressTasks } from './helpers';
+
+// ── SVG Icons ─────────────────────────────────────────────────
+const OverviewIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+);
+
+const CalendarIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const PlaneIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+  </svg>
+);
+
+const ChatIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
+const EditIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const DocumentIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const TrashIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const DotsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+  </svg>
+);
 
 export default function TripDetailsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { userId } = useUser();
 
-  // ── State ─────────────────────────────────────────────────
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +106,7 @@ export default function TripDetailsPage() {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasInitializedNotes = useRef(false);
 
-  // ── Fetch trip on mount ─────────────────────────────────────
+  // ── Fetch trip ────────────────────────────────────────────
   useEffect(() => {
     if (!tripId) {
       navigate('/trips');
@@ -92,7 +118,6 @@ export default function TripDetailsPage() {
         setIsLoading(true);
         const fetched = await apiService.getTrip(parseInt(tripId));
         setTrip(fetched);
-        // Pre-fill notes from metadata if saved
         if (fetched.trip_metadata?.notes) {
           setNotes(fetched.trip_metadata.notes);
         }
@@ -108,7 +133,7 @@ export default function TripDetailsPage() {
     fetchTrip();
   }, [tripId, navigate]);
 
-  // ── Close 3-dot menu on outside click ─────────────────────
+  // ── Close menu on outside click ───────────────────────────
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
       setMenuOpen(false);
@@ -120,9 +145,8 @@ export default function TripDetailsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuOpen, handleClickOutside]);
 
-  // ── Debounced auto-save for notes ─────────────────────────
+  // ── Auto-save notes ───────────────────────────────────────
   useEffect(() => {
-    // Don't fire on the initial populate from the fetch
     if (!hasInitializedNotes.current) return;
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -131,14 +155,11 @@ export default function TripDetailsPage() {
       setSaveStatus('saving');
       try {
         await apiService.updateTrip(parseInt(tripId!), { notes });
-
-        // Update local trip state so the progress bar ticks immediately
         setTrip((prev) =>
           prev ? { ...prev, trip_metadata: { ...prev.trip_metadata, notes } } : prev
         );
-
         setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000); // auto-clear after 2s
+        setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (err) {
         console.error('Failed to save notes:', err);
         setSaveStatus('error');
@@ -155,6 +176,10 @@ export default function TripDetailsPage() {
   const completedCount = progressTasks.filter((t) => t.completed).length;
   const progressPct = trip ? Math.round((completedCount / progressTasks.length) * 100) : 0;
 
+  // Progress bar color: amber < 50%, brand-500 50–99%, emerald-500 100%
+  const progressColor =
+    progressPct === 100 ? '#10b981' : progressPct >= 50 ? '#3b82f6' : '#f59e0b';
+
   const tripContext: TripChatContext | undefined = trip
     ? {
         tripId: trip.id,
@@ -168,13 +193,15 @@ export default function TripDetailsPage() {
       }
     : undefined;
 
+  const { phase, daysUntil, currentDay } = trip ? useTripPhase(trip) : { phase: 'planning' as const, daysUntil: 0, currentDay: 1 };
+
   // ── Loading state ─────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading trip details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4" />
+          <p className="text-ink-secondary">Loading trip details...</p>
         </div>
       </div>
     );
@@ -184,12 +211,17 @@ export default function TripDetailsPage() {
   if (error || !trip) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center max-w-md mx-auto">
-          <p className="text-4xl mb-3">😕</p>
-          <p className="text-red-800 font-medium mb-2">{error || 'Trip not found'}</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center max-w-md mx-auto">
+          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-amber-800 font-medium mb-2">{error || 'Trip not found'}</p>
           <button
             onClick={() => navigate('/trips')}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="text-brand-600 hover:text-brand-700 text-sm font-medium"
           >
             ← Back to Trips
           </button>
@@ -198,41 +230,15 @@ export default function TripDetailsPage() {
     );
   }
 
-  // ── Resolved values ───────────────────────────────────────
-  const statusStyles = getStatusStyles(trip.status);
-  const statusLabel = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
-
-  // Progress bar color: amber < 50%, blue 50–99%, green 100%
-  const progressColor =
-    progressPct === 100 ? '#16a34a' : progressPct >= 50 ? '#2563eb' : '#f59e0b';
-
-  // Year for the date range display
-  const endYear = trip.end_date
-    ? new Date(trip.end_date).getFullYear()
-    : trip.start_date
-    ? new Date(trip.start_date).getFullYear()
-    : null;
-
-  // ── Week 5: Trip phase detection ──────────────────────────
-  // Called here (after null guard) so trip is always a Trip object.
-  // Passed down to StatusBanner; will also be passed to OverviewTab
-  // (Day 2: checklist, Day 4: live tools) and ItineraryTab (Day 3: today-view).
-  const { phase, daysUntil, currentDay } = useTripPhase(trip);
-  // ─────────────────────────────────────────────────────────
-
   // ──────────────────────────────────────────────────────────
   // RENDER
   // ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ══════════════════════════════════════════════════════
-          HERO
-          ══════════════════════════════════════════════════════ */}
-      <TripDetailsHero trip={trip} onBack={() => navigate('/trips')} />
+    <div className="min-h-screen bg-surface-bg">
+      {/* Hero */}
+      <TripDetailsHero trip={trip} phase={phase} onBack={() => navigate('/trips')} />
 
-      {/* ══════════════════════════════════════════════════════
-          PROGRESS BAR
-          ══════════════════════════════════════════════════════ */}
+      {/* Progress Bar */}
       <TripDetailsProgress
         progressPct={progressPct}
         progressColor={progressColor}
@@ -242,11 +248,7 @@ export default function TripDetailsPage() {
         onToggle={() => setProgressExpanded(!progressExpanded)}
       />
 
-      {/* ══════════════════════════════════════════════════════
-          STATUS BANNER (Week 5)
-          Sits between the progress bar and the sticky tab nav.
-          Returns null for 'planning' phase — no extra chrome.
-          ══════════════════════════════════════════════════════ */}
+      {/* Status Banner */}
       <StatusBanner
         phase={phase}
         daysUntil={daysUntil}
@@ -255,32 +257,29 @@ export default function TripDetailsPage() {
         destination={trip.destination}
       />
 
-      {/* ══════════════════════════════════════════════════════
-          TAB NAVIGATION — sticky + 3-dot menu
-          ══════════════════════════════════════════════════════ */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-surface-muted sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between">
             {/* Tabs */}
             <div className="flex gap-0.5">
-              {(
-                [
-                  { key: 'overview', label: 'Overview', emoji: '📋' },
-                  { key: 'itinerary', label: 'Itinerary', emoji: '📅' },
-                  { key: 'travel', label: 'Travel', emoji: '✈️' },
-                  { key: 'chat', label: 'Chat', emoji: '💬' },
-                ] as const
-              ).map(({ key, label, emoji }) => (
+              {[
+                { key: 'overview' as const, label: 'Overview', Icon: OverviewIcon },
+                { key: 'itinerary' as const, label: 'Itinerary', Icon: CalendarIcon },
+                { key: 'travel' as const, label: 'Travel', Icon: PlaneIcon },
+                { key: 'chat' as const, label: 'Chat', Icon: ChatIcon },
+              ].map(({ key, label, Icon }) => (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === key
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'border-brand-600 text-brand-600'
+                      : 'border-transparent text-ink-secondary hover:text-ink hover:bg-surface-bg'
                   }`}
                 >
-                  {emoji} {label}
+                  <Icon />
+                  {label}
                 </button>
               ))}
             </div>
@@ -289,34 +288,36 @@ export default function TripDetailsPage() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none"
+                className="p-2 text-ink-tertiary hover:text-ink hover:bg-surface-bg rounded-lg transition-colors"
               >
-                ⋮
+                <DotsIcon />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden z-20">
                   <button
                     onClick={() => {
                       setEditModalOpen(true);
                       setMenuOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
                   >
-                    ✏️ Edit Trip
+                    <EditIcon />
+                    Edit Trip
                   </button>
-                  {/* Week 6 Day 3: "Share Trip" replaced with PDF export */}
                   <button
                     onClick={() => {
                       exportTripPDF(trip);
                       setMenuOpen(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
                   >
-                    📄 Export PDF
+                    <DocumentIcon />
+                    Export PDF
                   </button>
-                  <div className="border-t border-gray-100" />
-                  <button className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                    🗑️ Delete Trip
+                  <div className="border-t border-surface-muted" />
+                  <button className="w-full text-left px-4 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors flex items-center gap-2">
+                    <TrashIcon />
+                    Delete Trip
                   </button>
                 </div>
               )}
@@ -325,15 +326,12 @@ export default function TripDetailsPage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          MAIN BODY — two-column layout
-          ══════════════════════════════════════════════════════ */}
+      {/* Main Body */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* ── LEFT: Tab content (scrollable) ─────────────── */}
+          {/* Left: Tab content */}
           <div className="flex-1" style={{ minWidth: 0 }}>
             <AnimatePresence mode="wait">
-              {/* ▸ OVERVIEW TAB ──────────────────────────────── */}
               {activeTab === 'overview' && (
                 <motion.div
                   key="overview"
@@ -346,7 +344,6 @@ export default function TripDetailsPage() {
                 </motion.div>
               )}
 
-              {/* ▸ ITINERARY TAB ─────────────────────────────── */}
               {activeTab === 'itinerary' && (
                 <motion.div
                   key="itinerary"
@@ -367,7 +364,6 @@ export default function TripDetailsPage() {
                 </motion.div>
               )}
 
-              {/* ▸ TRAVEL TAB ────────────────────────────────── */}
               {activeTab === 'travel' && (
                 <motion.div
                   key="travel"
@@ -384,11 +380,10 @@ export default function TripDetailsPage() {
                 </motion.div>
               )}
 
-              {/* ▸ CHAT TAB ──────────────────────────────────── */}
               {activeTab === 'chat' && (
                 <motion.div
                   key="chat"
-                  className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+                  className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm overflow-hidden"
                   style={{ height: '520px' }}
                   initial={{ opacity: 0, x: 8 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -407,23 +402,19 @@ export default function TripDetailsPage() {
             </AnimatePresence>
           </div>
 
-          {/* ── RIGHT: Sticky summary card ─────────────────── */}
+          {/* Right: Sticky summary card */}
           <TripSummaryCard
             trip={trip}
+            phase={phase}
             progressPct={progressPct}
             progressColor={progressColor}
-            statusStyles={statusStyles}
-            statusLabel={statusLabel}
-            endYear={endYear}
             onChatClick={() => setActiveTab('chat')}
             onItineraryClick={() => setActiveTab('itinerary')}
           />
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          TRIP EDIT MODAL
-          ══════════════════════════════════════════════════════ */}
+      {/* Trip Edit Modal */}
       {trip && (
         <TripEditModal
           trip={trip}

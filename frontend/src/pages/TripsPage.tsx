@@ -19,6 +19,7 @@ import type { Trip } from '../types';
 import WorldMap from '../components/WorldMap';
 import MapLegend from '../components/MapLegend';
 import TripCard from '../components/TripCard';
+import { useTripPhase } from '../utils/tripStatus';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -142,25 +143,28 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
       </div>
 
       <div className="px-7 pb-7 space-y-2.5">
-        {trips.map((trip) => (
-          <button
-            key={trip.id}
-            onClick={() => onSelect(trip)}
-            className="w-full text-left bg-surface-bg hover:bg-brand-50 border border-surface-muted hover:border-brand-200 rounded-2xl p-4 transition-all group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="font-semibold text-ink group-hover:text-brand-700 transition-colors">
-                {trip.destination}
-              </p>
-              <StatusBadge status={trip.status} />
-            </div>
-            <div className="flex items-center gap-3 text-xs text-ink-tertiary">
-              {trip.start_date && <span>{formatDate(trip.start_date)}</span>}
-              {trip.budget && <span>· ${trip.budget.toLocaleString()}</span>}
-              {trip.travelers_count > 0 && <span>· {trip.travelers_count} travelers</span>}
-            </div>
-          </button>
-        ))}
+        {trips.map((trip) => {
+            const { phase } = useTripPhase(trip);
+            return (
+              <button
+                key={trip.id}
+                onClick={() => onSelect(trip)}
+                className="w-full text-left bg-surface-bg hover:bg-brand-50 border border-surface-muted hover:border-brand-200 rounded-2xl p-4 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="font-semibold text-ink group-hover:text-brand-700 transition-colors">
+                    {trip.destination}
+                  </p>
+                  <StatusBadge status={phase} />
+                </div>
+                <div className="flex items-center gap-3 text-xs text-ink-tertiary">
+                  {trip.start_date && <span>{formatDate(trip.start_date)}</span>}
+                  {trip.budget && <span>· ${trip.budget.toLocaleString()}</span>}
+                  {trip.travelers_count > 0 && <span>· {trip.travelers_count} travelers</span>}
+                </div>
+              </button>
+            );
+        })}
       </div>
     </motion.div>
   </motion.div>
@@ -241,10 +245,20 @@ const TripsPage: FC = () => {
     fetchTrips();
   }, [userId]);
 
+  // Compute phase-based counts (not stored status)
   const tripCounts = {
-    planning:  trips.filter((t) => t.status === 'planning').length,
-    booked:    trips.filter((t) => t.status === 'booked').length,
-    completed: trips.filter((t) => t.status === 'completed').length,
+    planning:  trips.filter((t) => {
+      const { phase } = useTripPhase(t);
+      return phase === 'planning';
+    }).length,
+    booked:    trips.filter((t) => {
+      const { phase } = useTripPhase(t);
+      return phase === 'pre-trip' || phase === 'active'; // Both count as "booked"
+    }).length,
+    completed: trips.filter((t) => {
+      const { phase } = useTripPhase(t);
+      return phase === 'completed';
+    }).length,
   };
 
   const handleCountryClick = (countryTrips: Trip[], countryName: string) => {
@@ -457,16 +471,19 @@ const TripsPage: FC = () => {
             transition={{ duration: 0.25 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {trips.map((trip, i) => (
-              <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.04 }}
-              >
-                <TripCard trip={trip} onClick={() => navigate(`/trips/${trip.id}`)} />
-              </motion.div>
-            ))}
+            {trips.map((trip, i) => {
+              const { phase } = useTripPhase(trip); // Compute phase per trip
+              return (
+                <motion.div
+                  key={trip.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04 }}
+                >
+                  <TripCard trip={trip} phase={phase} onClick={() => navigate(`/trips/${trip.id}`)} />
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
 

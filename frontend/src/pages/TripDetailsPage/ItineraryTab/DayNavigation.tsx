@@ -1,17 +1,13 @@
 /**
- * DayNavigation
+ * DayNavigation — Redesigned Week 7
  *
  * Horizontal scrollable day navigation bar.
- * Shows days 1–N with visual indicators:
- *   - Filled dot:   day has itinerary data
- *   - Outline dot:  day is empty
- *   - Blue card:    currently selected day
- *
- * Week 5 Day 3 additions:
- *   - todayDay prop: when provided (phase === 'active'), that day
- *     gets a green TODAY badge below its number and a pulsing
- *     green ring so it's immediately visible in a long list.
- *   - The TODAY day is auto-scrolled into view on mount.
+ * 
+ * Visual updates:
+ *   - Brand blue for selected day instead of bright blue
+ *   - Emerald for TODAY indicator instead of bright green
+ *   - Surface-bg for unselected days
+ *   - Warm border instead of gray
  */
 
 import { useRef, useEffect } from 'react';
@@ -21,7 +17,6 @@ interface DayNavigationProps {
   selectedDay: number;
   daysWithItinerary: number[];
   onSelectDay: (day: number) => void;
-  /** Which day number is "today". Only set when phase === 'active'. */
   todayDay?: number;
 }
 
@@ -34,8 +29,6 @@ export default function DayNavigation({
 }: DayNavigationProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the selected day whenever it changes.
-  // On first render with an active trip this jumps straight to today.
   useEffect(() => {
     if (scrollContainerRef.current) {
       const target = scrollContainerRef.current.querySelector(
@@ -48,15 +41,15 @@ export default function DayNavigation({
   }, [selectedDay]);
 
   return (
-    <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div className="bg-white border-b border-surface-muted sticky top-0 z-10">
       <div
         ref={scrollContainerRef}
         className="flex gap-2 px-4 py-3 overflow-x-auto"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
-          const isSelected  = day === selectedDay;
-          const isToday     = todayDay !== undefined && day === todayDay;
+          const isSelected = day === selectedDay;
+          const isToday = todayDay !== undefined && day === todayDay;
           const hasItinerary = daysWithItinerary.includes(day);
 
           return (
@@ -66,15 +59,15 @@ export default function DayNavigation({
               onClick={() => onSelectDay(day)}
               className={`
                 relative flex-shrink-0 flex flex-col items-center justify-center
-                w-16 rounded-lg transition-all duration-200
+                w-16 rounded-xl transition-all duration-200
                 ${isToday ? 'pb-4' : 'pb-2'}
                 pt-2
                 ${
                   isSelected
-                    ? 'bg-blue-600 text-white scale-105 shadow-lg'
+                    ? 'bg-brand-600 text-white scale-105 shadow-md'
                     : isToday
-                    ? 'bg-green-50 text-green-800 hover:bg-green-100 ring-2 ring-green-400 ring-offset-1'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 ring-2 ring-emerald-400 ring-offset-1'
+                    : 'bg-surface-bg text-ink-secondary hover:bg-surface-muted'
                 }
               `}
             >
@@ -92,17 +85,17 @@ export default function DayNavigation({
                         ? isSelected
                           ? 'bg-white'
                           : isToday
-                          ? 'bg-green-500'
-                          : 'bg-blue-600'
+                          ? 'bg-emerald-500'
+                          : 'bg-brand-600'
                         : isSelected
-                        ? 'bg-white/30 border border-white'
-                        : 'bg-gray-300 border border-gray-400'
+                        ? 'bg-white/30 ring-1 ring-white'
+                        : 'bg-surface-muted ring-1 ring-ink-tertiary'
                     }
                   `}
                 />
               </div>
 
-              {/* TODAY badge — only shown when this is today's day */}
+              {/* TODAY badge */}
               {isToday && (
                 <span
                   className={`
@@ -112,7 +105,7 @@ export default function DayNavigation({
                     ${
                       isSelected
                         ? 'bg-white/20 text-white'
-                        : 'bg-green-500 text-white'
+                        : 'bg-emerald-500 text-white'
                     }
                   `}
                 >
