@@ -36,60 +36,126 @@ function formatDate(dateString: string | null): string {
 
 // ── Unsplash API integration ──────────────────────────────────
 
-// Session-level cache: destination → { url, photographer, profileUrl }
-const photoCache = new Map<string, { url: string; photographer: string; profileUrl: string }>();
-
 interface UnsplashPhoto {
   url: string;
   photographer: string;
   profileUrl: string;
 }
 
+interface CachedPhoto extends UnsplashPhoto {
+  timestamp: number;
+}
+
+// ── Solution 4: localStorage cache ────────────────────────────
+const CACHE_KEY = 'tripmind_unsplash_cache';
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Initialize cache from localStorage on module load
+const photoCache = new Map<string, CachedPhoto>(
+  (() => {
+    try {
+      const stored = localStorage.getItem(CACHE_KEY);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      // Filter out expired entries on init
+      return Array.isArray(parsed)
+        ? parsed.filter(([_, photo]: [string, CachedPhoto]) => 
+            Date.now() - photo.timestamp < CACHE_TTL
+          )
+        : [];
+    } catch (err) {
+      console.warn('[TripCard] Failed to load photo cache:', err);
+      return [];
+    }
+  })()
+);
+
+// Persist cache to localStorage
+function saveCache() {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify([...photoCache.entries()]));
+  } catch (err) {
+    console.warn('[TripCard] Failed to save photo cache:', err);
+  }
+}
+
+// Check if cached photo is still valid
+function isCacheValid(cached: CachedPhoto): boolean {
+  return Date.now() - cached.timestamp < CACHE_TTL;
+}
+
+// ── Solution 1: In-flight request deduplication ───────────────
+const inflightRequests = new Map<string, Promise<UnsplashPhoto | null>>();
+
 /** Fetch a random photo from Unsplash API for a destination.
- *  Cached per session to avoid redundant API calls. */
+ *  Cached in localStorage for 7 days with in-flight deduplication. */
 async function fetchUnsplashPhoto(trip: Trip): Promise<UnsplashPhoto | null> {
   // FUTURE: user-uploaded cover photo (uncomment when photo upload is implemented)
   // if (trip.trip_metadata?.cover_photo) {
   //   return { url: trip.trip_metadata.cover_photo, photographer: 'You', profileUrl: '#' };
   // }
 
-  const destination = trip.destination.toLowerCase();
-  
-  // Check cache first
+  const destination = trip.destination.toLowerCase().trim();
+
+  // 1. Check localStorage cache first (7-day TTL)
   if (photoCache.has(destination)) {
-    return photoCache.get(destination)!;
+    const cached = photoCache.get(destination)!;
+    if (isCacheValid(cached)) {
+      return cached; // Cache hit, no API call needed
+    }
+    // Cache expired, remove it
+    photoCache.delete(destination);
+    saveCache();
   }
 
-  // Call Unsplash API
+  // 2. Check if request already in-flight (prevent duplicate API calls)
+  if (inflightRequests.has(destination)) {
+    return inflightRequests.get(destination)!;
+  }
+
+  // 3. Start new request
   const accessKey = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
   if (!accessKey) {
     console.warn('[TripCard] VITE_UNSPLASH_ACCESS_KEY not configured');
     return null;
   }
 
-  try {
-    const query = `${destination} travel landscape`;
-    const res = await fetch(
-      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`,
-      { headers: { Authorization: `Client-ID ${accessKey}` } }
-    );
+  const requestPromise = (async (): Promise<UnsplashPhoto | null> => {
+    try {
+      const query = `${destination} travel landscape`;
+      const res = await fetch(
+        `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`,
+        { headers: { Authorization: `Client-ID ${accessKey}` } }
+      );
 
-    if (!res.ok) throw new Error(`Unsplash API error: ${res.status}`);
+      if (!res.ok) throw new Error(`Unsplash API error: ${res.status}`);
 
-    const data = await res.json();
-    const photo: UnsplashPhoto = {
-      url: data.urls.regular,
-      photographer: data.user.name,
-      profileUrl: data.user.links.html,
-    };
+      const data = await res.json();
+      const photo: UnsplashPhoto = {
+        url: data.urls.regular,
+        photographer: data.user.name,
+        profileUrl: data.user.links.html,
+      };
 
-    // Cache it
-    photoCache.set(destination, photo);
-    return photo;
-  } catch (err) {
-    console.error('[TripCard] Unsplash fetch failed:', err);
-    return null;
-  }
+      // Store in cache with timestamp
+      const cached: CachedPhoto = { ...photo, timestamp: Date.now() };
+      photoCache.set(destination, cached);
+      saveCache(); // Persist to localStorage
+
+      return photo;
+    } catch (err) {
+      console.error('[TripCard] Unsplash fetch failed:', err);
+      return null;
+    } finally {
+      // Remove from in-flight map after completion
+      inflightRequests.delete(destination);
+    }
+  })();
+
+  // Track in-flight request to prevent duplicates
+  inflightRequests.set(destination, requestPromise);
+
+  return requestPromise;
 }
 
 /** Status → ring colour around the card */
@@ -150,7 +216,7 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
   }, [trip.id, trip.destination]);
 
   // Show gradient fallback when: loading, errored, or no photo returned
-  // const showFallback = !photo || errored || !loaded;
+  const showFallback = !photo || errored || !loaded;
 
   return (
     <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">
