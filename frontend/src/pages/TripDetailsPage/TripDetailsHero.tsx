@@ -5,15 +5,20 @@
  *   - Soft lavender → warm cream gradient (matches HomePage)
  *   - Photo upload CTA with SVG camera icon
  *   - Display font for destination
- *   - Status badge using TripCard STATUS_CONFIG
+ *   - Status badge using computed phase (not stored status)
  *   - Future: Unsplash photo for booked/completed trips
+ *
+ * Week 7 Fix: Uses computed `phase` prop instead of stored `trip.status`
+ * to ensure badge reflects actual trip state based on dates
  */
 
 import type { Trip } from '../../types';
+import type { TripPhase } from '../../utils/tripStatus';
 import { formatDateShort } from './helpers';
 
 interface TripDetailsHeroProps {
   trip: Trip;
+  phase: TripPhase; // Computed phase, not stored status
   onBack: () => void;
 }
 
@@ -45,10 +50,7 @@ const CameraIcon = () => (
   </svg>
 );
 
-export default function TripDetailsHero({ trip, onBack }: TripDetailsHeroProps) {
-  // const statusLabel = STATUS_CONFIG[trip.status as keyof typeof STATUS_CONFIG]?.label ?? 
-  //   trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
-
+export default function TripDetailsHero({ trip, phase, onBack }: TripDetailsHeroProps) {
   const endYear = trip.end_date
     ? new Date(trip.end_date).getFullYear()
     : trip.start_date
@@ -93,7 +95,7 @@ export default function TripDetailsHero({ trip, onBack }: TripDetailsHeroProps) 
           <div>
             <h1 className="font-display text-4xl text-ink drop-shadow-sm">{trip.destination}</h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <StatusBadge status={trip.status} />
+              <StatusBadge status={phase} />
               <span className="text-ink-secondary text-sm font-medium drop-shadow-sm">
                 {formatDateShort(trip.start_date)}
                 {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}

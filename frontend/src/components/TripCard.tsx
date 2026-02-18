@@ -21,6 +21,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { Trip } from '../types';
+import type { TripPhase } from '../utils/tripStatus';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -128,14 +129,15 @@ function StatusBadge({ status }: { status: string }) {
 // Handles Unsplash API fetch, load/error states, and attribution.
 interface ImagePanelProps {
   trip: Trip;
+  displayStatus: string;
 }
 
-function ImagePanel({ trip }: ImagePanelProps) {
+function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
   const [photo, setPhoto] = useState<UnsplashPhoto | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
-  const gradient = STATUS_GRADIENT[trip.status] ?? 'from-gray-400 to-gray-600';
+  const gradient = STATUS_GRADIENT[displayStatus] ?? 'from-gray-400 to-gray-600';
   const initial = trip.destination.charAt(0).toUpperCase();
 
   // Fetch Unsplash photo on mount
@@ -148,7 +150,7 @@ function ImagePanel({ trip }: ImagePanelProps) {
   }, [trip.id, trip.destination]);
 
   // Show gradient fallback when: loading, errored, or no photo returned
-  // const showFallback = !photo || errored || !loaded;
+  const showFallback = !photo || errored || !loaded;
 
   return (
     <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">
@@ -197,7 +199,7 @@ function ImagePanel({ trip }: ImagePanelProps) {
           )}
         </div>
         {/* Status badge floated right, over the image */}
-        <StatusBadge status={trip.status} />
+        <StatusBadge status={displayStatus} />
       </div>
     </div>
   );
@@ -220,10 +222,13 @@ function DetailCell({ icon, label, value }: { icon: React.ReactNode; label: stri
 interface TripCardProps {
   trip: Trip;
   onClick?: () => void;
+  phase?: TripPhase; // Optional: use computed phase if provided, fallback to trip.status
 }
 
-export default function TripCard({ trip, onClick }: TripCardProps) {
-  const ring = STATUS_RING[trip.status] ?? 'ring-2 ring-gray-300';
+export default function TripCard({ trip, onClick, phase }: TripCardProps) {
+  // Use computed phase if provided, otherwise fallback to stored status
+  const displayStatus = phase ?? trip.status;
+  const ring = STATUS_RING[displayStatus] ?? 'ring-2 ring-gray-300';
 
   return (
     <motion.div
@@ -235,7 +240,7 @@ export default function TripCard({ trip, onClick }: TripCardProps) {
       } group`}
     >
       {/* ── Photo panel ───────────────────────────────────── */}
-      <ImagePanel trip={trip} />
+      <ImagePanel trip={trip} displayStatus={displayStatus} />
 
       {/* ── Details body ──────────────────────────────────── */}
       <div className="p-5">

@@ -1,11 +1,11 @@
 /**
- * ActivityTimeline
- * 
- * Vertical timeline displaying all activities for a single day
- * Features:
- *   - Blue vertical line connecting activities
- *   - Staggered animation on mount
- *   - Auto-matches booking_ref to flights/hotels
+ * ActivityTimeline — Redesigned Week 7
+ *
+ * Visual updates:
+ *   - Brand blue circle and timeline instead of bright blue
+ *   - White card with ring border
+ *   - Ink color scale for text
+ *   - Surface-bg for empty state
  */
 
 import { motion } from 'framer-motion';
@@ -19,11 +19,9 @@ interface ActivityTimelineProps {
 }
 
 export default function ActivityTimeline({ day, flights = [], hotels = [] }: ActivityTimelineProps) {
-  // Helper: Find booking info for an activity
   const findBooking = (bookingRef: string | null | undefined) => {
     if (!bookingRef) return undefined;
 
-    // Check flights
     const flight = flights.find((f) => f.id === bookingRef);
     if (flight) {
       return {
@@ -32,7 +30,6 @@ export default function ActivityTimeline({ day, flights = [], hotels = [] }: Act
       };
     }
 
-    // Check hotels
     const hotel = hotels.find((h) => h.id === bookingRef);
     if (hotel) {
       return {
@@ -45,26 +42,26 @@ export default function ActivityTimeline({ day, flights = [], hotels = [] }: Act
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
       {/* Day header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex-shrink-0 w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
             {day.day}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3 className="text-lg font-bold text-ink">
               {day.title || `Day ${day.day}`}
             </h3>
-            <p className="text-sm text-gray-500">{day.date}</p>
+            <p className="text-sm text-ink-secondary">{day.date}</p>
           </div>
         </div>
       </div>
 
-      {/* Timeline with activities */}
+      {/* Timeline */}
       <div className="relative pl-20">
-        {/* Blue vertical line */}
-        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-blue-500" />
+        {/* Brand blue vertical line */}
+        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-brand-500" />
 
         {/* Activities */}
         <motion.div
@@ -91,10 +88,16 @@ export default function ActivityTimeline({ day, flights = [], hotels = [] }: Act
         </motion.div>
       </div>
 
-      {/* Empty state if no activities */}
+      {/* Empty state */}
       {day.activities.length === 0 && (
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">No activities planned for this day yet</p>
+        <div className="text-center py-8">
+          <div className="w-16 h-16 rounded-full bg-surface-bg flex items-center justify-center mx-auto mb-3">
+            <svg className="w-8 h-8 text-ink-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="text-sm text-ink-tertiary">No activities planned for this day yet</p>
         </div>
       )}
     </div>

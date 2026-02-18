@@ -188,7 +188,11 @@ export default function ChatInterface({
                   ? 'bg-purple-200 text-purple-800'
                   : 'bg-chat-avatar text-white'
               }`}>
-                {msg.role === 'user' ? 'U' : '🤖'}
+                {msg.role === 'user' ? 'U' : <img 
+                  src={logoAsset} 
+                  alt="TripMind AI" 
+                  
+                />}
               </div>
 
               {/* Message bubble */}
@@ -214,7 +218,11 @@ export default function ChatInterface({
           {isLoading && (
             <div className="flex gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-chat-avatar flex items-center justify-center flex-shrink-0">
-                <span className="text-sm">🤖</span>
+                <span className="text-sm"><img 
+                  src={logoAsset} 
+                  alt="TripMind AI" 
+                  className="w-15 h-15 object-contain" // Slightly smaller than the container for "breathing room"
+                /></span>
               </div>
               <div className="bg-chat-ai rounded-2xl px-5 py-3 shadow-sm ring-1 ring-black/5">
                 <div className="flex gap-1.5">
