@@ -1,21 +1,18 @@
 /**
- * Navbar — Redesigned Week 7
+ * Navbar — Redesigned Week 7 (FIXED)
  *
  * Behaviour (unchanged):
  *   - Homepage: fixed, transparent → solid on scroll
  *   - All other pages: solid always
  *
- * Visual language: matches TripsPage / HomePage tokens.
- *   - Solid state: warm white (surface-card) + subtle shadow
- *   - Transparent state: glass pill on the hero's soft background
- *   - Logo: small rounded square with display serif "T"
- *   - Active link: dark ink pill (matches CTA buttons elsewhere)
+ * BUG FIX: Changed 'text-ink' to 'text-white' when bg-ink is applied.
+ * Active links and CTA button now have visible white text on dark background.
  */
 
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logoAsset from '../assets/tripMind_logo.png';
+import logoAsset from '../assets/tripMind_logo.png'; 
 
 const NAV_LINKS = [
   { path: '/',      label: 'Home'     },
@@ -58,7 +55,7 @@ const Navbar: FC = () => {
               className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 ${
                 isTransparent
                   ? 'bg-white/20 ring-1 ring-white/30'
-                  : 'bg-transparent' // Let the logo shine on the solid background
+                  : 'bg-transparent'
               }`}
             >
               <img 
@@ -97,7 +94,7 @@ const Navbar: FC = () => {
                   to={path}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     active
-                      ? 'bg-ink text-ink'
+                      ? 'bg-ink text-white'
                       : 'text-ink-secondary hover:text-ink hover:bg-surface-muted'
                   }`}
                 >
@@ -112,7 +109,7 @@ const Navbar: FC = () => {
               className={`ml-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 isTransparent
                   ? 'bg-white text-ink hover:bg-white/90'
-                  : 'bg-ink text-ink hover:bg-ink/80'
+                  : 'bg-ink text-white hover:bg-ink/80'
               }`}
             >
               + New Trip

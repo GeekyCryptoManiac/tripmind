@@ -157,7 +157,7 @@ const HomePage: FC = () => {
               >
                 <button
                   onClick={() => navigate('/chat')}
-                  className="inline-flex items-center justify-center gap-2 bg-ink text-ink px-7 py-3.5 rounded-2xl font-semibold text-sm hover:bg-ink/80 transition-colors ring-1 shadow-sm"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-ink px-7 py-3.5 rounded-2xl font-semibold text-sm hover:bg-surface-muted transition-colors ring-1 shadow-sm"
                 >
                   Start Planning
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +371,7 @@ const HomePage: FC = () => {
           BOTTOM CTA
           Warm, minimal — contrasts with the rest
           ══════════════════════════════════════════════════════ */}
-      <section className="bg-ink py-24 px-6 relative overflow-hidden">
+      <section className="bg-surface-bg py-24 px-6 relative overflow-hidden">
         {/* Subtle blob decorations */}
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%)', filter: 'blur(60px)' }}
@@ -396,7 +396,7 @@ const HomePage: FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => navigate('/chat')}
-                className="inline-flex items-center gap-2 bg-white text-ink px-8 py-3.5 rounded-2xl font-semibold text-sm hover:bg-surface-muted transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 bg-white text-ink px-8 py-3.5 rounded-2xl font-semibold text-sm hover:text-slate-300 transition-colors shadow-sm"
               >
                 Start Planning
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +405,7 @@ const HomePage: FC = () => {
               </button>
               <button
                 onClick={() => navigate('/trips')}
-                className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium transition-colors px-4 py-3.5"
+                className="inline-flex items-center gap-2 text-ink/70 hover:text-slate-300 text-sm font-medium transition-colors px-4 py-3.5"
               >
                 See my trips →
               </button>
