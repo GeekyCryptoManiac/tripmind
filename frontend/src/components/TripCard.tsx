@@ -148,7 +148,7 @@ function ImagePanel({ trip }: ImagePanelProps) {
   }, [trip.id, trip.destination]);
 
   // Show gradient fallback when: loading, errored, or no photo returned
-  const showFallback = !photo || errored || !loaded;
+  // const showFallback = !photo || errored || !loaded;
 
   return (
     <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">

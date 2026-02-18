@@ -46,8 +46,8 @@ const CameraIcon = () => (
 );
 
 export default function TripDetailsHero({ trip, onBack }: TripDetailsHeroProps) {
-  const statusLabel = STATUS_CONFIG[trip.status as keyof typeof STATUS_CONFIG]?.label ?? 
-    trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
+  // const statusLabel = STATUS_CONFIG[trip.status as keyof typeof STATUS_CONFIG]?.label ?? 
+  //   trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
 
   const endYear = trip.end_date
     ? new Date(trip.end_date).getFullYear()
