@@ -64,7 +64,7 @@ export default function DayNavigation({
                 pt-2
                 ${
                   isSelected
-                    ? 'bg-brand-600 text-white scale-105 shadow-md'
+                    ? 'bg-brand-400 text-white scale-105 shadow-md'
                     : isToday
                     ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 ring-2 ring-emerald-400 ring-offset-1'
                     : 'bg-surface-bg text-ink-secondary hover:bg-surface-muted'
@@ -86,7 +86,7 @@ export default function DayNavigation({
                           ? 'bg-white'
                           : isToday
                           ? 'bg-emerald-500'
-                          : 'bg-brand-600'
+                          : 'bg-brand-400'
                         : isSelected
                         ? 'bg-white/30 ring-1 ring-white'
                         : 'bg-surface-muted ring-1 ring-ink-tertiary'

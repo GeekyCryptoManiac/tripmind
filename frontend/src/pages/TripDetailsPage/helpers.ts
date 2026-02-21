@@ -1,5 +1,7 @@
 /**
  * Shared types and helper functions for TripDetailsPage components
+ *
+ * Week 7/8: Updated status colors to match warm editorial palette
  */
 
 import type { Trip } from '../../types';
@@ -45,16 +47,36 @@ export function formatDateShort(dateStr: string | null): string {
 }
 
 // ── Helper: status badge styles ───────────────────────────────
+// Updated Week 7/8 to match warm editorial palette:
+//   - Planning: amber-50/700 (warm cream background)
+//   - Booked: emerald-50/700 (soft green)
+//   - Completed: brand-50/700 (violet from tailwind config)
 export function getStatusStyles(status: string): StatusStyles {
   switch (status) {
     case 'planning':
-      return { bg: 'bg-amber-100', text: 'text-amber-800', dot: 'bg-amber-400' };
+      return { 
+        bg: 'bg-amber-50',      // Warm cream (#FEF3C7)
+        text: 'text-amber-700', // Warm brown text
+        dot: 'bg-amber-400'     // Amber dot
+      };
     case 'booked':
-      return { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-400' };
+      return { 
+        bg: 'bg-emerald-50',      // Soft green (#D1FAE5)
+        text: 'text-emerald-700', // Emerald text
+        dot: 'bg-emerald-400'     // Emerald dot
+      };
     case 'completed':
-      return { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-400' };
+      return { 
+        bg: 'bg-brand-50',      // Violet (#f5f3ff)
+        text: 'text-brand-700', // Violet text (#6d28d9)
+        dot: 'bg-brand-500'     // Violet dot (#8b5cf6)
+      };
     default:
-      return { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-400' };
+      return { 
+        bg: 'bg-gray-100', 
+        text: 'text-gray-800', 
+        dot: 'bg-gray-400' 
+      };
   }
 }
 

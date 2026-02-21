@@ -114,7 +114,7 @@ export default function ActivityCard({ activity, booking }: ActivityCardProps) {
       </div>
 
       {/* Icon circle */}
-      <div className="absolute -left-5 top-3 w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-md z-10">
+      <div className="absolute -left-5 top-3 w-10 h-10 bg-brand-400 rounded-full flex items-center justify-center text-white shadow-md z-10">
         <Icon className="w-5 h-5" />
       </div>
 

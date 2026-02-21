@@ -11,6 +11,10 @@
  *   - When phase === 'active', auto-selects currentDay on mount
  *     (and whenever the trip changes) instead of always Day 1.
  *   - Passes todayDay to DayNavigation so it can render the TODAY badge.
+ *
+ * Week 8 Bug Fix:
+ *   - Fixed: totalDays now uses itinerary.length first, then duration_days
+ *   - Resolves bug where duration_days=null but itinerary has 5 days
  */
 
 import { useState, useEffect } from 'react';
@@ -55,7 +59,10 @@ export default function ItineraryTab({
   const hotels    = trip.trip_metadata?.hotels    || [];
   const config    = trip.trip_metadata?.itinerary_config;
 
-  const totalDays      = trip.duration_days || 1;
+  // CRITICAL FIX: Use actual itinerary length first, then fall back to duration_days
+  // Fixes bug where duration_days=null but itinerary array has 5 days
+  // Priority: itinerary.length → duration_days → 1
+  const totalDays      = itinerary.length || trip.duration_days || 1;
   const daysGenerated  = config?.days_generated || 0;
   const hasAnyItinerary = itinerary.length > 0;
   const daysWithItinerary = itinerary.map((d) => d.day);

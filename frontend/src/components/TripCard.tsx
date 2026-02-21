@@ -1,5 +1,5 @@
 /**
- * TripCard — Redesigned Week 7
+ * TripCard — Redesigned Week 7 + Week 8 (React.memo added)
  *
  * Layout: photo panel on top (Unsplash API), trip details below.
  * Status determines the coloured ring around the card, not the image.
@@ -16,9 +16,12 @@
  * Used by:
  *   - TripsPage (list view)
  *   - ChatInterface (when agent creates a new trip)
+ *
+ * Week 8: Wrapped in React.memo to prevent unnecessary re-renders
+ * when parent state changes don't affect this card's props.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import type { Trip } from '../types';
 import type { TripPhase } from '../utils/tripStatus';
@@ -59,7 +62,7 @@ const photoCache = new Map<string, CachedPhoto>(
       const parsed = JSON.parse(stored);
       // Filter out expired entries on init
       return Array.isArray(parsed)
-        ? parsed.filter(([_, photo]: [string, CachedPhoto]) => 
+        ? parsed.filter(([_, photo]: [string, CachedPhoto]) =>
             Date.now() - photo.timestamp < CACHE_TTL
           )
         : [];
@@ -291,7 +294,11 @@ interface TripCardProps {
   phase?: TripPhase; // Optional: use computed phase if provided, fallback to trip.status
 }
 
-export default function TripCard({ trip, onClick, phase }: TripCardProps) {
+// Wrapped in React.memo — prevents re-render when parent state changes
+// don't affect this card's props (trip, onClick, phase).
+// Particularly useful in TripsPage where modal state (modalData) would
+// otherwise cause all cards to re-render on open/close.
+const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps) {
   // Use computed phase if provided, otherwise fallback to stored status
   const displayStatus = phase ?? trip.status;
   const ring = STATUS_RING[displayStatus] ?? 'ring-2 ring-gray-300';
@@ -374,4 +381,6 @@ export default function TripCard({ trip, onClick, phase }: TripCardProps) {
       </div>
     </motion.div>
   );
-}
+});
+
+export default TripCard;
