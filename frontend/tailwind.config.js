@@ -10,13 +10,13 @@ export default {
       colors: {
         // Primary action colour (buttons, links, active states)
         brand: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          400: '#60a5fa',
-          500: '#3b82f6',   // ← main brand blue
-          600: '#2563eb',
-          700: '#1d4ed8',
+          50:  '#eef2ff',  // indigo-50
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          400: '#818cf8',  // indigo-400
+          500: '#6366f1',  // indigo-500
+          600: '#4f46e5',  // indigo-600
+          700: '#4338ca',  // indigo-700
         },
         // Page / card surfaces
         surface: {

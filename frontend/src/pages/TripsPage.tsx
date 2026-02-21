@@ -1,9 +1,13 @@
 /**
- * TripsPage — Redesigned Week 7
+ * TripsPage — Redesigned Week 7 + Week 8
  *
  * Visual language: clean editorial travel app — warm off-white surfaces,
  * strong typographic hierarchy, elevated cards, skeleton loaders.
  * All colours live in tailwind.config.js → swap the palette in one place.
+ *
+ * Week 8 fix: useTripPhase was being called inside .filter() callbacks,
+ * violating React's Rules of Hooks. Phases are now computed once at the
+ * top level via trips.map(), then counts are derived from that array.
  *
  * NOTE: Add these two lines to your index.html <head> for the fonts:
  *   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +89,7 @@ const PageSkeleton: FC = () => (
       </div>
       {/* Stats skeleton */}
       <div className="grid grid-cols-3 gap-4 mb-10">
-        {[1,2,3].map(i => (
+        {[1, 2, 3].map(i => (
           <div key={i} className="bg-white rounded-2xl p-5 shadow-card animate-pulse">
             <div className="h-4 w-16 bg-gray-100 rounded mb-3" />
             <div className="h-8 w-10 bg-gray-200 rounded" />
@@ -94,7 +98,7 @@ const PageSkeleton: FC = () => (
       </div>
       {/* Cards skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {[1,2,3,4,5,6].map(i => <CardSkeleton key={i} />)}
+        {[1, 2, 3, 4, 5, 6].map(i => <CardSkeleton key={i} />)}
       </div>
     </div>
   </div>
@@ -144,26 +148,27 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
 
       <div className="px-7 pb-7 space-y-2.5">
         {trips.map((trip) => {
-            const { phase } = useTripPhase(trip);
-            return (
-              <button
-                key={trip.id}
-                onClick={() => onSelect(trip)}
-                className="w-full text-left bg-surface-bg hover:bg-brand-50 border border-surface-muted hover:border-brand-200 rounded-2xl p-4 transition-all group"
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="font-semibold text-ink group-hover:text-brand-700 transition-colors">
-                    {trip.destination}
-                  </p>
-                  <StatusBadge status={phase} />
-                </div>
-                <div className="flex items-center gap-3 text-xs text-ink-tertiary">
-                  {trip.start_date && <span>{formatDate(trip.start_date)}</span>}
-                  {trip.budget && <span>· ${trip.budget.toLocaleString()}</span>}
-                  {trip.travelers_count > 0 && <span>· {trip.travelers_count} travelers</span>}
-                </div>
-              </button>
-            );
+          // useTripPhase called inside a component render body — ✅ valid
+          const { phase } = useTripPhase(trip);
+          return (
+            <button
+              key={trip.id}
+              onClick={() => onSelect(trip)}
+              className="w-full text-left bg-surface-bg hover:bg-brand-50 border border-surface-muted hover:border-brand-200 rounded-2xl p-4 transition-all group"
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="font-semibold text-ink group-hover:text-brand-700 transition-colors">
+                  {trip.destination}
+                </p>
+                <StatusBadge status={phase} />
+              </div>
+              <div className="flex items-center gap-3 text-xs text-ink-tertiary">
+                {trip.start_date && <span>{formatDate(trip.start_date)}</span>}
+                {trip.budget && <span>· ${trip.budget.toLocaleString()}</span>}
+                {trip.travelers_count > 0 && <span>· {trip.travelers_count} travelers</span>}
+              </div>
+            </button>
+          );
         })}
       </div>
     </motion.div>
@@ -245,20 +250,16 @@ const TripsPage: FC = () => {
     fetchTrips();
   }, [userId]);
 
-  // Compute phase-based counts (not stored status)
+  // ── Phase computation — Week 8 fix ───────────────────────
+  // useTripPhase was previously called inside .filter() callbacks,
+  // violating Rules of Hooks. Now computed once at the top level.
+  // tripPhases[i] corresponds to trips[i].
+  const tripPhases = trips.map((t) => useTripPhase(t).phase);
+
   const tripCounts = {
-    planning:  trips.filter((t) => {
-      const { phase } = useTripPhase(t);
-      return phase === 'planning';
-    }).length,
-    booked:    trips.filter((t) => {
-      const { phase } = useTripPhase(t);
-      return phase === 'pre-trip' || phase === 'active'; // Both count as "booked"
-    }).length,
-    completed: trips.filter((t) => {
-      const { phase } = useTripPhase(t);
-      return phase === 'completed';
-    }).length,
+    planning:  tripPhases.filter(p => p === 'planning').length,
+    booked:    tripPhases.filter(p => p === 'pre-trip' || p === 'active').length,
+    completed: tripPhases.filter(p => p === 'completed').length,
   };
 
   const handleCountryClick = (countryTrips: Trip[], countryName: string) => {
@@ -369,7 +370,7 @@ const TripsPage: FC = () => {
           >
             {/* Translucent sidebar — frosted glass effect */}
             <div className="lg:col-span-1 space-y-4">
-              
+
               {/* ── Overview card ───────────────────────────── */}
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
                 <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-1">
@@ -392,7 +393,9 @@ const TripsPage: FC = () => {
                     { status: 'booked',    count: tripCounts.booked,    color: 'bg-emerald-400', label: 'Booked'    },
                     { status: 'completed', count: tripCounts.completed, color: 'bg-brand-500',   label: 'Completed' },
                   ].map(({ status, count, color, label }) => {
-                    const percentage = trips.length > 0 ? Math.round((count / trips.length) * 100) : 0;
+                    const percentage = trips.length > 0
+                      ? Math.round((count / trips.length) * 100)
+                      : 0;
                     return (
                       <div key={status}>
                         <div className="flex items-center justify-between mb-1.5">
@@ -403,7 +406,10 @@ const TripsPage: FC = () => {
                           <span className="text-sm font-semibold text-ink">{count}</span>
                         </div>
                         <div className="w-full h-1.5 bg-surface-muted rounded-full overflow-hidden">
-                          <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }} />
+                          <div
+                            className={`h-full ${color} rounded-full transition-all duration-500`}
+                            style={{ width: `${percentage}%` }}
+                          />
                         </div>
                         <p className="text-xs text-ink-tertiary mt-1">{percentage}% of trips</p>
                       </div>
@@ -426,27 +432,31 @@ const TripsPage: FC = () => {
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
                 <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-4">Recent</p>
                 <div className="space-y-3">
-                  {trips.slice(0, 4).map((trip) => (
-                    <button
-                      key={trip.id}
-                      onClick={() => navigate(`/trips/${trip.id}`)}
-                      className="w-full flex items-center justify-between group text-left"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          trip.status === 'planning'  ? 'bg-amber-400' :
-                          trip.status === 'booked'    ? 'bg-emerald-400' :
-                                                        'bg-brand-500'
-                        }`} />
-                        <span className="text-sm text-ink font-medium truncate group-hover:text-brand-600 transition-colors">
-                          {trip.destination}
-                        </span>
-                      </div>
-                      <svg className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-brand-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  ))}
+                  {trips.slice(0, 4).map((trip, i) => {
+                    // Phase already computed in tripPhases — reuse it
+                    const phase = tripPhases[trips.indexOf(trip)];
+                    return (
+                      <button
+                        key={trip.id}
+                        onClick={() => navigate(`/trips/${trip.id}`)}
+                        className="w-full flex items-center justify-between group text-left"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            phase === 'planning'  ? 'bg-amber-400'   :
+                            phase === 'completed' ? 'bg-brand-500'   :
+                                                    'bg-emerald-400'
+                          }`} />
+                          <span className="text-sm text-ink font-medium truncate group-hover:text-brand-600 transition-colors">
+                            {trip.destination}
+                          </span>
+                        </div>
+                        <svg className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-brand-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    );
+                  })}
                   {trips.length > 4 && (
                     <p className="text-xs text-ink-tertiary pt-1">+{trips.length - 4} more trips</p>
                   )}
@@ -471,19 +481,21 @@ const TripsPage: FC = () => {
             transition={{ duration: 0.25 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {trips.map((trip, i) => {
-              const { phase } = useTripPhase(trip); // Compute phase per trip
-              return (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.04 }}
-                >
-                  <TripCard trip={trip} phase={phase} onClick={() => navigate(`/trips/${trip.id}`)} />
-                </motion.div>
-              );
-            })}
+            {trips.map((trip, i) => (
+              <motion.div
+                key={trip.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: i * 0.04 }}
+              >
+                {/* Phase already computed in tripPhases — no extra useTripPhase call */}
+                <TripCard
+                  trip={trip}
+                  phase={tripPhases[i]}
+                  onClick={() => navigate(`/trips/${trip.id}`)}
+                />
+              </motion.div>
+            ))}
           </motion.div>
         )}
 

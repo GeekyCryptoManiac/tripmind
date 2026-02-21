@@ -46,7 +46,7 @@ export default function ActivityTimeline({ day, flights = [], hotels = [] }: Act
       {/* Day header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex-shrink-0 w-12 h-12 bg-brand-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
             {day.day}
           </div>
           <div>
@@ -60,8 +60,8 @@ export default function ActivityTimeline({ day, flights = [], hotels = [] }: Act
 
       {/* Timeline */}
       <div className="relative pl-20">
-        {/* Brand blue vertical line */}
-        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-brand-500" />
+        {/* Brand violet vertical line */}
+        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-brand-300" />
 
         {/* Activities */}
         <motion.div

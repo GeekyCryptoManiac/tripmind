@@ -1,12 +1,17 @@
 /**
- * TripDetailsPage — Redesigned Week 7
+ * TripDetailsPage — Redesigned Week 7 + Week 8
  *
- * Visual updates:
+ * Visual updates (Week 7):
  *   - Tab emojis replaced with SVG icons
  *   - Brand blue instead of bright blue throughout
  *   - Surface-bg instead of gray-50
  *   - Simplified TripSummaryCard interface (self-contained status rendering)
  *   - Warm color palette for loading/menu states
+ *
+ * Week 8:
+ *   - Spinner replaced with TripDetailsSkeleton — mirrors actual page
+ *     structure (hero / progress bar / tab nav / 2-column body + sidebar)
+ *     so the layout doesn't shift when content loads
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -28,6 +33,7 @@ import StatusBanner from './StatusBanner';
 import { useTripPhase } from '../../utils/tripStatus';
 import { exportTripPDF } from '../../utils/exportPDF';
 import { type TabType, type TravelSubTab, getProgressTasks } from './helpers';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 // ── SVG Icons ─────────────────────────────────────────────────
 const OverviewIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -86,6 +92,142 @@ const DotsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
+// ── Trip Details Skeleton ─────────────────────────────────────
+// Mirrors the exact structure of the loaded page so there is zero
+// layout shift when data arrives:
+//   hero (260px) → progress strip → tab nav → 2-col body + sidebar
+function TripDetailsSkeleton() {
+  return (
+    <div className="min-h-screen bg-surface-bg">
+
+      {/* Hero — matches TripDetailsHero minHeight: 260px */}
+      <div className="relative w-full animate-pulse" style={{ minHeight: '260px' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
+        {/* Back button */}
+        <div className="absolute bottom-5 right-6 h-8 w-16 bg-white/60 rounded-xl" />
+        {/* Destination title + badge + date */}
+        <div className="absolute bottom-5 left-6 space-y-2">
+          <div className="h-10 w-56 bg-white/50 rounded-xl" />
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-20 bg-white/50 rounded-full" />
+            <div className="h-4 w-36 bg-white/40 rounded" />
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar strip */}
+      <div className="h-2 bg-gray-200 w-full" />
+
+      {/* Tab nav — 4 tabs + dots menu */}
+      <div className="bg-white border-b border-surface-muted shadow-sm">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center gap-1 py-0.5">
+            {[100, 84, 72, 64].map((w, i) => (
+              <div
+                key={i}
+                className="h-11 rounded animate-pulse bg-gray-100"
+                style={{ width: `${w}px` }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Body — mirrors the flex-row layout */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+
+          {/* Left: main content column */}
+          <div className="flex-1 space-y-4">
+
+            {/* Key details grid card */}
+            <div className="bg-white rounded-2xl p-6 ring-1 ring-black/[0.03] shadow-sm animate-pulse">
+              <div className="h-5 w-32 bg-gray-200 rounded mb-4" />
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-surface-bg rounded-xl p-3">
+                    <div className="h-3 w-16 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 w-24 bg-gray-300 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Description / notes card */}
+            <div className="bg-white rounded-2xl p-6 ring-1 ring-black/[0.03] shadow-sm animate-pulse">
+              <div className="h-5 w-24 bg-gray-200 rounded mb-4" />
+              <div className="space-y-2.5">
+                <div className="h-4 w-full bg-gray-100 rounded" />
+                <div className="h-4 w-5/6 bg-gray-100 rounded" />
+                <div className="h-4 w-4/6 bg-gray-100 rounded" />
+              </div>
+            </div>
+
+            {/* Tools / recommendations card */}
+            <div className="bg-white rounded-2xl p-6 ring-1 ring-black/[0.03] shadow-sm animate-pulse">
+              <div className="h-5 w-28 bg-gray-200 rounded mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3.5 w-32 bg-gray-200 rounded" />
+                      <div className="h-3 w-48 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: sidebar — mirrors TripSummaryCard (lg:w-80 xl:w-96) */}
+          <div className="lg:w-80 xl:w-96 shrink-0">
+            <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6 animate-pulse">
+
+              {/* "Trip Summary" heading */}
+              <div className="h-5 w-28 bg-gray-200 rounded mb-4 pb-3 border-b border-surface-muted" />
+
+              {/* Status badge */}
+              <div className="h-6 w-20 bg-gray-100 rounded-full mb-5" />
+
+              {/* Detail rows (dates, budget, travelers, destination) */}
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded bg-gray-100 flex-shrink-0" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-32 bg-gray-200 rounded" />
+                      <div className="h-3 w-20 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-5 pt-5 border-t border-surface-muted">
+                <div className="flex justify-between mb-2">
+                  <div className="h-3 w-24 bg-gray-100 rounded" />
+                  <div className="h-3 w-8 bg-gray-100 rounded" />
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full" />
+              </div>
+
+              {/* Action buttons */}
+              <div className="mt-5 pt-5 border-t border-surface-muted flex flex-col gap-2">
+                <div className="h-10 w-full bg-gray-200 rounded-xl" />
+                <div className="h-10 w-full bg-gray-100 rounded-xl" />
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────
 export default function TripDetailsPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
@@ -177,8 +319,8 @@ export default function TripDetailsPage() {
   const progressPct = trip ? Math.round((completedCount / progressTasks.length) * 100) : 0;
 
   // Progress bar color: amber < 50%, brand-500 50–99%, emerald-500 100%
-  const progressColor =
-    progressPct === 100 ? '#10b981' : progressPct >= 50 ? '#3b82f6' : '#f59e0b';
+  const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? '#7c3aed' : '#f59e0b';
+
 
   const tripContext: TripChatContext | undefined = trip
     ? {
@@ -193,19 +335,12 @@ export default function TripDetailsPage() {
       }
     : undefined;
 
-  const { phase, daysUntil, currentDay } = trip ? useTripPhase(trip) : { phase: 'planning' as const, daysUntil: 0, currentDay: 1 };
+  const { phase, daysUntil, currentDay } = trip
+    ? useTripPhase(trip)
+    : { phase: 'planning' as const, daysUntil: 0, currentDay: 1 };
 
-  // ── Loading state ─────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-surface-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4" />
-          <p className="text-ink-secondary">Loading trip details...</p>
-        </div>
-      </div>
-    );
-  }
+  // ── Loading state — full skeleton, no spinner ─────────────
+  if (isLoading) return <TripDetailsSkeleton />;
 
   // ── Error / not found ─────────────────────────────────────
   if (error || !trip) {
@@ -235,6 +370,7 @@ export default function TripDetailsPage() {
   // ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-surface-bg">
+
       {/* Hero */}
       <TripDetailsHero trip={trip} phase={phase} onBack={() => navigate('/trips')} />
 
@@ -261,13 +397,14 @@ export default function TripDetailsPage() {
       <div className="bg-white border-b border-surface-muted sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between">
+
             {/* Tabs */}
             <div className="flex gap-0.5">
               {[
-                { key: 'overview' as const, label: 'Overview', Icon: OverviewIcon },
-                { key: 'itinerary' as const, label: 'Itinerary', Icon: CalendarIcon },
-                { key: 'travel' as const, label: 'Travel', Icon: PlaneIcon },
-                { key: 'chat' as const, label: 'Chat', Icon: ChatIcon },
+                { key: 'overview'  as const, label: 'Overview',  Icon: OverviewIcon  },
+                { key: 'itinerary' as const, label: 'Itinerary', Icon: CalendarIcon  },
+                { key: 'travel'    as const, label: 'Travel',    Icon: PlaneIcon     },
+                { key: 'chat'      as const, label: 'Chat',      Icon: ChatIcon      },
               ].map(({ key, label, Icon }) => (
                 <button
                   key={key}
@@ -295,20 +432,14 @@ export default function TripDetailsPage() {
               {menuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden z-20">
                   <button
-                    onClick={() => {
-                      setEditModalOpen(true);
-                      setMenuOpen(false);
-                    }}
+                    onClick={() => { setEditModalOpen(true); setMenuOpen(false); }}
                     className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
                   >
                     <EditIcon />
                     Edit Trip
                   </button>
                   <button
-                    onClick={() => {
-                      exportTripPDF(trip);
-                      setMenuOpen(false);
-                    }}
+                    onClick={() => { exportTripPDF(trip); setMenuOpen(false); }}
                     className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
                   >
                     <DocumentIcon />
@@ -322,6 +453,7 @@ export default function TripDetailsPage() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
@@ -329,78 +461,83 @@ export default function TripDetailsPage() {
       {/* Main Body */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
+
           {/* Left: Tab content */}
-          <div className="flex-1" style={{ minWidth: 0 }}>
-            <AnimatePresence mode="wait">
-              {activeTab === 'overview' && (
-                <motion.div
-                  key="overview"
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
-                </motion.div>
-              )}
+          <ErrorBoundary label="Trip Details" resetOnChange={tripId}>
+            <div className="flex-1" style={{ minWidth: 0 }}>
+              <AnimatePresence mode="wait">
 
-              {activeTab === 'itinerary' && (
-                <motion.div
-                  key="itinerary"
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ItineraryTab
-                    trip={trip}
-                    notes={notes}
-                    saveStatus={saveStatus}
-                    onNotesChange={setNotes}
-                    onTripUpdate={setTrip}
-                    phase={phase}
-                    currentDay={currentDay}
-                  />
-                </motion.div>
-              )}
+                {activeTab === 'overview' && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
+                  </motion.div>
+                )}
 
-              {activeTab === 'travel' && (
-                <motion.div
-                  key="travel"
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <TravelTab
-                    trip={trip}
-                    activeSubTab={travelSubTab}
-                    onSubTabChange={setTravelSubTab}
-                  />
-                </motion.div>
-              )}
+                {activeTab === 'itinerary' && (
+                  <motion.div
+                    key="itinerary"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ItineraryTab
+                      trip={trip}
+                      notes={notes}
+                      saveStatus={saveStatus}
+                      onNotesChange={setNotes}
+                      onTripUpdate={setTrip}
+                      phase={phase}
+                      currentDay={currentDay}
+                    />
+                  </motion.div>
+                )}
 
-              {activeTab === 'chat' && (
-                <motion.div
-                  key="chat"
-                  className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm overflow-hidden"
-                  style={{ height: '520px' }}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChatInterface
-                    userId={userId!}
-                    chatType="trip"
-                    tripId={trip.id}
-                    tripContext={tripContext}
-                    embedded={true}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                {activeTab === 'travel' && (
+                  <motion.div
+                    key="travel"
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <TravelTab
+                      trip={trip}
+                      activeSubTab={travelSubTab}
+                      onSubTabChange={setTravelSubTab}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === 'chat' && (
+                  <motion.div
+                    key="chat"
+                    className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm overflow-hidden"
+                    style={{ height: '520px' }}
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChatInterface
+                      userId={userId!}
+                      chatType="trip"
+                      tripId={trip.id}
+                      tripContext={tripContext}
+                      embedded={true}
+                    />
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+          </ErrorBoundary>
 
           {/* Right: Sticky summary card */}
           <TripSummaryCard
@@ -411,6 +548,7 @@ export default function TripDetailsPage() {
             onChatClick={() => setActiveTab('chat')}
             onItineraryClick={() => setActiveTab('itinerary')}
           />
+
         </div>
       </div>
 
@@ -426,6 +564,7 @@ export default function TripDetailsPage() {
           }}
         />
       )}
+
     </div>
   );
 }

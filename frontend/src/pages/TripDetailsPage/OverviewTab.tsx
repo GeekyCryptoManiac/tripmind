@@ -37,6 +37,7 @@ const ClockIcon = () => (
   </svg>
 );
 
+
 const CurrencyIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -81,6 +82,7 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
           ══════════════════════════════════════════════════════ */}
       {phase === 'pre-trip' && (
         <PreTripChecklist trip={trip} onTripUpdate={onTripUpdate} />
+        
       )}
 
       {/* ══════════════════════════════════════════════════════
@@ -89,6 +91,7 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
       {phase === 'active' && (
         <LiveToolsPanel trip={trip} />
       )}
+      
 
       {/* ── About This Trip ─────────────────────────────────── */}
       <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
@@ -127,6 +130,7 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
               <p className="text-sm font-semibold text-ink">{value}</p>
             </div>
           ))}
+          
         </div>
       </div>
 
