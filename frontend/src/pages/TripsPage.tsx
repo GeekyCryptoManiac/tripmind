@@ -432,7 +432,7 @@ const TripsPage: FC = () => {
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
                 <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-4">Recent</p>
                 <div className="space-y-3">
-                  {trips.slice(0, 4).map((trip, i) => {
+                  {trips.slice(0, 4).map((trip) => {
                     // Phase already computed in tripPhases — reuse it
                     const phase = tripPhases[trips.indexOf(trip)];
                     return (
