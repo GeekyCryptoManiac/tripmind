@@ -1,12 +1,10 @@
 /**
- * ActivityCard — Redesigned Week 7
+ * ActivityCard — Redesigned Week 7 + Week 8
  *
- * Visual updates:
- *   - All emojis replaced with SVG icons
- *   - Brand blue circle instead of bright blue
- *   - Warm amber for note boxes instead of bright blue
- *   - Surface-bg for hover states
- *   - Ink color scale for text
+ * Week 8: Delete button is now functional.
+ *   - Added `onDelete` prop — called with activity.id when trash is clicked
+ *   - Added `isDeleting` local state for spinner feedback during API call
+ *   - Removed `disabled` from TrashIcon button
  */
 
 import { useState } from 'react';
@@ -15,7 +13,8 @@ import type { Activity } from '../../../types';
 
 interface ActivityCardProps {
   activity: Activity;
-  booking?: { status: 'mock' | 'booked' | 'pending'; name?: string };
+  booking?: { status: 'mock' | 'booked' | 'pending' | 'ai_suggested'; name?: string };
+  onDelete?: (activityId: string) => Promise<void>; // Week 8: wired up delete
 }
 
 // ── SVG Icons ─────────────────────────────────────────────────
@@ -78,31 +77,46 @@ const LightbulbIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 
 // Icon mapping
 const ACTIVITY_ICONS: Record<Activity['type'], React.ComponentType<{ className?: string }>> = {
-  activity: ActivityIcon,
-  dining: DiningIcon,
-  flight: FlightIcon,
-  hotel: HotelIcon,
+  activity:  ActivityIcon,
+  dining:    DiningIcon,
+  flight:    FlightIcon,
+  hotel:     HotelIcon,
   transport: TransportIcon,
 };
 
 // Booking badge styles
 const BOOKING_STYLES = {
-  mock: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Mock Booking' },
-  booked: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '✓ Confirmed' },
-  pending: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Pending' },
+  mock:         { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Mock Booking'  },
+  booked:       { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '✓ Confirmed'   },
+  pending:      { bg: 'bg-gray-100',    text: 'text-gray-600',    label: 'Pending'       },
+  ai_suggested: { bg: 'bg-brand-50',    text: 'text-brand-700',   label: '✦ AI Suggested' },
 };
 
-export default function ActivityCard({ activity, booking }: ActivityCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+export default function ActivityCard({ activity, booking, onDelete }: ActivityCardProps) {
+  const [isExpanded, setIsExpanded]   = useState(false);
+  const [isHovered, setIsHovered]     = useState(false);
+  const [isDeleting, setIsDeleting]   = useState(false);
 
   const Icon = ACTIVITY_ICONS[activity.type];
   const shouldShowExpand = activity.description && activity.description.length > 100;
 
+  const handleDelete = async () => {
+    if (!onDelete || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(activity.id);
+      // Parent (ItineraryTab) receives the updated trip from the API
+      // and replaces its local state — this component unmounts naturally.
+    } catch (err) {
+      console.error('[ActivityCard] Delete failed:', err);
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -114,7 +128,7 @@ export default function ActivityCard({ activity, booking }: ActivityCardProps) {
       </div>
 
       {/* Icon circle */}
-      <div className="absolute -left-5 top-3 w-10 h-10 bg-brand-400 rounded-full flex items-center justify-center text-white shadow-md z-10">
+      <div className="absolute -left-5 top-3 w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-md z-10">
         <Icon className="w-5 h-5" />
       </div>
 
@@ -132,18 +146,23 @@ export default function ActivityCard({ activity, booking }: ActivityCardProps) {
             )}
           </div>
 
-          {/* Delete button */}
+          {/* Delete button — visible on hover, shows spinner while deleting */}
           <AnimatePresence>
-            {isHovered && (
+            {(isHovered || isDeleting) && onDelete && (
               <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="ml-3 p-1.5 text-ink-tertiary hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                title="Delete activity (coming soon)"
-                disabled
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="ml-3 p-1.5 text-ink-tertiary hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:cursor-not-allowed"
+                title="Delete activity"
               >
-                <TrashIcon />
+                {isDeleting ? (
+                  <div className="w-4 h-4 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+                ) : (
+                  <TrashIcon />
+                )}
               </motion.button>
             )}
           </AnimatePresence>

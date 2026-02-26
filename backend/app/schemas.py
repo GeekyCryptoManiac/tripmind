@@ -30,10 +30,7 @@ class ChatRequest(BaseModel):
     )
 
 class TripUpdate(BaseModel):
-    """Schema for partial trip updates — all fields optional.
-    Reusable: notes persistence (Week 4), edit modal, checklist (Week 5 Day 2),
-    expenses (Week 5 Day 5), etc."""
-    # ── Top-level columns ─────────────────────────────────────
+    """Schema for partial trip updates — all fields optional."""
     destination:     Optional[str]   = None
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
@@ -41,75 +38,127 @@ class TripUpdate(BaseModel):
     budget:          Optional[float] = None
     travelers_count: Optional[int]   = None
     status:          Optional[str]   = None
+    notes:           Optional[str]   = None
+    checklist:       Optional[List[Dict[str, Any]]] = None
+    expenses:        Optional[List[Dict[str, Any]]] = None
 
-    # ── trip_metadata convenience fields ──────────────────────
-    # Each of these gets merged into trip_metadata by the endpoint,
-    # so callers don't have to manage the JSON structure themselves.
-    notes:     Optional[str]  = None   # free-text trip notes
-    checklist: Optional[List[Dict[str, Any]]] = None  # Week 5 Day 2: pre-trip checklist items
-    expenses:  Optional[List[Dict[str, Any]]] = None  # Week 5 Day 5: expense entries
 
+# ── Week 8: Activity Management ───────────────────────────────
+
+class ActivityCreate(BaseModel):
+    """Schema for manually adding a single activity to a trip day."""
+    day:         int  = Field(..., gt=0)
+    time:        str  = Field(..., description="HH:MM format")
+    type:        str  = Field(..., description="activity | dining | flight | hotel | transport")
+    title:       str  = Field(..., min_length=1, max_length=200)
+    location:    Optional[str] = Field(None, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    notes:       Optional[str] = Field(None, max_length=500)
+
+
+class ActivityResponse(BaseModel):
+    """The created activity as saved, including its generated ID."""
+    id:          str
+    day:         int
+    time:        str
+    type:        str
+    title:       str
+    location:    Optional[str] = None
+    description: Optional[str] = None
+    notes:       Optional[str] = None
+    booking_ref: Optional[str] = None
+
+
+# ── Week 8: Travel AI Suggestions ────────────────────────────
+
+class TravelSuggestRequest(BaseModel):
+    """
+    Request body for POST /api/trips/{id}/travel/suggest.
+
+    type        — which sub-tab: flights | hotels | transport
+    preferences — optional user-edited prompt, e.g. "direct flights only",
+                  "budget hotels near city centre", "prefer trains"
+    """
+    type:        str           = Field(..., description="flights | hotels | transport")
+    preferences: Optional[str] = Field(None, max_length=500)
+
+
+class TravelSuggestResponse(BaseModel):
+    """
+    Response from the suggest endpoint.
+    Exactly one of flights / hotels / transport is populated.
+    """
+    type:      str
+    flights:   Optional[List[Dict[str, Any]]] = None
+    hotels:    Optional[List[Dict[str, Any]]] = None
+    transport: Optional[List[Dict[str, Any]]] = None
+
+
+class TravelSaveRequest(BaseModel):
+    """
+    Request body for POST /api/trips/{id}/travel/save.
+    Appends one suggestion into trip_metadata.flights/hotels/transport.
+    """
+    type: str            = Field(..., description="flights | hotels | transport")
+    item: Dict[str, Any] = Field(..., description="The suggestion dict to persist")
+
+# ── Week 8: Overview AI Features ─────────────────────────────
+
+class OverviewAlertsResponse(BaseModel):
+    """
+    Response from POST /api/trips/{id}/overview/alerts.
+    Each alert has a severity level and category.
+    """
+    alerts: List[Dict[str, Any]]
+
+
+class OverviewRecommendationsResponse(BaseModel):
+    """
+    Response from POST /api/trips/{id}/overview/recommendations.
+    Each recommendation is context-aware (destination, dates, budget).
+    """
+    recommendations: List[Dict[str, Any]]
 
 # ============= Response Schemas =============
 
 class UserResponse(BaseModel):
-    """Schema for user data returned by API"""
     id: int
     email: str
     full_name: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 class TripResponse(BaseModel):
-    """Schema for trip data returned by API"""
     id: int
     user_id: int
     destination: str
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    duration_days: Optional[int] = None
-    budget: Optional[float] = None
+    start_date:      Optional[str]   = None
+    end_date:        Optional[str]   = None
+    duration_days:   Optional[int]   = None
+    budget:          Optional[float] = None
     travelers_count: int
-    status: str
-    trip_metadata: Dict[str, Any] = {}
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
+    status:          str
+    trip_metadata:   Dict[str, Any]  = {}
+    created_at:      datetime
+    updated_at:      Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
 
 class ChatResponse(BaseModel):
-    """Schema for agent's response to user"""
-    message: str = Field(..., description="Agent's natural language response")
-    action_taken: str = Field(
-        ..., 
-        description="What action the agent took"
-    )
-    trip_data: Optional[TripResponse] = Field(
-        None, 
-        description="Trip data if a trip was created or updated"
-    )
+    message:      str = Field(..., description="Agent's natural language response")
+    action_taken: str = Field(..., description="What action the agent took")
+    trip_data:    Optional[TripResponse] = Field(None)
 
-
-# ============= Helper Schemas =============
 
 class TripList(BaseModel):
-    """Schema for list of trips"""
     trips: List[TripResponse]
     total: int
 
 
 if __name__ == "__main__":
     print("✅ All schemas defined successfully!")
-    print("\nRequest Schemas:")
-    print("  - UserCreate")
-    print("  - ChatRequest")
-    print("\nResponse Schemas:")
-    print("  - UserResponse")
-    print("  - TripResponse")
-    print("  - ChatResponse")
-    print("  - TripList")

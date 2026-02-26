@@ -1,14 +1,9 @@
 /**
  * TypeScript types matching backend Pydantic schemas
  *
- * Week 5 additions:
- *   - ChecklistItem  (Day 2: pre-trip checklist)
- *   - Expense        (Day 5: expense tracking)
- *   - TripMetadata updated with checklist? and expenses?
- *
- * Week 6 additions:
- *   - ChatHistoryMessage  (Day 5: chat memory)
- *   - ChatRequest updated with trip_id and chat_history
+ * Week 5: ChecklistItem, Expense, TripMetadata updates
+ * Week 6: ChatHistoryMessage, ChatRequest updates
+ * Week 8: Activity management, Transport type, travel AI suggestions
  */
 
 // ── User types ────────────────────────────────────────────────
@@ -34,7 +29,7 @@ export interface Trip {
   duration_days: number | null;
   budget: number | null;
   travelers_count: number;
-  status: string;                   // "planning" | "booked" | "completed"
+  status: string;
   trip_metadata?: TripMetadata;
   created_at: string;
   updated_at: string | null;
@@ -47,10 +42,6 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-/**
- * A single message in the history sent to the backend.
- * No timestamp — the agent only needs role + content.
- */
 export interface ChatHistoryMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -59,8 +50,8 @@ export interface ChatHistoryMessage {
 export interface ChatRequest {
   user_id: number;
   message: string;
-  trip_id?: number;                         // For trip-specific chat context
-  chat_history?: ChatHistoryMessage[];      // Full prior conversation, oldest first
+  trip_id?: number;
+  chat_history?: ChatHistoryMessage[];
 }
 
 export interface ChatResponse {
@@ -109,24 +100,58 @@ export interface ItineraryDay {
 // ── Booking Types ─────────────────────────────────────────────
 export interface Flight {
   id: string;
+  airline: string;
+  flight_number: string;
   from: string;
   to: string;
   departure: string;
   arrival: string;
-  airline: string;
-  flight_number: string;
-  status: 'mock' | 'booked' | 'pending';
+  duration?: string;
+  estimated_price?: number;
+  currency?: string;
+  cabin?: string;
   notes?: string;
+  status: 'ai_suggested' | 'mock' | 'booked' | 'pending';
 }
 
 export interface Hotel {
   id: string;
   name: string;
   location: string;
-  check_in: string;
-  check_out: string;
-  status: 'mock' | 'booked' | 'pending';
+  area?: string;
+  star_rating?: number;
+  price_per_night?: number;
+  currency?: string;
+  highlights?: string[];
+  check_in?: string;
+  check_out?: string;
   notes?: string;
+  status: 'ai_suggested' | 'mock' | 'booked' | 'pending';
+}
+
+// ── Week 8: Transport type ────────────────────────────────────
+export interface Transport {
+  id: string;
+  type: 'taxi' | 'train' | 'bus' | 'rental' | 'ferry' | 'other';
+  title: string;
+  description: string;
+  estimated_cost?: number;
+  cost_unit?: string;   // e.g. "per person total", "per day"
+  currency?: string;
+  duration?: string | null;
+  pros?: string[];
+  notes?: string;
+  status: 'ai_suggested' | 'booked' | 'pending';
+}
+
+// ── Week 8: Travel AI suggestion types ───────────────────────
+export type TravelSuggestType = 'flights' | 'hotels' | 'transport';
+
+export interface TravelSuggestResponse {
+  type: TravelSuggestType;
+  flights?: Flight[];
+  hotels?: Hotel[];
+  transport?: Transport[];
 }
 
 // ── Itinerary Config ──────────────────────────────────────────
@@ -172,10 +197,33 @@ export interface TripMetadata {
   itinerary?: ItineraryDay[];
   flights?: Flight[];
   hotels?: Hotel[];
+  transport?: Transport[];      // Week 8: local transport suggestions
   itinerary_config?: ItineraryConfig;
   notes?: string;
   description?: string;
   preferences?: string[];
   checklist?: ChecklistItem[];
   expenses?: Expense[];
+}
+
+// ── Week 8: Overview AI types ─────────────────────────────────
+
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+export type AlertCategory = 'safety' | 'visa' | 'health' | 'weather' | 'local_laws' | 'general';
+export type RecommendationCategory = 'must_see' | 'food' | 'hidden_gem' | 'practical';
+
+export interface TravelAlert {
+  id: string;
+  category: AlertCategory;
+  severity: AlertSeverity;
+  title: string;
+  description: string;
+}
+
+export interface Recommendation {
+  id: string;
+  category: RecommendationCategory;
+  title: string;
+  description: string;
+  tip?: string;
 }
