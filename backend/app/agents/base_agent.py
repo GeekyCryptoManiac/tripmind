@@ -43,7 +43,7 @@ class TripMindAgent:
             self.trip_context = self._fetch_trip_context(trip_id)
         
         self.llm = ChatOpenAI(
-            model="gpt-4-0125-preview",
+            model="gpt-4o",
             temperature=0.7,
             api_key=settings.OPENAI_API_KEY
         )

@@ -1,121 +1,184 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { apiService } from '../services/api';
+/**
+ * UserContext — JWT Auth
+ *
+ * Replaces the UUID guest-identity flow with real email/password auth.
+ *
+ * Token storage:
+ *   localStorage['tripmind_access_token']   — short-lived (30 min)
+ *   localStorage['tripmind_refresh_token']  — long-lived (7 days)
+ *   localStorage['tripmind_user']           — cached user object
+ *
+ * On mount:
+ *   1. Read tokens from localStorage
+ *   2. If access token found, attach it to axios and fetch /api/auth/me
+ *      to confirm it's still valid and get fresh user data
+ *   3. If /api/auth/me fails (expired), the axios interceptor in api.ts
+ *      will automatically attempt a refresh before we even see the error
+ *   4. If everything fails, clear tokens and set isAuthenticated = false
+ *
+ * The login() and register() functions are called from AuthPage.
+ * The logout() function clears all state and redirects to /auth.
+ */
 
-interface User {
-  id: number;
-  email: string;
-  full_name: string;
-}
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
+import { apiService, setAuthToken, clearAuthToken } from '../services/api';
+import type { User } from '../types';
+
+// ── Types ─────────────────────────────────────────────────────
 
 interface UserContextType {
   user: User | null;
   userId: number | null;
   isLoading: boolean;
-  isGuest: boolean;                              // ← new: lets UI show "Sign up to save your trips"
-  login: (userId: number, userData: User) => void;
+  isAuthenticated: boolean;
+  login: (accessToken: string, refreshToken: string, user: User) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
+
+// ── Context ───────────────────────────────────────────────────
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// ─── Guest identity helpers ───────────────────────────────────────────────────
-// Stored in localStorage so the same guest persists across refreshes.
-// When real auth is added, these keys stay — a logged-in user just overwrites them.
+// ── Storage helpers ───────────────────────────────────────────
 
-function getOrCreateGuestIdentity(): { email: string; full_name: string } {
-  const stored = localStorage.getItem('tripmind_guest_id');
-  if (stored) {
-    return JSON.parse(stored);
-  }
-  const guestId = crypto.randomUUID();
-  const identity = {
-    email: `guest-${guestId}@tripmind.app`,
-    full_name: 'Guest User',
-  };
-  localStorage.setItem('tripmind_guest_id', JSON.stringify(identity));
-  return identity;
+const KEYS = {
+  access:  'tripmind_access_token',
+  refresh: 'tripmind_refresh_token',
+  user:    'tripmind_user',
+} as const;
+
+function saveSession(accessToken: string, refreshToken: string, user: User): void {
+  localStorage.setItem(KEYS.access, accessToken);
+  localStorage.setItem(KEYS.refresh, refreshToken);
+  localStorage.setItem(KEYS.user, JSON.stringify(user));
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
+function clearSession(): void {
+  localStorage.removeItem(KEYS.access);
+  localStorage.removeItem(KEYS.refresh);
+  localStorage.removeItem(KEYS.user);
+  // Also clean up legacy guest keys from the old flow
+  localStorage.removeItem('tripmind_user_id');
+  localStorage.removeItem('tripmind_guest_id');
+}
+
+function readCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(KEYS.user);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Provider ──────────────────────────────────────────────────
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Seed UI immediately from localStorage so there's no flash
+  const [user, setUser] = useState<User | null>(readCachedUser);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGuest, setIsGuest] = useState(false);
 
+  const isAuthenticated = user !== null;
+
+  /**
+   * Called by login() / register() in AuthPage after a successful API call.
+   * Sets tokens in localStorage, attaches the Bearer header, and updates state.
+   */
+  const login = useCallback(
+    (accessToken: string, refreshToken: string, userData: User) => {
+      saveSession(accessToken, refreshToken, userData);
+      setAuthToken(accessToken);
+      setUser(userData);
+    },
+    []
+  );
+
+  /**
+   * Clears all auth state and redirects to the login page.
+   */
+  const logout = useCallback(() => {
+    clearSession();
+    clearAuthToken();
+    setUser(null);
+    window.location.href = '/auth';
+  }, []);
+
+  /**
+   * Re-fetch the current user from /api/auth/me.
+   * Useful after profile updates. The axios interceptor handles
+   * token refresh transparently if the access token has expired.
+   */
+  const refreshUser = useCallback(async () => {
+    try {
+      const fresh = await apiService.getMe();
+      setUser(fresh);
+      localStorage.setItem(KEYS.user, JSON.stringify(fresh));
+    } catch {
+      // If getMe fails even after the interceptor tried to refresh, log out
+      logout();
+    }
+  }, [logout]);
+
+  // ── Bootstrap on mount ──────────────────────────────────────
   useEffect(() => {
-    const initializeUser = async () => {
-      // 1. Check if a real logged-in user is already stored
-      const storedUserId = localStorage.getItem('tripmind_user_id');
-      const storedUser = localStorage.getItem('tripmind_user');
+    const bootstrap = async () => {
+      const accessToken = localStorage.getItem(KEYS.access);
 
-      if (storedUserId && storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser);
-          setUser(parsed);
-          // Mark as guest if the email looks like a guest email
-          setIsGuest(parsed.email.endsWith('@tripmind.app'));
-          setIsLoading(false);
-          return;
-        } catch {
-          localStorage.removeItem('tripmind_user_id');
-          localStorage.removeItem('tripmind_user');
-        }
+      if (!accessToken) {
+        // No token at all — not logged in
+        setIsLoading(false);
+        return;
       }
 
-      // 2. No stored user — create a guest account
+      // Attach token to axios so the first API call is authenticated
+      setAuthToken(accessToken);
+
       try {
-        const identity = getOrCreateGuestIdentity();
-        const newUser = await apiService.createUser(identity);
-
-        const userData: User = {
-          id: newUser.id,
-          email: newUser.email,
-          full_name: newUser.full_name,
-        };
-
-        setUser(userData);
-        setIsGuest(true);
-        localStorage.setItem('tripmind_user_id', newUser.id.toString());
-        localStorage.setItem('tripmind_user', JSON.stringify(userData));
-      } catch (error) {
-        console.error('Failed to initialize guest user:', error);
+        // Verify the token is still valid and get fresh user data
+        const fresh = await apiService.getMe();
+        setUser(fresh);
+        localStorage.setItem(KEYS.user, JSON.stringify(fresh));
+      } catch {
+        // getMe failed — the interceptor already tried a refresh.
+        // If we're here, both tokens are dead. Clear and force login.
+        clearSession();
+        clearAuthToken();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeUser();
+    bootstrap();
   }, []);
 
-  // Called after real signup/login — clears guest flag
-  const login = (userId: number, userData: User) => {
-    setUser(userData);
-    setIsGuest(false);
-    localStorage.setItem('tripmind_user_id', userId.toString());
-    localStorage.setItem('tripmind_user', JSON.stringify(userData));
-  };
-
-  const logout = () => {
-    setUser(null);
-    setIsGuest(false);
-    localStorage.removeItem('tripmind_user_id');
-    localStorage.removeItem('tripmind_user');
-    // Note: we intentionally keep tripmind_guest_id so the same
-    // guest account is reused if they don't sign up
-  };
-
   return (
-    <UserContext.Provider value={{ user, userId: user?.id || null, isLoading, isGuest, login, logout }}>
+    <UserContext.Provider
+      value={{
+        user,
+        userId: user?.id ?? null,
+        isLoading,
+        isAuthenticated,
+        login,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );
 }
 
-export function useUser() {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used inside UserProvider');
-  }
-  return context;
+export function useUser(): UserContextType {
+  const ctx = useContext(UserContext);
+  if (!ctx) throw new Error('useUser must be used inside UserProvider');
+  return ctx;
 }
