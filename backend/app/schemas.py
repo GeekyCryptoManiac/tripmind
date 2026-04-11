@@ -6,31 +6,61 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
+# ============= Auth Schemas =============
+
+class UserRegister(BaseModel):
+    """Register a new account with email + password."""
+    email:     EmailStr
+    password:  str = Field(..., min_length=8, description="Minimum 8 characters")
+    full_name: str = Field(..., min_length=1, max_length=100)
+
+
+class UserLogin(BaseModel):
+    """Log in with email + password."""
+    email:    EmailStr
+    password: str
+
+
+class RefreshRequest(BaseModel):
+    """Exchange a refresh token for a new token pair."""
+    refresh_token: str
+
+
+class TokenResponse(BaseModel):
+    """Returned on successful register / login / refresh."""
+    access_token:  str
+    refresh_token: str
+    token_type:    str = "bearer"
+    user:          "UserResponse"
+
+
 # ============= Request Schemas =============
 
 class UserCreate(BaseModel):
-    """Schema for creating a new user"""
-    email: EmailStr
+    """Internal schema — kept for backward compatibility."""
+    email:     EmailStr
     full_name: str = Field(..., min_length=1, max_length=100)
 
+
 class ChatHistoryMessage(BaseModel):
-    """A single message in the chat history."""
-    role: str = Field(..., description="'user' or 'assistant'")
+    role:    str = Field(..., description="'user' or 'assistant'")
     content: str = Field(..., description="Message content")
 
 
 class ChatRequest(BaseModel):
-    """Schema for chat messages sent to the agent"""
-    message: str = Field(..., min_length=1, description="User's message to the agent")
-    user_id: int = Field(..., gt=0, description="ID of the user sending the message")
-    trip_id: Optional[int] = Field(None, gt=0, description="Optional trip ID for trip-specific chat context")
-    chat_history: Optional[List[ChatHistoryMessage]] = Field(
-        default=[],
-        description="Prior messages in this conversation, oldest first"
-    )
+    """
+    Chat message sent to the agent.
+    user_id is no longer required from the client — it is derived from
+    the JWT token on the server. The field is kept optional for backward
+    compatibility during the transition.
+    """
+    message:      str = Field(..., min_length=1)
+    user_id:      Optional[int] = Field(None, description="Deprecated — derived from token")
+    trip_id:      Optional[int] = Field(None, gt=0)
+    chat_history: Optional[List[ChatHistoryMessage]] = Field(default=[])
+
 
 class TripUpdate(BaseModel):
-    """Schema for partial trip updates — all fields optional."""
     destination:     Optional[str]   = None
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
@@ -43,10 +73,9 @@ class TripUpdate(BaseModel):
     expenses:        Optional[List[Dict[str, Any]]] = None
 
 
-# ── Week 8: Activity Management ───────────────────────────────
+# ── Activity Management ───────────────────────────────────────
 
 class ActivityCreate(BaseModel):
-    """Schema for manually adding a single activity to a trip day."""
     day:         int  = Field(..., gt=0)
     time:        str  = Field(..., description="HH:MM format")
     type:        str  = Field(..., description="activity | dining | flight | hotel | transport")
@@ -57,7 +86,6 @@ class ActivityCreate(BaseModel):
 
 
 class ActivityResponse(BaseModel):
-    """The created activity as saved, including its generated ID."""
     id:          str
     day:         int
     time:        str
@@ -69,25 +97,14 @@ class ActivityResponse(BaseModel):
     booking_ref: Optional[str] = None
 
 
-# ── Week 8: Travel AI Suggestions ────────────────────────────
+# ── Travel AI Suggestions ─────────────────────────────────────
 
 class TravelSuggestRequest(BaseModel):
-    """
-    Request body for POST /api/trips/{id}/travel/suggest.
-
-    type        — which sub-tab: flights | hotels | transport
-    preferences — optional user-edited prompt, e.g. "direct flights only",
-                  "budget hotels near city centre", "prefer trains"
-    """
     type:        str           = Field(..., description="flights | hotels | transport")
     preferences: Optional[str] = Field(None, max_length=500)
 
 
 class TravelSuggestResponse(BaseModel):
-    """
-    Response from the suggest endpoint.
-    Exactly one of flights / hotels / transport is populated.
-    """
     type:      str
     flights:   Optional[List[Dict[str, Any]]] = None
     hotels:    Optional[List[Dict[str, Any]]] = None
@@ -95,36 +112,26 @@ class TravelSuggestResponse(BaseModel):
 
 
 class TravelSaveRequest(BaseModel):
-    """
-    Request body for POST /api/trips/{id}/travel/save.
-    Appends one suggestion into trip_metadata.flights/hotels/transport.
-    """
     type: str            = Field(..., description="flights | hotels | transport")
-    item: Dict[str, Any] = Field(..., description="The suggestion dict to persist")
+    item: Dict[str, Any] = Field(...)
 
-# ── Week 8: Overview AI Features ─────────────────────────────
+
+# ── Overview AI Features ──────────────────────────────────────
 
 class OverviewAlertsResponse(BaseModel):
-    """
-    Response from POST /api/trips/{id}/overview/alerts.
-    Each alert has a severity level and category.
-    """
     alerts: List[Dict[str, Any]]
 
 
 class OverviewRecommendationsResponse(BaseModel):
-    """
-    Response from POST /api/trips/{id}/overview/recommendations.
-    Each recommendation is context-aware (destination, dates, budget).
-    """
     recommendations: List[Dict[str, Any]]
+
 
 # ============= Response Schemas =============
 
 class UserResponse(BaseModel):
-    id: int
-    email: str
-    full_name: str
+    id:         int
+    email:      str
+    full_name:  str
     created_at: datetime
 
     class Config:
@@ -132,9 +139,9 @@ class UserResponse(BaseModel):
 
 
 class TripResponse(BaseModel):
-    id: int
-    user_id: int
-    destination: str
+    id:              int
+    user_id:         int
+    destination:     str
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
     duration_days:   Optional[int]   = None
@@ -150,9 +157,9 @@ class TripResponse(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    message:      str = Field(..., description="Agent's natural language response")
-    action_taken: str = Field(..., description="What action the agent took")
-    trip_data:    Optional[TripResponse] = Field(None)
+    message:      str
+    action_taken: str
+    trip_data:    Optional[TripResponse] = None
 
 
 class TripList(BaseModel):
@@ -160,5 +167,5 @@ class TripList(BaseModel):
     total: int
 
 
-if __name__ == "__main__":
-    print("✅ All schemas defined successfully!")
+# Resolve forward reference in TokenResponse
+TokenResponse.model_rebuild()

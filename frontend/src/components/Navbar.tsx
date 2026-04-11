@@ -12,7 +12,8 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logoAsset from '../assets/tripMind_logo.png'; 
+import logoAsset from '../assets/tripMind_logo.png';
+import { useUser } from '../context/UserContext';
 
 const NAV_LINKS = [
   { path: '/',      label: 'Home'     },
@@ -22,6 +23,7 @@ const NAV_LINKS = [
 
 const Navbar: FC = () => {
   const location = useLocation();
+  const { logout, isAuthenticated } = useUser();
   const [scrolled, setScrolled] = useState(false);
   const isHomePage = location.pathname === '/';
 
@@ -114,6 +116,16 @@ const Navbar: FC = () => {
             >
               + New Trip
             </Link>
+
+            {isAuthenticated && (
+              <button
+                onClick={logout}
+                className="ml-2 px-3 py-2 rounded-xl text-sm font-medium text-ink-secondary hover:text-ink hover:bg-surface-muted transition-colors"
+              >
+                Log out
+              </button>
+            )}
+
           </div>
 
         </div>
