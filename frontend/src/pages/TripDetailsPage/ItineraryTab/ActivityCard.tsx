@@ -14,7 +14,7 @@ import type { Activity } from '../../../types';
 interface ActivityCardProps {
   activity: Activity;
   booking?: { status: 'mock' | 'booked' | 'pending' | 'ai_suggested'; name?: string };
-  onDelete?: (activityId: string) => Promise<void>; // Week 8: wired up delete
+  onDelete?: (activityId: number) => Promise<void>;
 }
 
 // ── SVG Icons ─────────────────────────────────────────────────
@@ -203,7 +203,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
         {activity.notes && (
           <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
             <p className="text-xs text-amber-800 flex items-start gap-1.5">
-              <LightbulbIcon className="flex-shrink-0 mt-0.5" />
+              <LightbulbIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span><span className="font-semibold">Note:</span> {activity.notes}</span>
             </p>
           </div>

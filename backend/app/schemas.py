@@ -1,106 +1,205 @@
 """
-Pydantic Schemas for API Request/Response Validation
+Pydantic Schemas — Normalized Schema
+======================================
+
+Key change from the old design:
+  BEFORE: TripResponse.trip_metadata was a raw Dict[str, Any] blob
+  AFTER:  TripResponse has typed nested lists for activities, expenses,
+          checklist_items, and saved_travel
+
+This means:
+  - The API surface is now self-documenting (Swagger shows exact shapes)
+  - Frontend TypeScript types can be generated directly from these
+  - Pydantic validates the shape of every response, not just requests
 """
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, Dict, Any, List
+
+from __future__ import annotations
+
 from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, EmailStr, Field
 
 
-# ============= Auth Schemas =============
+# ═════════════════════════════════════════════════════════════
+# Auth
+# ═════════════════════════════════════════════════════════════
 
 class UserRegister(BaseModel):
-    """Register a new account with email + password."""
     email:     EmailStr
-    password:  str = Field(..., min_length=8, description="Minimum 8 characters")
-    full_name: str = Field(..., min_length=1, max_length=100)
+    password:  str       = Field(..., min_length=8)
+    full_name: str       = Field(..., min_length=1, max_length=100)
 
 
 class UserLogin(BaseModel):
-    """Log in with email + password."""
     email:    EmailStr
     password: str
 
 
 class RefreshRequest(BaseModel):
-    """Exchange a refresh token for a new token pair."""
     refresh_token: str
 
 
-class TokenResponse(BaseModel):
-    """Returned on successful register / login / refresh."""
-    access_token:  str
-    refresh_token: str
-    token_type:    str = "bearer"
-    user:          "UserResponse"
-
-
-# ============= Request Schemas =============
+# ═════════════════════════════════════════════════════════════
+# User
+# ═════════════════════════════════════════════════════════════
 
 class UserCreate(BaseModel):
-    """Internal schema — kept for backward compatibility."""
+    """Legacy — kept for backward compatibility."""
     email:     EmailStr
     full_name: str = Field(..., min_length=1, max_length=100)
 
 
-class ChatHistoryMessage(BaseModel):
-    role:    str = Field(..., description="'user' or 'assistant'")
-    content: str = Field(..., description="Message content")
+class UserResponse(BaseModel):
+    id:         int
+    email:      str
+    full_name:  str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
-class ChatRequest(BaseModel):
-    """
-    Chat message sent to the agent.
-    user_id is no longer required from the client — it is derived from
-    the JWT token on the server. The field is kept optional for backward
-    compatibility during the transition.
-    """
-    message:      str = Field(..., min_length=1)
-    user_id:      Optional[int] = Field(None, description="Deprecated — derived from token")
-    trip_id:      Optional[int] = Field(None, gt=0)
-    chat_history: Optional[List[ChatHistoryMessage]] = Field(default=[])
+class TokenResponse(BaseModel):
+    access_token:  str
+    refresh_token: str
+    token_type:    str = "bearer"
+    user:          UserResponse
 
 
-class TripUpdate(BaseModel):
-    destination:     Optional[str]   = None
-    start_date:      Optional[str]   = None
-    end_date:        Optional[str]   = None
-    duration_days:   Optional[int]   = None
-    budget:          Optional[float] = None
-    travelers_count: Optional[int]   = None
-    status:          Optional[str]   = None
-    notes:           Optional[str]   = None
-    checklist:       Optional[List[Dict[str, Any]]] = None
-    expenses:        Optional[List[Dict[str, Any]]] = None
+# ═════════════════════════════════════════════════════════════
+# TripActivity
+# ═════════════════════════════════════════════════════════════
 
+ActivityType = Literal["activity", "dining", "flight", "hotel", "transport"]
 
-# ── Activity Management ───────────────────────────────────────
 
 class ActivityCreate(BaseModel):
-    day:         int  = Field(..., gt=0)
-    time:        str  = Field(..., description="HH:MM format")
-    type:        str  = Field(..., description="activity | dining | flight | hotel | transport")
-    title:       str  = Field(..., min_length=1, max_length=200)
+    day:         int         = Field(..., gt=0)
+    time:        Optional[str] = Field(None, description="HH:MM — omit for all-day items")
+    type:        ActivityType = "activity"
+    title:       str         = Field(..., min_length=1, max_length=200)
     location:    Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: Optional[str] = Field(None, max_length=2000)
     notes:       Optional[str] = Field(None, max_length=500)
+    booking_ref: Optional[str] = Field(None, max_length=100)
+    sort_order:  int           = 0
+
+
+class ActivityUpdate(BaseModel):
+    """Partial update — all fields optional."""
+    time:        Optional[str]          = None
+    type:        Optional[ActivityType] = None
+    title:       Optional[str]          = Field(None, max_length=200)
+    location:    Optional[str]          = Field(None, max_length=200)
+    description: Optional[str]          = Field(None, max_length=2000)
+    notes:       Optional[str]          = Field(None, max_length=500)
+    booking_ref: Optional[str]          = Field(None, max_length=100)
+    sort_order:  Optional[int]          = None
 
 
 class ActivityResponse(BaseModel):
-    id:          str
+    id:          int
+    trip_id:     int
     day:         int
-    time:        str
+    time:        Optional[str]     = None
     type:        str
     title:       str
-    location:    Optional[str] = None
-    description: Optional[str] = None
-    notes:       Optional[str] = None
-    booking_ref: Optional[str] = None
+    location:    Optional[str]     = None
+    description: Optional[str]    = None
+    notes:       Optional[str]     = None
+    booking_ref: Optional[str]    = None
+    sort_order:  int
+    created_at:  datetime
+
+    model_config = {"from_attributes": True}
 
 
-# ── Travel AI Suggestions ─────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# TripExpense
+# ═════════════════════════════════════════════════════════════
+
+class ExpenseCreate(BaseModel):
+    category:    Optional[str]     = Field(None, max_length=50)
+    description: Optional[str]     = Field(None, max_length=200)
+    amount:      Decimal           = Field(..., gt=0, decimal_places=2)
+    currency:    str               = Field("SGD", min_length=3, max_length=3)
+    date:        Optional[str]     = Field(None, description="YYYY-MM-DD")
+
+
+class ExpenseUpdate(BaseModel):
+    category:    Optional[str]     = None
+    description: Optional[str]     = None
+    amount:      Optional[Decimal] = Field(None, gt=0, decimal_places=2)
+    currency:    Optional[str]     = None
+    date:        Optional[str]     = None
+
+
+class ExpenseResponse(BaseModel):
+    id:          int
+    trip_id:     int
+    category:    Optional[str]    = None
+    description: Optional[str]   = None
+    amount:      Decimal
+    currency:    str
+    date:        Optional[str]   = None
+    created_at:  datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ═════════════════════════════════════════════════════════════
+# TripChecklistItem
+# ═════════════════════════════════════════════════════════════
+
+class ChecklistItemCreate(BaseModel):
+    text:       str = Field(..., min_length=1, max_length=300)
+    sort_order: int = 0
+
+
+class ChecklistItemUpdate(BaseModel):
+    text:       Optional[str]  = Field(None, max_length=300)
+    is_checked: Optional[bool] = None
+    sort_order: Optional[int]  = None
+
+
+class ChecklistItemResponse(BaseModel):
+    id:         int
+    trip_id:    int
+    text:       str
+    is_checked: bool
+    sort_order: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ═════════════════════════════════════════════════════════════
+# TripSavedTravel
+# ═════════════════════════════════════════════════════════════
+
+TravelType = Literal["flight", "hotel", "transport"]
+
+
+class TravelSaveRequest(BaseModel):
+    type: TravelType
+    data: Dict[str, Any] = Field(..., description="Full suggestion payload from AI")
+
+
+class SavedTravelResponse(BaseModel):
+    id:         int
+    trip_id:    int
+    type:       str
+    data:       Dict[str, Any]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── AI suggest (not persisted — just the request) ─────────────
 
 class TravelSuggestRequest(BaseModel):
-    type:        str           = Field(..., description="flights | hotels | transport")
+    type:        TravelType
     preferences: Optional[str] = Field(None, max_length=500)
 
 
@@ -111,34 +210,41 @@ class TravelSuggestResponse(BaseModel):
     transport: Optional[List[Dict[str, Any]]] = None
 
 
-class TravelSaveRequest(BaseModel):
-    type: str            = Field(..., description="flights | hotels | transport")
-    item: Dict[str, Any] = Field(...)
+# ═════════════════════════════════════════════════════════════
+# Trip
+# ═════════════════════════════════════════════════════════════
+
+TripStatus = Literal["planning", "booked", "ongoing", "completed", "cancelled"]
 
 
-# ── Overview AI Features ──────────────────────────────────────
+class TripUpdate(BaseModel):
+    """
+    Partial trip update — all fields optional.
+    Only provided fields are written to the DB.
+    """
+    destination:     Optional[str]   = None
+    start_date:      Optional[str]   = Field(None, description="YYYY-MM-DD")
+    end_date:        Optional[str]   = Field(None, description="YYYY-MM-DD")
+    duration_days:   Optional[int]   = Field(None, gt=0)
+    budget:          Optional[float] = Field(None, gt=0)
+    travelers_count: Optional[int]   = Field(None, gt=0)
+    status:          Optional[TripStatus] = None
+    notes:           Optional[str]   = None
+    cover_image_url: Optional[str]   = None
+    preferences:     Optional[List[str]] = None
 
-class OverviewAlertsResponse(BaseModel):
-    alerts: List[Dict[str, Any]]
-
-
-class OverviewRecommendationsResponse(BaseModel):
-    recommendations: List[Dict[str, Any]]
-
-
-# ============= Response Schemas =============
-
-class UserResponse(BaseModel):
-    id:         int
-    email:      str
-    full_name:  str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
+    # AI cache updates — sent by the frontend after regenerating
+    ai_alerts:          Optional[List[Dict[str, Any]]] = None
+    ai_recommendations: Optional[List[Dict[str, Any]]] = None
 
 
 class TripResponse(BaseModel):
+    """
+    Full trip response — includes all related data as typed lists.
+
+    Replaces the old trip_metadata: Dict[str, Any] blob.
+    The frontend receives everything it needs in one call.
+    """
     id:              int
     user_id:         int
     destination:     str
@@ -148,12 +254,47 @@ class TripResponse(BaseModel):
     budget:          Optional[float] = None
     travelers_count: int
     status:          str
-    trip_metadata:   Dict[str, Any]  = {}
-    created_at:      datetime
-    updated_at:      Optional[datetime] = None
+    notes:           Optional[str]   = None
+    cover_image_url: Optional[str]   = None
+    preferences:     List[str]       = []
 
-    class Config:
-        from_attributes = True
+    # Properly typed nested lists — was trip_metadata.* blobs
+    activities:      List[ActivityResponse]      = []
+    expenses:        List[ExpenseResponse]        = []
+    checklist_items: List[ChecklistItemResponse]  = []
+    saved_travel:    List[SavedTravelResponse]    = []
+
+    # AI caches — still returned as dicts (shapes vary, not individually addressed)
+    ai_alerts:          List[Dict[str, Any]] = []
+    ai_recommendations: List[Dict[str, Any]] = []
+
+    created_at:  datetime
+    updated_at:  Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class TripList(BaseModel):
+    trips: List[TripResponse]
+    total: int
+
+
+# ═════════════════════════════════════════════════════════════
+# Chat
+# ═════════════════════════════════════════════════════════════
+
+class ChatHistoryMessage(BaseModel):
+    role:    Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message:      str                             = Field(..., min_length=1)
+    trip_id:      Optional[int]                   = Field(None, gt=0)
+    chat_history: Optional[List[ChatHistoryMessage]] = Field(default_factory=list)
+
+    # Deprecated — user_id now derived from JWT, kept for backward compat
+    user_id: Optional[int] = Field(None, exclude=True)
 
 
 class ChatResponse(BaseModel):
@@ -162,10 +303,13 @@ class ChatResponse(BaseModel):
     trip_data:    Optional[TripResponse] = None
 
 
-class TripList(BaseModel):
-    trips: List[TripResponse]
-    total: int
+# ═════════════════════════════════════════════════════════════
+# Overview AI — request/response for the OverviewTab panels
+# ═════════════════════════════════════════════════════════════
+
+class OverviewAlertsResponse(BaseModel):
+    alerts: List[Dict[str, Any]]
 
 
-# Resolve forward reference in TokenResponse
-TokenResponse.model_rebuild()
+class OverviewRecommendationsResponse(BaseModel):
+    recommendations: List[Dict[str, Any]]

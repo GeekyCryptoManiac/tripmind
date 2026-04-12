@@ -19,8 +19,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Activity } from '../../../types';
-import type { ActivityCreateRequest } from '../../../services/api';
+import type { Activity, ActivityCreateRequest } from '../../../types';
 
 interface AddActivityModalProps {
   isOpen: boolean;
