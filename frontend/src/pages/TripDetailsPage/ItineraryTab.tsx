@@ -23,15 +23,15 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Trip } from '../../types';
+import type { Trip, ActivityCreateRequest } from '../../types';
 import type { TripPhase } from '../../utils/tripStatus';
 import { getChatService } from '../../services/chatService';
 import { apiService } from '../../services/api';
-import type { ActivityCreateRequest } from '../../services/api';
 import DayNavigation from './ItineraryTab/DayNavigation';
 import ActivityTimeline from './ItineraryTab/ActivityTimeline';
 import EmptyDayState from './ItineraryTab/EmptyDayState';
 import AddActivityModal from './ItineraryTab/AddActivityModal';
+import { groupActivitiesByDay } from '../../types';
 
 interface ItineraryTabProps {
   trip: Trip;
@@ -63,16 +63,14 @@ export default function ItineraryTab({
   const [modalTargetDay, setModalTargetDay] = useState(1);
 
   // ── Derived state ─────────────────────────────────────────
-  const itinerary = trip.trip_metadata?.itinerary || [];
-  const flights   = trip.trip_metadata?.flights   || [];
-  const hotels    = trip.trip_metadata?.hotels    || [];
-  const config    = trip.trip_metadata?.itinerary_config;
+const itinerary = groupActivitiesByDay(trip.activities);
+const flights   = trip.saved_travel.filter(t => t.type === 'flight');
+const hotels    = trip.saved_travel.filter(t => t.type === 'hotel');
 
-  const totalDays         = itinerary.length || trip.duration_days || 1;
-  const daysGenerated     = config?.days_generated || 0;
-  const hasAnyItinerary   = itinerary.length > 0;
-  const daysWithItinerary = itinerary.map((d) => d.day);
-  const currentDayData    = itinerary.find((d) => d.day === selectedDay);
+const totalDays         = trip.duration_days || itinerary.length || 1;
+const hasAnyItinerary   = itinerary.length > 0;
+const daysWithItinerary = itinerary.map((d) => d.day);
+const currentDayData    = itinerary.find((d) => d.day === selectedDay);
 
   // ── Reset selected day when trip changes ──────────────────
   useEffect(() => {
@@ -81,48 +79,41 @@ export default function ItineraryTab({
 
   // ── AI generation ─────────────────────────────────────────
   const handleGenerate = async () => {
-    setIsGenerating(true);
-    setGenerationError(null);
+  setIsGenerating(true);
+  setGenerationError(null);
 
-    try {
-      const chatService = getChatService('trip');
-      await chatService.sendMessage({
-        user_id: trip.user_id,
-        message: 'Generate a detailed itinerary for this trip',
-        trip_id: trip.id,
-      });
+  try {
+    const chatService = getChatService('trip');
+    const response = await chatService.sendMessage({
+      user_id: trip.user_id,
+      message: 'Generate a detailed itinerary for this trip',
+      trip_id: trip.id,
+    });
 
-      let attempts = 0;
-      const maxAttempts = 40;
-
-      const poll = async (): Promise<void> => {
-        attempts++;
-        const updatedTrip = await apiService.getTrip(trip.id);
-
-        if ((updatedTrip.trip_metadata?.itinerary?.length ?? 0) > 0) {
-          if (onTripUpdate) onTripUpdate(updatedTrip);
-          setIsGenerating(false);
-          return;
-        }
-
-        if (attempts < maxAttempts) {
-          setTimeout(() => poll(), 1000);
-        } else {
-          throw new Error(
-            'Generation is taking longer than expected. The itinerary may still be processing — try refreshing, or ask in the Chat tab.'
-          );
-        }
-      };
-
-      await poll();
-    } catch (err) {
-      console.error('Failed to generate itinerary:', err);
-      setGenerationError(
-        err instanceof Error ? err.message : 'Failed to generate itinerary. Please try again.'
-      );
-      setIsGenerating(false);
+    // trip_data is already populated by the time chat responds —
+    // the agent awaits tool completion before returning
+    if (response.trip_data && response.trip_data.activities?.length > 0) {
+      if (onTripUpdate) onTripUpdate(response.trip_data);
+    } else {
+      // Fallback — fetch once in case trip_data wasn't populated
+      const updatedTrip = await apiService.getTrip(trip.id);
+      if (updatedTrip.activities?.length > 0) {
+        if (onTripUpdate) onTripUpdate(updatedTrip);
+      } else {
+        setGenerationError(
+          'Itinerary generation failed. Please try again or add activities manually.'
+        );
+      }
     }
-  };
+  } catch (err) {
+    console.error('Failed to generate itinerary:', err);
+    setGenerationError(
+      err instanceof Error ? err.message : 'Failed to generate itinerary. Please try again.'
+    );
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   // ── Week 8: open modal for a specific day ─────────────────
   // Called from both EmptyDayState and ActivityTimeline's "+ Add activity" button
@@ -132,19 +123,19 @@ export default function ItineraryTab({
   };
 
   // ── Week 8: submit new activity to backend ────────────────
-  const handleAddActivity = async (activityData: ActivityCreateRequest) => {
-    const updatedTrip = await apiService.addActivity(trip.id, activityData);
-    if (onTripUpdate) onTripUpdate(updatedTrip);
-    // Ensure the selected day shows the newly added activity
-    setSelectedDay(activityData.day);
-  };
+const handleAddActivity = async (activityData: ActivityCreateRequest) => {
+  await apiService.addActivity(trip.id, activityData);
+  const updatedTrip = await apiService.getTrip(trip.id);
+  if (onTripUpdate) onTripUpdate(updatedTrip);
+  setSelectedDay(activityData.day);
+};
 
   // ── Week 8: delete activity from backend ──────────────────
-  const handleDeleteActivity = async (activityId: string) => {
-    const updatedTrip = await apiService.deleteActivity(trip.id, activityId);
-    if (onTripUpdate) onTripUpdate(updatedTrip);
-  };
-
+const handleDeleteActivity = async (activityId: number) => {
+  await apiService.deleteActivity(trip.id, activityId);
+  const updatedTrip = await apiService.getTrip(trip.id);
+  if (onTripUpdate) onTripUpdate(updatedTrip);
+};
   // ──────────────────────────────────────────────────────────
   // RENDER
   // ──────────────────────────────────────────────────────────
@@ -201,7 +192,7 @@ export default function ItineraryTab({
               <EmptyDayState
                 day={1}
                 totalDays={totalDays}
-                daysGenerated={daysGenerated}
+                daysGenerated={itinerary.length}
                 destination={trip.destination}
                 onGenerate={handleGenerate}
                 onManualAdd={() => handleManualAdd(1)}
@@ -221,6 +212,7 @@ export default function ItineraryTab({
               {currentDayData ? (
                 <ActivityTimeline
                   day={currentDayData}
+                  tripStartDate={trip.start_date}
                   flights={flights}
                   hotels={hotels}
                   onAddActivity={handleManualAdd}
@@ -230,7 +222,7 @@ export default function ItineraryTab({
                 <EmptyDayState
                   day={selectedDay}
                   totalDays={totalDays}
-                  daysGenerated={daysGenerated}
+                  daysGenerated={itinerary.length}
                   destination={trip.destination}
                   onGenerate={handleGenerate}
                   onManualAdd={() => handleManualAdd(selectedDay)}
@@ -243,7 +235,7 @@ export default function ItineraryTab({
       )}
 
       {/* ── Partial itinerary warning ─────────────────────── */}
-      {hasAnyItinerary && config?.is_partial && selectedDay > daysGenerated && (
+      {hasAnyItinerary && itinerary.length < totalDays && selectedDay > itinerary.length && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,10 +244,10 @@ export default function ItineraryTab({
             </svg>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-amber-900 mb-1">
-                Days {daysGenerated + 1}–{totalDays} not yet generated
+                Days {itinerary.length + 1}–{totalDays} not yet generated
               </h4>
               <p className="text-sm text-amber-800">
-                Only the first {daysGenerated} days were generated. You can add
+                Only the first {itinerary.length} days have activities. You can add
                 activities manually or ask in the Chat tab to generate more days.
               </p>
             </div>

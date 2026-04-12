@@ -10,14 +10,15 @@
 
 import { motion } from 'framer-motion';
 import ActivityCard from './ActivityCard';
-import type { ItineraryDay, Flight, Hotel } from '../../../types';
+import type { ItineraryDay, SavedTravel } from '../../../types';
 
 interface ActivityTimelineProps {
   day: ItineraryDay;
-  flights?: Flight[];
-  hotels?: Hotel[];
-  onAddActivity?: (day: number) => void;           // Week 8: opens modal
-  onDeleteActivity?: (activityId: string) => Promise<void>; // Week 8: deletes activity
+  tripStartDate?: string | null;
+  flights?: SavedTravel[];
+  hotels?: SavedTravel[];
+  onAddActivity?: (day: number) => void;
+  onDeleteActivity?: (activityId: number) => Promise<void>;
 }
 
 // ── SVG Icons ─────────────────────────────────────────────────
@@ -29,26 +30,40 @@ const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 
 export default function ActivityTimeline({
   day,
+  tripStartDate,
   flights = [],
   hotels = [],
   onAddActivity,
   onDeleteActivity,
 }: ActivityTimelineProps) {
+  const computedDate = tripStartDate
+  ? new Date(
+      new Date(tripStartDate).getTime() + (day.day - 1) * 86400000
+    ).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  : null;
   const findBooking = (bookingRef: string | null | undefined) => {
-    if (!bookingRef) return undefined;
+  if (!bookingRef) return undefined;
 
-    const flight = flights.find((f) => f.id === bookingRef);
-    if (flight) {
-      return { status: flight.status, name: `${flight.airline} ${flight.flight_number}` };
-    }
+  const flight = flights.find((f) => String(f.id) === bookingRef);
+  if (flight) {
+    const d = flight.data as Record<string, unknown>;
+    return {
+      status: 'ai_suggested' as const,
+      name: d.airline ? `${d.airline} ${d.flight_number ?? ''}`.trim() : undefined,
+    };
+  }
 
-    const hotel = hotels.find((h) => h.id === bookingRef);
-    if (hotel) {
-      return { status: hotel.status, name: hotel.name };
-    }
+  const hotel = hotels.find((h) => String(h.id) === bookingRef);
+  if (hotel) {
+    const d = hotel.data as Record<string, unknown>;
+    return {
+      status: 'ai_suggested' as const,
+      name: d.name as string | undefined,
+    };
+  }
 
-    return undefined;
-  };
+  return undefined;
+};
 
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
@@ -63,7 +78,9 @@ export default function ActivityTimeline({
             <h3 className="text-lg font-bold text-ink">
               {day.title || `Day ${day.day}`}
             </h3>
-            <p className="text-sm text-ink-secondary">{day.date}</p>
+            {computedDate && (
+              <p className="text-sm text-ink-secondary">{computedDate}</p>
+            )}
           </div>
         </div>
       </div>

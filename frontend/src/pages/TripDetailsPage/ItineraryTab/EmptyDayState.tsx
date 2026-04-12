@@ -12,7 +12,7 @@
 interface EmptyDayStateProps {
   day: number;
   totalDays: number;
-  daysGenerated: number;
+  daysGenerated?: number;   // optional — defaults to 0
   destination: string;
   onGenerate?: () => void;
   onManualAdd?: () => void;
@@ -48,7 +48,7 @@ const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 
 export default function EmptyDayState({
   day,
-  daysGenerated,
+  daysGenerated = 0,
   destination,
   onGenerate,
   onManualAdd,
