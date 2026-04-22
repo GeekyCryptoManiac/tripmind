@@ -365,7 +365,7 @@ def _build_suggest_prompt(trip: Trip, suggest_type: str, preferences: str | None
     pax      = trip.travelers_count or 1
     prefs    = f"\nUser preferences: {preferences}" if preferences else ""
 
-    if suggest_type == "flights":
+    if suggest_type == "flight":
         return f"""You are a travel expert. Generate exactly 3 realistic flight suggestions.
 
 Trip: {dest} | Dates: {dates} | Travelers: {pax} | Budget: {budget}{prefs}
@@ -384,7 +384,7 @@ Return ONLY valid JSON, no markdown:
 }}
 Rules: estimated_price is per person USD. Use real airlines. Vary price points."""
 
-    elif suggest_type == "hotels":
+    elif suggest_type == "hotel":
         return f"""You are a travel expert. Generate exactly 3 realistic hotel suggestions.
 
 Trip: {dest} | Dates: {dates} | Duration: {duration} | Travelers: {pax} | Budget: {budget}{prefs}
@@ -453,8 +453,8 @@ async def suggest_travel(
 
         return TravelSuggestResponse(
             type=request.type,
-            flights=suggestions   if request.type == "flights"   else None,
-            hotels=suggestions    if request.type == "hotels"    else None,
+            flights=suggestions   if request.type == "flight"    else None,
+            hotels=suggestions    if request.type == "hotel"     else None,
             transport=suggestions if request.type == "transport" else None,
         )
     except json.JSONDecodeError:

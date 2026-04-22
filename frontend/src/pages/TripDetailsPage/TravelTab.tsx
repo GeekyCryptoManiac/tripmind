@@ -1,34 +1,28 @@
 /**
- * TravelTab — Week 8
+ * TravelTab — Round 1 Migration
  *
- * Redesigned to support the full "Find with AI" flow:
- *
- * ── 3 stages per sub-tab (flights / hotels / transport) ──────
- *
- *   Stage 1 — Empty / CTA
- *     Shows saved items if any exist, otherwise empty state.
- *     "Find with AI" button opens the inline AI panel.
- *
- *   Stage 2 — AI Panel (inline, below CTAs)
- *     Shows pre-filled trip context (destination, dates, travelers).
- *     Optional free-text preferences field.
- *     "Search" button triggers the suggest endpoint.
- *     Loading state: animated thinking dots.
- *
- *   Stage 3 — Results
- *     2-3 suggestion cards rendered inline.
- *     Each card has a "Save to Trip" button.
- *     Saving writes to trip_metadata and calls onTripUpdate.
- *     Saved items appear as persistent cards at the top.
- *
- * ── Data flow ─────────────────────────────────────────────────
- *   suggestTravel()  → TravelSuggestResponse (not persisted)
- *   saveTravelItem() → Trip (persisted, replaces local state)
+ * Changes:
+ *   - trip.trip_metadata?.flights/hotels/transport removed
+ *     → trip.saved_travel.filter(t => t.type === '...') instead
+ *   - Saved item cards now take SavedTravel, render from item.data
+ *   - Delete button wired up on saved cards:
+ *     apiService.deleteSavedTravel(tripId, id) → getTrip → onTripUpdate
+ *   - AIPanel handleSave: { type, data } (was { type, item }),
+ *     saveTravelItem returns SavedTravel so getTrip called after
+ *   - Type imports updated: FlightSuggestion/HotelSuggestion/TransportSuggestion
+ *     for AI result cards; SavedTravel for persisted cards
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Trip, Flight, Hotel, Transport, TravelSuggestType } from '../../types';
+import type {
+  Trip,
+  SavedTravel,
+  FlightSuggestion,
+  HotelSuggestion,
+  TransportSuggestion,
+  TravelSuggestType,
+} from '../../types';
 import type { TravelSubTab } from './helpers';
 import { apiService } from '../../services/api';
 
@@ -80,13 +74,20 @@ const XIcon         = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+const TrashIcon     = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 const StarIcon      = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
   </svg>
 );
 
-// ── Typing dots (loading indicator) ──────────────────────────
+// ── Typing dots ───────────────────────────────────────────────
 function TypingDots() {
   return (
     <div className="flex items-center gap-1.5 py-1">
@@ -113,7 +114,16 @@ function AISuggestedBadge() {
 }
 
 // ── Saved item cards ──────────────────────────────────────────
-function SavedFlightCard({ flight }: { flight: Flight }) {
+// Each card receives SavedTravel and casts item.data to the appropriate suggestion shape.
+
+interface SavedCardBaseProps {
+  item: SavedTravel;
+  onDelete: (id: number) => void;
+  isDeleting: boolean;
+}
+
+function SavedFlightCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
+  const flight = item.data as unknown as FlightSuggestion;
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/[0.05] shadow-sm p-5">
       <div className="flex items-start justify-between mb-3">
@@ -121,11 +131,23 @@ function SavedFlightCard({ flight }: { flight: Flight }) {
           <p className="font-semibold text-ink">{flight.airline}</p>
           <p className="text-xs text-ink-tertiary mt-0.5">{flight.flight_number}</p>
         </div>
-        {flight.status === 'ai_suggested' ? <AISuggestedBadge /> : (
+        <div className="flex items-center gap-2">
           <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">
             Saved
           </span>
-        )}
+          <button
+            onClick={() => onDelete(item.id)}
+            disabled={isDeleting}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            title="Remove saved item"
+          >
+            {isDeleting ? (
+              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+            ) : (
+              <TrashIcon className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="flex items-center gap-3 text-sm text-ink mb-2">
         <span className="font-mono font-semibold">{flight.from}</span>
@@ -149,7 +171,8 @@ function SavedFlightCard({ flight }: { flight: Flight }) {
   );
 }
 
-function SavedHotelCard({ hotel }: { hotel: Hotel }) {
+function SavedHotelCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
+  const hotel = item.data as unknown as HotelSuggestion;
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/[0.05] shadow-sm p-5">
       <div className="flex items-start justify-between mb-2">
@@ -157,9 +180,21 @@ function SavedHotelCard({ hotel }: { hotel: Hotel }) {
           <p className="font-semibold text-ink">{hotel.name}</p>
           <p className="text-xs text-ink-secondary mt-0.5">{hotel.area}, {hotel.location}</p>
         </div>
-        {hotel.status === 'ai_suggested' ? <AISuggestedBadge /> : (
+        <div className="flex items-center gap-2">
           <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">Saved</span>
-        )}
+          <button
+            onClick={() => onDelete(item.id)}
+            disabled={isDeleting}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            title="Remove saved item"
+          >
+            {isDeleting ? (
+              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+            ) : (
+              <TrashIcon className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       </div>
       {hotel.star_rating && (
         <div className="flex items-center gap-0.5 mb-2">
@@ -181,7 +216,8 @@ function SavedHotelCard({ hotel }: { hotel: Hotel }) {
   );
 }
 
-function SavedTransportCard({ transport }: { transport: Transport }) {
+function SavedTransportCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
+  const transport = item.data as unknown as TransportSuggestion;
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/[0.05] shadow-sm p-5">
       <div className="flex items-start justify-between mb-2">
@@ -189,9 +225,21 @@ function SavedTransportCard({ transport }: { transport: Transport }) {
           <p className="font-semibold text-ink">{transport.title}</p>
           <p className="text-xs text-ink-secondary capitalize mt-0.5">{transport.type}</p>
         </div>
-        {transport.status === 'ai_suggested' ? <AISuggestedBadge /> : (
+        <div className="flex items-center gap-2">
           <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">Saved</span>
-        )}
+          <button
+            onClick={() => onDelete(item.id)}
+            disabled={isDeleting}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            title="Remove saved item"
+          >
+            {isDeleting ? (
+              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+            ) : (
+              <TrashIcon className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
       </div>
       <p className="text-sm text-ink-secondary mb-2">{transport.description}</p>
       {transport.pros && transport.pros.length > 0 && (
@@ -214,13 +262,11 @@ function SavedTransportCard({ transport }: { transport: Transport }) {
 }
 
 // ── Suggestion result cards (before saving) ───────────────────
+
 function FlightResultCard({
-  flight,
-  onSave,
-  isSaving,
-  isSaved,
+  flight, onSave, isSaving, isSaved,
 }: {
-  flight: Flight;
+  flight: FlightSuggestion;
   onSave: () => void;
   isSaving: boolean;
   isSaved: boolean;
@@ -245,7 +291,9 @@ function FlightResultCard({
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-ink-secondary">{flight.departure} → {flight.arrival}</span>
         {flight.estimated_price && (
-          <span className="text-lg font-bold text-ink">${flight.estimated_price}<span className="text-xs font-normal text-ink-tertiary">/pax</span></span>
+          <span className="text-lg font-bold text-ink">
+            ${flight.estimated_price}<span className="text-xs font-normal text-ink-tertiary">/pax</span>
+          </span>
         )}
       </div>
       {flight.notes && <p className="text-xs text-ink-tertiary mb-3">{flight.notes}</p>}
@@ -262,21 +310,16 @@ function FlightResultCard({
           <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
         ) : isSaved ? (
           <><CheckIcon /> Saved to Trip</>
-        ) : (
-          'Save to Trip'
-        )}
+        ) : 'Save to Trip'}
       </button>
     </div>
   );
 }
 
 function HotelResultCard({
-  hotel,
-  onSave,
-  isSaving,
-  isSaved,
+  hotel, onSave, isSaving, isSaved,
 }: {
-  hotel: Hotel;
+  hotel: HotelSuggestion;
   onSave: () => void;
   isSaving: boolean;
   isSaved: boolean;
@@ -310,7 +353,9 @@ function HotelResultCard({
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-ink-tertiary">Check-in {hotel.check_in} · Check-out {hotel.check_out}</span>
         {hotel.price_per_night && (
-          <span className="text-lg font-bold text-ink">${hotel.price_per_night}<span className="text-xs font-normal text-ink-tertiary">/night</span></span>
+          <span className="text-lg font-bold text-ink">
+            ${hotel.price_per_night}<span className="text-xs font-normal text-ink-tertiary">/night</span>
+          </span>
         )}
       </div>
       {hotel.notes && <p className="text-xs text-ink-tertiary mb-3">{hotel.notes}</p>}
@@ -334,12 +379,9 @@ function HotelResultCard({
 }
 
 function TransportResultCard({
-  transport,
-  onSave,
-  isSaving,
-  isSaved,
+  transport, onSave, isSaving, isSaved,
 }: {
-  transport: Transport;
+  transport: TransportSuggestion;
   onSave: () => void;
   isSaving: boolean;
   isSaved: boolean;
@@ -365,7 +407,7 @@ function TransportResultCard({
         </ul>
       )}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-ink-tertiary">{transport.duration && `~${transport.duration}`}</span>
+        <span className="text-xs text-ink-tertiary" />
         {transport.estimated_cost && (
           <span className="text-lg font-bold text-ink">
             ~${transport.estimated_cost}
@@ -401,30 +443,11 @@ interface AIPanelProps {
   onTripUpdate?: (trip: Trip) => void;
 }
 
-/**
- * AIPanel — sessionStorage persistence patch
- *
- * Replace the entire AIPanel function in TravelTab.tsx with this.
- * Everything from `function AIPanel(...)` down to its closing `}`.
- *
- * Changes from original:
- *   - CACHE_KEY helper builds a consistent sessionStorage key per trip + type
- *   - useState for suggestions initialises from sessionStorage on mount
- *   - useState for savedIds initialises from sessionStorage on mount
- *   - setSuggestions wrapped → also writes to sessionStorage
- *   - setSavedIds wrapped → also writes to sessionStorage
- *
- * sessionStorage scope: browser tab only. Clears when tab closes.
- * Keys: "tripmind_suggestions_{tripId}_{type}"
- *       "tripmind_saved_ids_{tripId}_{type}"
- */
-
 function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
-  // ── sessionStorage helpers ──────────────────────────────
   const suggestKey = `tripmind_suggestions_${trip.id}_${type}`;
   const savedKey   = `tripmind_saved_ids_${trip.id}_${type}`;
 
-  function readSuggestions(): (Flight | Hotel | Transport)[] {
+  function readSuggestions(): (FlightSuggestion | HotelSuggestion | TransportSuggestion)[] {
     try {
       const raw = sessionStorage.getItem(suggestKey);
       return raw ? JSON.parse(raw) : [];
@@ -438,16 +461,14 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
     } catch { return new Set(); }
   }
 
-  // ── State — hydrated from sessionStorage on mount ───────
   const [preferences, setPreferences] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError]             = useState<string | null>(null);
-  const [suggestions, setSuggestionsState] = useState<(Flight | Hotel | Transport)[]>(readSuggestions);
+  const [suggestions, setSuggestionsState] = useState<(FlightSuggestion | HotelSuggestion | TransportSuggestion)[]>(readSuggestions);
   const [savingId, setSavingId]       = useState<string | null>(null);
   const [savedIds, setSavedIdsState]  = useState<Set<string>>(readSavedIds);
 
-  // ── Wrapped setters that also persist to sessionStorage ──
-  const setSuggestions = (items: (Flight | Hotel | Transport)[]) => {
+  const setSuggestions = (items: (FlightSuggestion | HotelSuggestion | TransportSuggestion)[]) => {
     setSuggestionsState(items);
     try { sessionStorage.setItem(suggestKey, JSON.stringify(items)); } catch { /* quota */ }
   };
@@ -460,7 +481,6 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
     });
   };
 
-  // ── Context line shown in panel header ──────────────────
   const contextLine = [
     trip.destination,
     trip.start_date && trip.end_date ? `${trip.start_date} → ${trip.end_date}` : null,
@@ -469,8 +489,8 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
   ].filter(Boolean).join(' · ');
 
   const placeholder: Record<TravelSuggestType, string> = {
-    flights:   'e.g. direct flights only, prefer morning departures, business class',
-    hotels:    'e.g. near city centre, 4-star+, free breakfast, pool',
+    flight:    'e.g. direct flights only, prefer morning departures, business class',
+    hotel:     'e.g. near city centre, 4-star+, free breakfast, pool',
     transport: 'e.g. prefer public transport, avoid taxis, need airport transfer',
   };
 
@@ -478,14 +498,13 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
     setIsSearching(true);
     setError(null);
     setSuggestions([]);
-
     try {
       const result = await apiService.suggestTravel(trip.id, {
         type,
         preferences: preferences.trim() || undefined,
       });
       const items = result.flights ?? result.hotels ?? result.transport ?? [];
-      setSuggestions(items as (Flight | Hotel | Transport)[]);
+      setSuggestions(items as (FlightSuggestion | HotelSuggestion | TransportSuggestion)[]);
     } catch (err) {
       console.error('[AIPanel] Suggest failed:', err);
       setError('Could not generate suggestions. Please try again.');
@@ -494,13 +513,15 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
     }
   };
 
-  const handleSave = async (item: Flight | Hotel | Transport) => {
+  const handleSave = async (item: FlightSuggestion | HotelSuggestion | TransportSuggestion) => {
     setSavingId(item.id);
     try {
-      const updatedTrip = await apiService.saveTravelItem(trip.id, {
+      // saveTravelItem returns SavedTravel (not Trip) — refresh trip separately
+      await apiService.saveTravelItem(trip.id, {
         type,
-        item: item as unknown as Record<string, unknown>,
+        data: item as unknown as Record<string, unknown>,
       });
+      const updatedTrip = await apiService.getTrip(trip.id);
       addSavedId(item.id);
       if (onTripUpdate) onTripUpdate(updatedTrip);
     } catch (err) {
@@ -519,7 +540,6 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
       className="overflow-hidden"
     >
       <div className="border-t border-surface-muted bg-gradient-to-b from-brand-50/40 to-white p-6">
-
         {/* Panel header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -554,7 +574,6 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
           />
         </div>
 
-        {/* Search button — only show if no results yet */}
         {suggestions.length === 0 && !isSearching && (
           <button
             onClick={handleSearch}
@@ -565,7 +584,6 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
           </button>
         )}
 
-        {/* Loading */}
         {isSearching && (
           <div className="flex items-center gap-3 py-2">
             <TypingDots />
@@ -575,14 +593,12 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
           </div>
         )}
 
-        {/* Error */}
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">
             {error}
           </p>
         )}
 
-        {/* Results */}
         {suggestions.length > 0 && (
           <div className="mt-2 space-y-3">
             <div className="flex items-center justify-between">
@@ -597,7 +613,7 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
               </button>
             </div>
 
-            {type === 'flights' && (suggestions as Flight[]).map((f) => (
+            {type === 'flight' && (suggestions as FlightSuggestion[]).map((f) => (
               <FlightResultCard
                 key={f.id}
                 flight={f}
@@ -606,8 +622,7 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
                 isSaved={savedIds.has(f.id)}
               />
             ))}
-
-            {type === 'hotels' && (suggestions as Hotel[]).map((h) => (
+            {type === 'hotel' && (suggestions as HotelSuggestion[]).map((h) => (
               <HotelResultCard
                 key={h.id}
                 hotel={h}
@@ -616,8 +631,7 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
                 isSaved={savedIds.has(h.id)}
               />
             ))}
-
-            {type === 'transport' && (suggestions as Transport[]).map((t) => (
+            {type === 'transport' && (suggestions as TransportSuggestion[]).map((t) => (
               <TransportResultCard
                 key={t.id}
                 transport={t}
@@ -628,7 +642,6 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
             ))}
           </div>
         )}
-
       </div>
     </motion.div>
   );
@@ -641,25 +654,38 @@ export default function TravelTab({
   onSubTabChange,
   onTripUpdate,
 }: TravelTabProps) {
-  // AFTER:
-function hasCachedSuggestions(tripId: number, type: TravelSubTab): boolean {
-  try {
-    const raw = sessionStorage.getItem(`tripmind_suggestions_${tripId}_${type}`);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0;
-  } catch { return false; }
-}
+  function hasCachedSuggestions(tripId: number, type: TravelSubTab): boolean {
+    try {
+      const singular: Record<TravelSubTab, TravelSuggestType> = { flights: 'flight', hotels: 'hotel', transport: 'transport' };
+      const raw = sessionStorage.getItem(`tripmind_suggestions_${tripId}_${singular[type]}`);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 0;
+    } catch { return false; }
+  }
 
-const [aiPanelOpen, setAIPanelOpen] = useState(() =>
-  hasCachedSuggestions(trip.id, activeSubTab)
-);
+  const [aiPanelOpen, setAIPanelOpen] = useState(() =>
+    hasCachedSuggestions(trip.id, activeSubTab)
+  );
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-const handleSubTabChange = (tab: TravelSubTab) => {
-  // Auto-open panel if this sub-tab already has cached suggestions
-  setAIPanelOpen(hasCachedSuggestions(trip.id, tab));
-  onSubTabChange(tab);
-};
+  const handleSubTabChange = (tab: TravelSubTab) => {
+    setAIPanelOpen(hasCachedSuggestions(trip.id, tab));
+    onSubTabChange(tab);
+  };
+
+  const handleDeleteSaved = async (id: number) => {
+    setDeletingId(id);
+    try {
+      await apiService.deleteSavedTravel(trip.id, id);
+      const updatedTrip = await apiService.getTrip(trip.id);
+      if (onTripUpdate) onTripUpdate(updatedTrip);
+    } catch (err) {
+      console.error('[TravelTab] Delete saved item failed:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const tabs = [
     { key: 'flights'   as const, label: 'Flights',   Icon: FlightIcon    },
@@ -669,51 +695,53 @@ const handleSubTabChange = (tab: TravelSubTab) => {
 
   const activeTabConfig = tabs.find((t) => t.key === activeSubTab)!;
 
-  // Existing saved items from trip_metadata
-  const savedFlights   = trip.trip_metadata?.flights   || [];
-  const savedHotels    = trip.trip_metadata?.hotels    || [];
-  const savedTransport = trip.trip_metadata?.transport || [];
+  // Derive saved items from normalized saved_travel list
+  const savedFlights   = trip.saved_travel.filter((t) => t.type === 'flight');
+  const savedHotels    = trip.saved_travel.filter((t) => t.type === 'hotel');
+  const savedTransport = trip.saved_travel.filter((t) => t.type === 'transport');
 
   const hasSavedItems =
     activeSubTab === 'flights'   ? savedFlights.length > 0 :
     activeSubTab === 'hotels'    ? savedHotels.length > 0  :
                                    savedTransport.length > 0;
 
+  // Map sub-tab key to TravelSuggestType (TravelType uses singular)
+  const suggestTypeMap: Record<TravelSubTab, TravelSuggestType> = {
+    flights:   'flight',
+    hotels:    'hotel',
+    transport: 'transport',
+  };
+
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm overflow-hidden">
 
       {/* Sub-tab bar */}
       <div className="flex border-b border-surface-muted">
-        {tabs.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => handleSubTabChange(key)}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2
-              ${activeSubTab === key
-                ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-600'
-                : 'text-ink-secondary hover:text-ink hover:bg-surface-bg'
-              }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-            {/* Saved count badge */}
-            {key === 'flights'   && savedFlights.length > 0   && (
-              <span className="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5 py-0.5 font-semibold">
-                {savedFlights.length}
-              </span>
-            )}
-            {key === 'hotels'    && savedHotels.length > 0    && (
-              <span className="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5 py-0.5 font-semibold">
-                {savedHotels.length}
-              </span>
-            )}
-            {key === 'transport' && savedTransport.length > 0 && (
-              <span className="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5 py-0.5 font-semibold">
-                {savedTransport.length}
-              </span>
-            )}
-          </button>
-        ))}
+        {tabs.map(({ key, label, Icon }) => {
+          const count =
+            key === 'flights'   ? savedFlights.length :
+            key === 'hotels'    ? savedHotels.length  :
+                                  savedTransport.length;
+          return (
+            <button
+              key={key}
+              onClick={() => handleSubTabChange(key)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2
+                ${activeSubTab === key
+                  ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-600'
+                  : 'text-ink-secondary hover:text-ink hover:bg-surface-bg'
+                }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+              {count > 0 && (
+                <span className="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5 py-0.5 font-semibold">
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab body */}
@@ -728,9 +756,30 @@ const handleSubTabChange = (tab: TravelSubTab) => {
           {/* ── Saved items list ─────────────────────────── */}
           {hasSavedItems && (
             <div className="p-5 space-y-3">
-              {activeSubTab === 'flights'   && savedFlights.map((f)   => <SavedFlightCard    key={f.id} flight={f}    />)}
-              {activeSubTab === 'hotels'    && savedHotels.map((h)    => <SavedHotelCard     key={h.id} hotel={h}     />)}
-              {activeSubTab === 'transport' && savedTransport.map((t) => <SavedTransportCard key={t.id} transport={t} />)}
+              {activeSubTab === 'flights'   && savedFlights.map((item) => (
+                <SavedFlightCard
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteSaved}
+                  isDeleting={deletingId === item.id}
+                />
+              ))}
+              {activeSubTab === 'hotels'    && savedHotels.map((item) => (
+                <SavedHotelCard
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteSaved}
+                  isDeleting={deletingId === item.id}
+                />
+              ))}
+              {activeSubTab === 'transport' && savedTransport.map((item) => (
+                <SavedTransportCard
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteSaved}
+                  isDeleting={deletingId === item.id}
+                />
+              ))}
 
               {/* Find more button */}
               {!aiPanelOpen && (
@@ -774,7 +823,7 @@ const handleSubTabChange = (tab: TravelSubTab) => {
             {aiPanelOpen && (
               <AIPanel
                 trip={trip}
-                type={activeSubTab}
+                type={suggestTypeMap[activeSubTab]}
                 onClose={() => setAIPanelOpen(false)}
                 onTripUpdate={onTripUpdate}
               />
