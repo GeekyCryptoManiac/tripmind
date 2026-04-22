@@ -1,14 +1,15 @@
 /**
- * ExpenseTracker — Redesigned Week 7
+ * ExpenseTracker — Round 1 Migration
  *
- * Visual updates:
- *   - All emojis replaced with SVG icons
- *   - Brand blue for form/CTA instead of bright blue
- *   - Amber for warnings instead of bright red
- *   - Emerald for success instead of bright green
- *   - White card with ring-1 ring-black/[0.03] border
- *   - Inner cells use surface-bg
- *   - Category badges with warm colors
+ * Changes:
+ *   - Removed trip_metadata?.expenses — now reads from trip.expenses (typed Expense[])
+ *   - Removed local expenses state — trip prop is source of truth, parent owns via onTripUpdate
+ *   - Removed generateId() — IDs come from backend (number)
+ *   - Removed persist() batch update — replaced with addExpense / deleteExpense per-item calls
+ *   - handleAdd: apiService.addExpense() → getTrip() → onTripUpdate()
+ *   - handleDelete: takes number, apiService.deleteExpense() → getTrip() → onTripUpdate()
+ *   - Guarded expense.date nullability in display
+ *   - getCategoryConfig: handles string | null category safely
  */
 
 import { useState, useRef } from 'react';
@@ -119,15 +120,12 @@ const CATEGORIES: {
   },
 ];
 
-function getCategoryConfig(value: ExpenseCategory) {
+// expense.category is string | null — fall back to 'other' config safely
+function getCategoryConfig(value: string | null) {
   return CATEGORIES.find((c) => c.value === value) ?? CATEGORIES[CATEGORIES.length - 1];
 }
 
 const CURRENCIES = ['SGD', 'USD', 'JPY', 'EUR', 'GBP', 'THB', 'MYR', 'AUD', 'HKD', 'KRW'];
-
-function generateId(): string {
-  return `exp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
 
 interface ExpenseTrackerProps {
   trip: Trip;
@@ -135,7 +133,9 @@ interface ExpenseTrackerProps {
 }
 
 export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerProps) {
-  const [expenses, setExpenses] = useState<Expense[]>(() => trip.trip_metadata?.expenses ?? []);
+  // trip.expenses is the source of truth — no local list state
+  const expenses = trip.expenses;
+
   const [formOpen, setFormOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('SGD');
@@ -157,52 +157,50 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
       .reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0),
   })).filter((c) => c.totalUSD > 0);
 
-  const persist = async (updated: Expense[]) => {
-    setSaveStatus('saving');
+  const setSaved = () => {
+    setSaveStatus('saved');
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-    try {
-      const updatedTrip = await apiService.updateTrip(trip.id, { expenses: updated });
-      setSaveStatus('saved');
-      onTripUpdate(updatedTrip);
-      clearTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (err) {
-      console.error('Failed to save expenses:', err);
-      setSaveStatus('error');
-    }
+    clearTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
   const handleAdd = async () => {
     const numericAmount = parseFloat(amount);
     if (!numericAmount || numericAmount <= 0 || !description.trim()) return;
 
-    const newExpense: Expense = {
-      id: generateId(),
-      amount: numericAmount,
-      currency,
-      category,
-      description: description.trim(),
-      date,
-      created_at: new Date().toISOString(),
-    };
+    setSaveStatus('saving');
+    try {
+      await apiService.addExpense(trip.id, {
+        amount: numericAmount,
+        currency,
+        category,
+        description: description.trim(),
+        date,
+      });
+      const updatedTrip = await apiService.getTrip(trip.id);
+      onTripUpdate(updatedTrip);
+      setSaved();
 
-    const updated = [newExpense, ...expenses];
-    setExpenses(updated);
-    await persist(updated);
-
-    setAmount('');
-    setDescription('');
-    setDate(new Date().toISOString().split('T')[0]);
-    setFormOpen(false);
+      // Reset form
+      setAmount('');
+      setDescription('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setFormOpen(false);
+    } catch (err) {
+      console.error('Failed to add expense:', err);
+      setSaveStatus('error');
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    const previous = expenses;
-    const updated = expenses.filter((e) => e.id !== id);
-    setExpenses(updated);
+  const handleDelete = async (id: number) => {
+    setSaveStatus('saving');
     try {
-      await persist(updated);
-    } catch {
-      setExpenses(previous);
+      await apiService.deleteExpense(trip.id, id);
+      const updatedTrip = await apiService.getTrip(trip.id);
+      onTripUpdate(updatedTrip);
+      setSaved();
+    } catch (err) {
+      console.error('Failed to delete expense:', err);
+      setSaveStatus('error');
     }
   };
 
@@ -229,8 +227,8 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
         </div>
         <div className="flex items-center gap-3">
           {saveStatus === 'saving' && <span className="text-xs text-ink-tertiary animate-pulse">Saving…</span>}
-          {saveStatus === 'saved' && <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>}
-          {saveStatus === 'error' && <span className="text-xs text-amber-600">Failed to save</span>}
+          {saveStatus === 'saved'  && <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>}
+          {saveStatus === 'error'  && <span className="text-xs text-amber-600">Failed to save</span>}
           <button
             onClick={() => setFormOpen((o) => !o)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-xl transition-colors"
@@ -281,7 +279,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
         </div>
       )}
 
-      {/* No budget - show total */}
+      {/* No budget — show total */}
       {budget === 0 && expenses.length > 0 && (
         <div className="bg-surface-bg rounded-xl px-4 py-3 flex items-center justify-between">
           <span className="text-sm text-ink-secondary">
@@ -366,10 +364,10 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
               <button
                 onClick={handleAdd}
-                disabled={!amount || parseFloat(amount) <= 0 || !description.trim()}
+                disabled={saveStatus === 'saving' || !amount || parseFloat(amount) <= 0 || !description.trim()}
                 className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-300 text-white text-sm font-semibold rounded-xl transition-colors"
               >
-                Add Expense
+                {saveStatus === 'saving' ? 'Adding…' : 'Add Expense'}
               </button>
             </div>
           </motion.div>
@@ -425,16 +423,18 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                           <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cat.badgeBg} ${cat.badgeText}`}>
                             {cat.label}
                           </span>
-                          <span className="text-[11px] text-ink-tertiary">
-                            {new Date(expense.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </span>
+                          {expense.date && (
+                            <span className="text-[11px] text-ink-tertiary">
+                              {new Date(expense.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold text-ink">
                           {expense.currency}{' '}
-                          {expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {Number(expense.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
 

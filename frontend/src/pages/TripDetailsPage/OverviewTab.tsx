@@ -1,10 +1,10 @@
 /**
- * OverviewTab — Week 8 Session 2
+ * OverviewTab — Round 1 Migration
  *
- * Added:
- *   - TravelAlertsPanel — live GPT-4 alerts with sessionStorage cache
- *   - AIRecommendationsPanel — live GPT-4 recommendations with sessionStorage cache
- *   Both panels follow the same pattern as TravelTab AI suggestions.
+ * Changes:
+ *   - Removed `trip.trip_metadata?.description` (trip_metadata dropped)
+ *   - TravelAlertsPanel: seeds from `trip.ai_alerts` (DB-persisted) before sessionStorage
+ *   - AIRecommendationsPanel: seeds from `trip.ai_recommendations` before sessionStorage
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -168,10 +168,19 @@ function SeverityIcon({ severity }: { severity: AlertSeverity }) {
 // ── Travel Alerts Panel ───────────────────────────────────────
 function TravelAlertsPanel({ trip }: { trip: Trip }) {
   const cacheKey = `tripmind_alerts_${trip.id}`;
-  const [alerts, setAlerts] = useState<TravelAlert[]>(() => getCached<TravelAlert[]>(cacheKey) ?? []);
+
+  // Seed priority: DB-persisted trip.ai_alerts → sessionStorage → empty
+  const [alerts, setAlerts] = useState<TravelAlert[]>(() =>
+    (trip.ai_alerts && trip.ai_alerts.length > 0)
+      ? trip.ai_alerts
+      : getCached<TravelAlert[]>(cacheKey) ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fetched, setFetched] = useState(() => getCached<TravelAlert[]>(cacheKey) !== null);
+  const [fetched, setFetched] = useState(() =>
+    (trip.ai_alerts != null && trip.ai_alerts.length > 0) ||
+    getCached<TravelAlert[]>(cacheKey) !== null
+  );
 
   const fetchAlerts = useCallback(async (refresh = false) => {
     if (refresh) clearCache(cacheKey);
@@ -189,7 +198,7 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
     }
   }, [trip.id, cacheKey]);
 
-  // Auto-fetch on first render if no cache
+  // Auto-fetch on first render if no data seeded
   useEffect(() => {
     if (!fetched && !loading) {
       fetchAlerts();
@@ -263,10 +272,19 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
 // ── AI Recommendations Panel ──────────────────────────────────
 function AIRecommendationsPanel({ trip }: { trip: Trip }) {
   const cacheKey = `tripmind_recommendations_${trip.id}`;
-  const [recs, setRecs] = useState<Recommendation[]>(() => getCached<Recommendation[]>(cacheKey) ?? []);
+
+  // Seed priority: DB-persisted trip.ai_recommendations → sessionStorage → empty
+  const [recs, setRecs] = useState<Recommendation[]>(() =>
+    (trip.ai_recommendations && trip.ai_recommendations.length > 0)
+      ? trip.ai_recommendations
+      : getCached<Recommendation[]>(cacheKey) ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fetched, setFetched] = useState(() => getCached<Recommendation[]>(cacheKey) !== null);
+  const [fetched, setFetched] = useState(() =>
+    (trip.ai_recommendations != null && trip.ai_recommendations.length > 0) ||
+    getCached<Recommendation[]>(cacheKey) !== null
+  );
 
   const fetchRecs = useCallback(async (refresh = false) => {
     if (refresh) clearCache(cacheKey);
@@ -369,10 +387,9 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
       <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
         <h3 className="text-base font-semibold text-ink mb-2">About This Trip</h3>
         <p className="text-ink-secondary text-sm leading-relaxed">
-          {trip.trip_metadata?.description ||
-            `Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${
-              trip.destination
-            }. Use the tabs above to plan your itinerary, book travel, or chat with the AI assistant.`}
+          {`Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${
+            trip.destination
+          }. Use the tabs above to plan your itinerary, book travel, or chat with the AI assistant.`}
         </p>
       </div>
 
