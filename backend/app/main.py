@@ -15,7 +15,7 @@ import json
 import uuid
 from datetime import datetime
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException,Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -46,10 +46,14 @@ from .schemas import (
     OverviewAlertsResponse, OverviewRecommendationsResponse,
 )
 from .services.trip_service import TripService
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # ── App setup ─────────────────────────────────────────────────
 
 app = FastAPI(
+    
     title="TripMind API",
     description="AI-powered travel planning assistant",
     version="2.0.0",
@@ -64,6 +68,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # ═════════════════════════════════════════════════════════════
@@ -149,8 +156,10 @@ async def get_me(current_user: User = Depends(get_current_user)):
 # ═════════════════════════════════════════════════════════════
 
 @app.post("/api/chat", response_model=ChatResponse)
+@limiter.limit("10/minute")
 async def chat(
-    request: ChatRequest,
+    request: Request,
+    data: ChatRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
