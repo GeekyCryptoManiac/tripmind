@@ -52,7 +52,6 @@ class RealChatService implements IChatService {
 
     const response = await apiService.sendMessage({
 
-      user_id: request.user_id,
 
       message: request.message,
 
