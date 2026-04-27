@@ -377,7 +377,7 @@ function EmergencyContacts({ destination }: { destination: string }) {
 
 // ── Quick Notes ───────────────────────────────────────────────
 function QuickNotes({ trip }: { trip: Trip }) {
-  const [text, setText] = useState(trip.trip_metadata?.notes ?? '');
+  const [text, setText] = useState(trip.notes ?? '');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -16,7 +16,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '../services/api';
-import type { Trip } from '../types';
+import type { Trip,TripStatus } from '../types';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -42,10 +42,12 @@ function calcDays(start: string, end: string): number | null {
 
 // ── Status dropdown options ──────────────────────────────────
 // Colours intentionally match getStatusStyles() in TripDetailsPage
-const STATUS_OPTIONS = [
-  { value: 'planning',  label: 'Planning',  dot: 'bg-amber-400',  highlight: 'bg-amber-50'  },
-  { value: 'booked',    label: 'Booked',    dot: 'bg-blue-400',   highlight: 'bg-blue-50'   },
-  { value: 'completed', label: 'Completed', dot: 'bg-green-400',  highlight: 'bg-green-50'  },
+const STATUS_OPTIONS: { value: TripStatus; label: string; dot: string; highlight: string }[] = [
+  { value: 'planning',  label: 'Planning',   dot: 'bg-amber-400',  highlight: 'bg-amber-50'   },
+  { value: 'booked',    label: 'Booked',     dot: 'bg-emerald-400',highlight: 'bg-emerald-50' },
+  { value: 'ongoing',   label: 'Ongoing',    dot: 'bg-brand-400',  highlight: 'bg-brand-50'   },
+  { value: 'completed', label: 'Completed',  dot: 'bg-brand-500',  highlight: 'bg-brand-50'   },
+  { value: 'cancelled', label: 'Cancelled',  dot: 'bg-rose-400',   highlight: 'bg-rose-50'    },
 ];
 
 // ── Types ─────────────────────────────────────────────────────
@@ -63,7 +65,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
 
   // ── Form state (pre-filled from trip) ────────────────────────
   const [destination, setDestination] = useState(trip.destination);
-  const [status,      setStatus]      = useState(trip.status);
+  const [status, setStatus] = useState<TripStatus>(trip.status);
   const [startDate,   setStartDate]   = useState(toDateInput(trip.start_date));
   const [endDate,     setEndDate]     = useState(toDateInput(trip.end_date));
   const [duration,    setDuration]    = useState<string>(trip.duration_days?.toString() ?? '');

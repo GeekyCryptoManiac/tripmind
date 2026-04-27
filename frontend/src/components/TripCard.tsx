@@ -364,7 +364,7 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
         {/* Footer */}
         <div className="mt-4 pt-3.5 border-t border-surface-muted flex items-center justify-between">
           <span className="text-xs text-ink-tertiary">
-            {trip.trip_metadata?.notes ? 'Has notes' : 'No notes yet'}
+            {trip.notes ? 'Has notes' : 'No notes yet'}
           </span>
           {onClick && (
             <span className="text-xs font-semibold text-ink group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">

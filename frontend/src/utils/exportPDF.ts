@@ -4,26 +4,23 @@
  * Generates and downloads a full trip summary PDF.
  * Called from TripDetailsPage via the 3-dot menu → "Export PDF".
  *
- * PDF structure (each section skipped gracefully if data is missing):
- *   1. Header — trip title, destination, dates, duration, travelers
- *   2. Budget summary — total budget, total spent (USD-normalised), remaining
- *   3. Itinerary — one sub-section per day, activities as a table
- *   4. Flights — table of booked/planned flights
- *   5. Hotels — table of booked/planned hotels
- *   6. Expenses — table with date, description, category, original amount
- *   7. Pre-trip checklist — two-column status grid
- *
- * Dependencies (installed Week 6 Day 3):
- *   npm install jspdf jspdf-autotable
- *
- * Reuses:
- *   - convertToUSD   from utils/currency   (budget normalisation)
- *   - formatDate     from pages/TripDetailsPage/helpers (date strings)
+ * Round 1 migration:
+ *   - trip_metadata.itinerary → groupActivitiesByDay(trip.activities)
+ *   - trip_metadata.flights/hotels → trip.saved_travel filtered by type
+ *   - trip_metadata.expenses → trip.expenses
+ *   - trip_metadata.checklist → trip.checklist_items
+ *   - ChecklistItem: item.text (was label), item.is_checked (was checked)
+ *   - ItineraryDay.date removed — days are numbered only
+ *   - Flight/Hotel imports removed — use SavedTravel + cast to suggestion shape
  */
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { Trip, ItineraryDay, Activity, Flight, Hotel, Expense, ChecklistItem } from '../types';
+import type {
+  Trip, Activity, Expense, ChecklistItem,
+  FlightSuggestion, HotelSuggestion,
+} from '../types';
+import { groupActivitiesByDay } from '../types';
 import { convertToUSD } from './currency';
 import { formatDate } from '../pages/TripDetailsPage/helpers';
 
@@ -31,28 +28,26 @@ import { formatDate } from '../pages/TripDetailsPage/helpers';
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const BRAND_BLUE  = [37, 99, 235]  as [number, number, number]; // blue-600
-const BRAND_GREEN = [22, 163, 74]  as [number, number, number]; // green-600
-const BRAND_RED   = [220, 38, 38]  as [number, number, number]; // red-600
-const GRAY_800    = [31, 41, 55]   as [number, number, number];
+const BRAND_BLUE  = [37, 99, 235]   as [number, number, number];
+const BRAND_GREEN = [22, 163, 74]   as [number, number, number];
+const BRAND_RED   = [220, 38, 38]   as [number, number, number];
+const GRAY_800    = [31, 41, 55]    as [number, number, number];
 const GRAY_500    = [107, 114, 128] as [number, number, number];
 const GRAY_200    = [229, 231, 235] as [number, number, number];
 const WHITE       = [255, 255, 255] as [number, number, number];
 
-const PAGE_MARGIN  = 14;   // mm from page edge
-const CONTENT_W    = 182;  // usable width: 210 - 2*14
+const PAGE_MARGIN = 14;
+const CONTENT_W   = 182;
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────
 
-/** Return doc.internal.pageSize.height so we can detect near-page-bottom. */
 function pageHeight(doc: jsPDF): number {
   return (doc.internal.pageSize as { height: number }).height;
 }
 
-/** Add a new page if the current Y position is below the threshold. */
-function ensureSpace(doc: jsPDF, y: number, needed: number = 20): number {
+function ensureSpace(doc: jsPDF, y: number, needed = 20): number {
   if (y + needed > pageHeight(doc) - PAGE_MARGIN) {
     doc.addPage();
     return PAGE_MARGIN + 6;
@@ -60,7 +55,6 @@ function ensureSpace(doc: jsPDF, y: number, needed: number = 20): number {
   return y;
 }
 
-/** Draw a solid horizontal rule across the content width. */
 function rule(doc: jsPDF, y: number, color: [number, number, number] = GRAY_200): number {
   doc.setDrawColor(...color);
   doc.setLineWidth(0.3);
@@ -68,7 +62,6 @@ function rule(doc: jsPDF, y: number, color: [number, number, number] = GRAY_200)
   return y + 4;
 }
 
-/** Section heading: bold coloured label above a rule. */
 function sectionHeading(doc: jsPDF, y: number, title: string): number {
   y = ensureSpace(doc, y, 16);
   doc.setFontSize(11);
@@ -79,27 +72,18 @@ function sectionHeading(doc: jsPDF, y: number, title: string): number {
   return rule(doc, y, BRAND_BLUE);
 }
 
-/** Category emoji → plain-text label for PDF (emojis render inconsistently). */
-function categoryLabel(cat: string): string {
+function categoryLabel(cat: string | null): string {
   const MAP: Record<string, string> = {
-    food:          'Food & Drink',
-    transport:     'Transport',
-    activities:    'Activities',
-    shopping:      'Shopping',
-    accommodation: 'Accommodation',
-    other:         'Other',
+    food: 'Food & Drink', transport: 'Transport', activities: 'Activities',
+    shopping: 'Shopping', accommodation: 'Accommodation', other: 'Other',
   };
-  return MAP[cat] ?? cat;
+  return cat ? (MAP[cat] ?? cat) : 'Other';
 }
 
-/** Activity type → readable label. */
 function activityTypeLabel(type: Activity['type']): string {
   const MAP: Record<Activity['type'], string> = {
-    flight:    'Flight',
-    hotel:     'Hotel',
-    activity:  'Activity',
-    dining:    'Dining',
-    transport: 'Transport',
+    flight: 'Flight', hotel: 'Hotel', activity: 'Activity',
+    dining: 'Dining', transport: 'Transport',
   };
   return MAP[type] ?? type;
 }
@@ -108,36 +92,26 @@ function activityTypeLabel(type: Activity['type']): string {
 // SECTION BUILDERS
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Section 1 — Header block
- * Large trip title + destination + dates + traveler count.
- */
 function addHeader(doc: jsPDF, trip: Trip): number {
   let y = PAGE_MARGIN;
 
-  // TripMind brand label
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY_500);
   doc.text('Generated by TripMind', PAGE_MARGIN, y);
-
   const today = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   doc.text(today, PAGE_MARGIN + CONTENT_W, y, { align: 'right' });
-
   y += 7;
 
-  // Destination (big)
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...GRAY_800);
   doc.text(trip.destination, PAGE_MARGIN, y);
   y += 8;
 
-  // Date range + duration
-  const dateRange =
-    trip.start_date && trip.end_date
-      ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
-      : 'Dates not set';
+  const dateRange = trip.start_date && trip.end_date
+    ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
+    : 'Dates not set';
   const duration = trip.duration_days ? `${trip.duration_days} day${trip.duration_days !== 1 ? 's' : ''}` : '';
 
   doc.setFontSize(10);
@@ -146,7 +120,6 @@ function addHeader(doc: jsPDF, trip: Trip): number {
   doc.text(`${dateRange}${duration ? '  ·  ' + duration : ''}`, PAGE_MARGIN, y);
   y += 5;
 
-  // Travelers
   if (trip.travelers_count > 0) {
     doc.text(`${trip.travelers_count} traveler${trip.travelers_count !== 1 ? 's' : ''}`, PAGE_MARGIN, y);
     y += 5;
@@ -156,21 +129,16 @@ function addHeader(doc: jsPDF, trip: Trip): number {
   return rule(doc, y, GRAY_200) + 2;
 }
 
-/**
- * Section 2 — Budget summary
- * Shows budget, total spent (USD-normalised), and remaining.
- * Skipped if no budget and no expenses.
- */
 function addBudgetSummary(doc: jsPDF, trip: Trip, startY: number): number {
   const budget   = trip.budget ?? 0;
-  const expenses = trip.trip_metadata?.expenses ?? [];
+  const expenses = trip.expenses;
 
   if (budget === 0 && expenses.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '💰  Budget Summary');
+  let y = sectionHeading(doc, startY, '  Budget Summary');
 
   const totalSpentUSD = expenses.reduce(
-    (sum, e) => sum + convertToUSD(e.amount, e.currency),
+    (sum: number, e: Expense) => sum + convertToUSD(Number(e.amount), e.currency),
     0
   );
   const remaining = budget > 0 ? budget - totalSpentUSD : null;
@@ -198,14 +166,10 @@ function addBudgetSummary(doc: jsPDF, trip: Trip, startY: number): number {
     startY: y,
     body: rows,
     theme: 'plain',
-    styles: {
-      fontSize: 10,
-      cellPadding: { top: 2, bottom: 2, left: 0, right: 4 },
-      textColor: GRAY_800,
-    },
+    styles: { fontSize: 10, cellPadding: { top: 2, bottom: 2, left: 0, right: 4 }, textColor: GRAY_800 },
     columnStyles: {
       0: { fontStyle: 'normal', textColor: GRAY_500, cellWidth: 80 },
-      1: { fontStyle: 'bold',   halign: 'left' },
+      1: { fontStyle: 'bold', halign: 'left' },
     },
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
   });
@@ -213,25 +177,20 @@ function addBudgetSummary(doc: jsPDF, trip: Trip, startY: number): number {
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 }
 
-/**
- * Section 3 — Itinerary
- * One sub-heading per day, activities rendered as a table.
- * Skipped if no itinerary has been generated.
- */
 function addItinerary(doc: jsPDF, trip: Trip, startY: number): number {
-  const itinerary: ItineraryDay[] = trip.trip_metadata?.itinerary ?? [];
-  if (itinerary.length === 0) return startY;
+  if (trip.activities.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '📅  Itinerary');
+  // Use groupActivitiesByDay to build the day view
+  const days = groupActivitiesByDay(trip.activities);
+  let y = sectionHeading(doc, startY, '  Itinerary');
 
-  for (const day of itinerary) {
+  for (const day of days) {
     y = ensureSpace(doc, y, 24);
 
-    // Day heading
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...GRAY_800);
-    const dayLabel = `Day ${day.day}${day.date ? '  ·  ' + formatDate(day.date) : ''}${day.title ? '  —  ' + day.title : ''}`;
+    const dayLabel = `Day ${day.day}${day.title ? '  —  ' + day.title : ''}`;
     doc.text(dayLabel, PAGE_MARGIN, y);
     y += 5;
 
@@ -257,25 +216,15 @@ function addItinerary(doc: jsPDF, trip: Trip, startY: number): number {
       head: [['Time', 'Type', 'Activity', 'Location', 'Notes']],
       body: rows,
       theme: 'striped',
-      headStyles: {
-        fillColor: BRAND_BLUE,
-        textColor: WHITE,
-        fontSize: 8,
-        fontStyle: 'bold',
-      },
-      bodyStyles: {
-        fontSize: 8,
-        textColor: GRAY_800,
-      },
-      alternateRowStyles: {
-        fillColor: [239, 246, 255] as [number, number, number], // blue-50
-      },
+      headStyles: { fillColor: BRAND_BLUE, textColor: WHITE, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, textColor: GRAY_800 },
+      alternateRowStyles: { fillColor: [239, 246, 255] as [number, number, number] },
       columnStyles: {
-        0: { cellWidth: 18 },  // Time
-        1: { cellWidth: 22 },  // Type
-        2: { cellWidth: 45 },  // Activity
-        3: { cellWidth: 40 },  // Location
-        4: { cellWidth: 'auto' as unknown as number }, // Notes fills remaining
+        0: { cellWidth: 18 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 40 },
+        4: { cellWidth: 'auto' as unknown as number },
       },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     });
@@ -286,29 +235,28 @@ function addItinerary(doc: jsPDF, trip: Trip, startY: number): number {
   return y;
 }
 
-/**
- * Section 4 — Flights
- * Skipped if no flights have been added.
- */
 function addFlights(doc: jsPDF, trip: Trip, startY: number): number {
-  const flights: Flight[] = trip.trip_metadata?.flights ?? [];
-  if (flights.length === 0) return startY;
+  const savedFlights = trip.saved_travel.filter((t) => t.type === 'flight');
+  if (savedFlights.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '✈️  Flights');
+  let y = sectionHeading(doc, startY, '  Flights');
 
-  const rows = flights.map((f) => [
-    f.flight_number,
-    f.airline,
-    `${f.from} → ${f.to}`,
-    f.departure ? new Date(f.departure).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—',
-    f.arrival   ? new Date(f.arrival).toLocaleString('en-US',   { dateStyle: 'medium', timeStyle: 'short' }) : '—',
-    f.status.charAt(0).toUpperCase() + f.status.slice(1),
-    f.notes ?? '',
-  ]);
+  const rows = savedFlights.map((item) => {
+    const f = item.data as unknown as FlightSuggestion;
+    return [
+      f.flight_number ?? '—',
+      f.airline ?? '—',
+      `${f.from ?? '—'} → ${f.to ?? '—'}`,
+      f.departure ?? '—',
+      f.arrival ?? '—',
+      f.cabin ?? 'Economy',
+      f.notes ?? '',
+    ];
+  });
 
   autoTable(doc, {
     startY: y,
-    head: [['Flight #', 'Airline', 'Route', 'Departure', 'Arrival', 'Status', 'Notes']],
+    head: [['Flight #', 'Airline', 'Route', 'Departure', 'Arrival', 'Cabin', 'Notes']],
     body: rows,
     theme: 'striped',
     headStyles: { fillColor: BRAND_BLUE, textColor: WHITE, fontSize: 8, fontStyle: 'bold' },
@@ -320,28 +268,27 @@ function addFlights(doc: jsPDF, trip: Trip, startY: number): number {
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 }
 
-/**
- * Section 5 — Hotels
- * Skipped if no hotels have been added.
- */
 function addHotels(doc: jsPDF, trip: Trip, startY: number): number {
-  const hotels: Hotel[] = trip.trip_metadata?.hotels ?? [];
-  if (hotels.length === 0) return startY;
+  const savedHotels = trip.saved_travel.filter((t) => t.type === 'hotel');
+  if (savedHotels.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '🏨  Hotels');
+  let y = sectionHeading(doc, startY, '  Hotels');
 
-  const rows = hotels.map((h) => [
-    h.name,
-    h.location,
-    formatDate(h.check_in),
-    formatDate(h.check_out),
-    h.status.charAt(0).toUpperCase() + h.status.slice(1),
-    h.notes ?? '',
-  ]);
+  const rows = savedHotels.map((item) => {
+    const h = item.data as unknown as HotelSuggestion;
+    return [
+      h.name ?? '—',
+      `${h.area ?? ''} ${h.location ?? ''}`.trim() || '—',
+      h.check_in ?? '—',
+      h.check_out ?? '—',
+      h.star_rating ? `${h.star_rating}★` : '—',
+      h.notes ?? '',
+    ];
+  });
 
   autoTable(doc, {
     startY: y,
-    head: [['Hotel', 'Location', 'Check-in', 'Check-out', 'Status', 'Notes']],
+    head: [['Hotel', 'Location', 'Check-in', 'Check-out', 'Stars', 'Notes']],
     body: rows,
     theme: 'striped',
     headStyles: { fillColor: BRAND_BLUE, textColor: WHITE, fontSize: 8, fontStyle: 'bold' },
@@ -353,28 +300,31 @@ function addHotels(doc: jsPDF, trip: Trip, startY: number): number {
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 }
 
-/**
- * Section 6 — Expenses
- * Shows each expense in its original currency.
- * Footer row shows USD-normalised total.
- * Skipped if no expenses have been logged.
- */
 function addExpenses(doc: jsPDF, trip: Trip, startY: number): number {
-  const expenses: Expense[] = trip.trip_metadata?.expenses ?? [];
+  const expenses = trip.expenses;
   if (expenses.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '💸  Expenses');
+  let y = sectionHeading(doc, startY, '  Expenses');
 
   const rows = [...expenses]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((e) => [
-      formatDate(e.date),
-      e.description,
+    .sort((a: Expense, b: Expense) => {
+      // date is string | null — nulls sort to end
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date.localeCompare(b.date);
+    })
+    .map((e: Expense) => [
+      e.date ? formatDate(e.date) : '—',
+      e.description ?? '—',
       categoryLabel(e.category),
-      `${e.currency} ${e.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `${e.currency} ${Number(e.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     ]);
 
-  const totalUSD = expenses.reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0);
+  const totalUSD = expenses.reduce(
+    (sum: number, e: Expense) => sum + convertToUSD(Number(e.amount), e.currency),
+    0
+  );
   const hasMixed = expenses.some((e) => e.currency !== 'USD');
 
   autoTable(doc, {
@@ -384,14 +334,11 @@ function addExpenses(doc: jsPDF, trip: Trip, startY: number): number {
     foot: [[
       { content: '', colSpan: 2 },
       { content: hasMixed ? 'Total (USD equiv.)' : 'Total (USD)', styles: { fontStyle: 'bold', halign: 'right' } },
-      {
-        content: `USD ${totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        styles: { fontStyle: 'bold' },
-      },
+      { content: `USD ${totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } },
     ]],
     theme: 'striped',
-    headStyles: { fillColor: BRAND_BLUE,  textColor: WHITE,    fontSize: 8, fontStyle: 'bold' },
-    footStyles: { fillColor: GRAY_200,    textColor: GRAY_800, fontSize: 8 },
+    headStyles: { fillColor: BRAND_BLUE, textColor: WHITE,    fontSize: 8, fontStyle: 'bold' },
+    footStyles: { fillColor: GRAY_200,   textColor: GRAY_800, fontSize: 8 },
     bodyStyles: { fontSize: 8, textColor: GRAY_800 },
     alternateRowStyles: { fillColor: [239, 246, 255] as [number, number, number] },
     columnStyles: {
@@ -406,34 +353,27 @@ function addExpenses(doc: jsPDF, trip: Trip, startY: number): number {
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 }
 
-/**
- * Section 7 — Pre-trip checklist
- * Shows each item with a ✓ or ✗ status.
- * Skipped if no checklist exists on the trip.
- */
 function addChecklist(doc: jsPDF, trip: Trip, startY: number): number {
-  const checklist: ChecklistItem[] = trip.trip_metadata?.checklist ?? [];
+  const checklist: ChecklistItem[] = trip.checklist_items;
   if (checklist.length === 0) return startY;
 
-  let y = sectionHeading(doc, startY, '✅  Pre-Trip Checklist');
+  let y = sectionHeading(doc, startY, '  Pre-Trip Checklist');
 
-  const rows = checklist.map((item) => [
-    item.checked ? '✓' : '✗',
-    item.label,
-    item.checked_at
-      ? new Date(item.checked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : '',
-  ]);
+  const rows = [...checklist]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item) => [
+      item.is_checked ? '✓' : '✗',
+      item.text,
+    ]);
 
   autoTable(doc, {
     startY: y,
-    head: [['Status', 'Item', 'Completed On']],
+    head: [['Status', 'Item']],
     body: rows,
     theme: 'plain',
     headStyles: { fillColor: BRAND_BLUE, textColor: WHITE, fontSize: 8, fontStyle: 'bold' },
     bodyStyles: { fontSize: 9, textColor: GRAY_800 },
     didParseCell: (data) => {
-      // Colour the status column: green for checked, red for unchecked
       if (data.column.index === 0 && data.section === 'body') {
         const checked = data.cell.raw === '✓';
         data.cell.styles.textColor = checked ? BRAND_GREEN : BRAND_RED;
@@ -443,7 +383,6 @@ function addChecklist(doc: jsPDF, trip: Trip, startY: number): number {
     columnStyles: {
       0: { cellWidth: 14, halign: 'center' },
       1: { cellWidth: 'auto' as unknown as number },
-      2: { cellWidth: 32 },
     },
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
   });
@@ -451,9 +390,6 @@ function addChecklist(doc: jsPDF, trip: Trip, startY: number): number {
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 }
 
-/**
- * Footer — add page numbers to every page once the document is built.
- */
 function addPageNumbers(doc: jsPDF): void {
   const totalPages = (doc.internal as unknown as { pages: unknown[] }).pages.length - 1;
   for (let i = 1; i <= totalPages; i++) {
@@ -474,14 +410,6 @@ function addPageNumbers(doc: jsPDF): void {
 // MAIN EXPORT
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Build and immediately download a trip summary PDF.
- *
- * Filename format: tripmind-{destination-slug}-{YYYY-MM-DD}.pdf
- * Example:         tripmind-tokyo-japan-2025-08-01.pdf
- *
- * Called from TripDetailsPage 3-dot menu → "Export PDF".
- */
 export function exportTripPDF(trip: Trip): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -495,7 +423,6 @@ export function exportTripPDF(trip: Trip): void {
 
   addPageNumbers(doc);
 
-  // Build a URL-safe filename from the destination
   const slug = trip.destination
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
