@@ -16,7 +16,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '../../services/api';
 import { convertToUSD } from '../../utils/currency';
-import type { Trip, Expense, ExpenseCategory } from '../../types';
+import type { Trip, ExpenseCategory } from '../../types';
 
 // ── SVG Icons ─────────────────────────────────────────────────
 const ReceiptIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
