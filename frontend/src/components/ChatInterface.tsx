@@ -11,10 +11,15 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { getChatService } from '../services/chatService';
-import type { ChatMessage } from '../types';
 import type { ChatType, TripChatContext } from '../types/chat';
 import TripCard from './TripCard';
 import logoAsset from '../assets/tripMind_logo.png'; 
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
 
 interface ChatInterfaceProps {
   userId: number;
