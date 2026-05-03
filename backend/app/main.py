@@ -166,10 +166,10 @@ async def chat(
     try:
         from .agents.base_agent import TripMindAgent
 
-        agent = TripMindAgent(db=db, user_id=current_user.id, trip_id=request.trip_id)
-        history = [m.model_dump() for m in (request.chat_history or [])]
+        agent = TripMindAgent(db=db, user_id=current_user.id, trip_id=data.trip_id)
+        history = [m.model_dump() for m in (data.chat_history or [])]
         response = await agent.process_message(
-            message=request.message,
+            message=data.message,
             chat_history=history,
         )
         return ChatResponse(
@@ -433,7 +433,9 @@ Rules: type must be: taxi | train | bus | rental | ferry | other. Be specific to
 
 
 @app.post("/api/trips/{trip_id}/travel/suggest", response_model=TravelSuggestResponse)
+@limiter.limit("10/minute")
 async def suggest_travel(
+    http_request: Request,
     trip_id: int,
     request: TravelSuggestRequest,
     db: Session = Depends(get_db),
@@ -478,7 +480,9 @@ async def suggest_travel(
 # ═════════════════════════════════════════════════════════════
 
 @app.post("/api/trips/{trip_id}/overview/alerts", response_model=OverviewAlertsResponse)
+@limiter.limit("10/minute")
 async def get_travel_alerts(
+    http_request: Request,
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -535,7 +539,9 @@ Rules: category: safety|visa|health|weather|local_laws|general  severity: info|w
 
 
 @app.post("/api/trips/{trip_id}/overview/recommendations", response_model=OverviewRecommendationsResponse)
+@limiter.limit("10/minute")
 async def get_recommendations(
+    http_request: Request,
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

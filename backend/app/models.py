@@ -93,6 +93,7 @@ class Trip(Base):
 
     # Core fields
     destination     = Column(String(200), nullable=False)
+    origin          = Column(String(200), nullable=False, server_default="Singapore")  # ← add this
     start_date      = Column(String(10), nullable=True)   # "YYYY-MM-DD" kept as string for flexibility
     end_date        = Column(String(10), nullable=True)
     duration_days   = Column(Integer, nullable=True)
