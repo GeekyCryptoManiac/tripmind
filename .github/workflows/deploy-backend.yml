@@ -1,0 +1,50 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            cd ~/tripmind
+            git pull origin main
+
+            cd backend
+
+            # Refresh secrets from SSM into .env.prod
+            REGION="ap-southeast-1"
+            DATABASE_URL=$(aws ssm get-parameter --name "/tripmind/prod/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
+            OPENAI_API_KEY=$(aws ssm get-parameter --name "/tripmind/prod/OPENAI_API_KEY" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
+            SECRET_KEY=$(aws ssm get-parameter --name "/tripmind/prod/SECRET_KEY" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
+            DEBUG=$(aws ssm get-parameter --name "/tripmind/prod/DEBUG" --query "Parameter.Value" --output text --region "$REGION")
+            FRONTEND_URL=$(aws ssm get-parameter --name "/tripmind/prod/FRONTEND_URL" --query "Parameter.Value" --output text --region "$REGION")
+
+            cat > .env.prod << EOF
+            DATABASE_URL=$DATABASE_URL
+            OPENAI_API_KEY=$OPENAI_API_KEY
+            SECRET_KEY=$SECRET_KEY
+            DEBUG=$DEBUG
+            FRONTEND_URL=$FRONTEND_URL
+            EOF
+
+            # Rebuild and restart container
+            docker compose -f docker-compose.prod.yml up -d --build
+
+            # Run any pending migrations
+            docker exec tripmind_backend alembic upgrade head
+
+            echo "Deploy complete."
