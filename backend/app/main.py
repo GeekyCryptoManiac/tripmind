@@ -607,7 +607,7 @@ Rules: category: must_see|food|hidden_gem|practical. Include 2 must_see, 2 food,
 @app.on_event("startup")
 async def startup_event():
     print("=" * 50)
-    print("🚀 TripMind API v2.0 starting")
+    print("🚀 TripMind API v2.1 starting")
     print(f"   CORS origin: {settings.FRONTEND_URL}")
     print(f"   Docs: http://localhost:8000/docs")
     print("=" * 50)
