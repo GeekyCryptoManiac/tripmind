@@ -435,9 +435,9 @@ Rules: type must be: taxi | train | bus | rental | ferry | other. Be specific to
 @app.post("/api/trips/{trip_id}/travel/suggest", response_model=TravelSuggestResponse)
 @limiter.limit("10/minute")
 async def suggest_travel(
-    http_request: Request,
+    request: Request,
     trip_id: int,
-    request: TravelSuggestRequest,
+    body: TravelSuggestRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -454,7 +454,7 @@ async def suggest_travel(
             api_key=settings.OPENAI_API_KEY,
             model_kwargs={"response_format": {"type": "json_object"}},
         )
-        prompt      = _build_suggest_prompt(trip, request.type, request.preferences)
+        prompt      = _build_suggest_prompt(trip, body.type, body.preferences)
         result      = await llm.ainvoke([HumanMessage(content=prompt)])
         raw         = json.loads(result.content)
         suggestions = raw.get("suggestions", [])
@@ -463,10 +463,10 @@ async def suggest_travel(
             s["id"] = f"ai_{uuid.uuid4().hex[:12]}"
 
         return TravelSuggestResponse(
-            type=request.type,
-            flights=suggestions   if request.type == "flight"    else None,
-            hotels=suggestions    if request.type == "hotel"     else None,
-            transport=suggestions if request.type == "transport" else None,
+            type=body.type,
+            flights=suggestions   if body.type == "flight"    else None,
+            hotels=suggestions    if body.type == "hotel"     else None,
+            transport=suggestions if body.type == "transport" else None,
         )
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="AI returned malformed JSON. Please try again.")
@@ -482,7 +482,7 @@ async def suggest_travel(
 @app.post("/api/trips/{trip_id}/overview/alerts", response_model=OverviewAlertsResponse)
 @limiter.limit("10/minute")
 async def get_travel_alerts(
-    http_request: Request,
+    request: Request,
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -541,7 +541,7 @@ Rules: category: safety|visa|health|weather|local_laws|general  severity: info|w
 @app.post("/api/trips/{trip_id}/overview/recommendations", response_model=OverviewRecommendationsResponse)
 @limiter.limit("10/minute")
 async def get_recommendations(
-    http_request: Request,
+    request: Request,
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
