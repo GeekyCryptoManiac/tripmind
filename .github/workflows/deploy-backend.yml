@@ -62,7 +62,8 @@ jobs:
             set -e
 
             cd ~/tripmind
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             cd backend
 
