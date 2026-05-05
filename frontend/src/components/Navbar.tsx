@@ -9,11 +9,14 @@
  * Active links and CTA button now have visible white text on dark background.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FC } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import logoAsset from '../assets/tripMind_logo.png';
 import { useUser } from '../context/UserContext';
+import NewTripModal from './NewTripModal';
+import type { Trip } from '../types';
 
 const NAV_LINKS = [
   { path: '/',      label: 'Home'     },
@@ -23,9 +26,28 @@ const NAV_LINKS = [
 
 const Navbar: FC = () => {
   const location = useLocation();
+  const navigate  = useNavigate();
   const { logout, isAuthenticated } = useUser();
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled,      setScrolled]      = useState(false);
+  const [dropdownOpen,  setDropdownOpen]  = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isHomePage = location.pathname === '/';
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleTripCreated = (trip: Trip) => {
+    setShowFormModal(false);
+    navigate(`/trips/${trip.id}`);
+  };
 
   useEffect(() => {
     if (!isHomePage) { setScrolled(false); return; }
@@ -39,6 +61,7 @@ const Navbar: FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
+    <>
     <nav
       className={[
         isHomePage ? 'fixed top-0 left-0 right-0 z-50' : 'relative',
@@ -105,17 +128,62 @@ const Navbar: FC = () => {
               );
             })}
 
-            {/* ── CTA button — always visible ─────────────── */}
-            <Link
-              to="/chat"
-              className={`ml-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                isTransparent
-                  ? 'bg-white text-ink hover:bg-white/90'
-                  : 'bg-ink text-white hover:bg-ink/80'
-              }`}
-            >
-              + New Trip
-            </Link>
+            {/* ── New Trip dropdown ─────────────────────────── */}
+            <div className="relative ml-3" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen((o) => !o)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isTransparent
+                    ? 'bg-white text-ink hover:bg-white/90'
+                    : 'bg-ink text-white hover:bg-ink/80'
+                }`}
+              >
+                + New Trip
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0,  scale: 1    }}
+                    exit={{    opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-modal ring-1 ring-black/8 overflow-hidden z-50"
+                  >
+                    <button
+                      onClick={() => { setDropdownOpen(false); setShowFormModal(true); }}
+                      className="w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-surface-bg transition-colors"
+                    >
+                      <span className="mt-0.5 text-base">📋</span>
+                      <div>
+                        <p className="text-sm font-semibold text-ink">Fill a form</p>
+                        <p className="text-xs text-ink-tertiary mt-0.5">Set destination, dates & budget</p>
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-surface-muted mx-4" />
+
+                    <Link
+                      to="/chat"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-start gap-3 px-4 py-3.5 hover:bg-surface-bg transition-colors"
+                    >
+                      <span className="mt-0.5 text-base">✨</span>
+                      <div>
+                        <p className="text-sm font-semibold text-ink">Plan with AI</p>
+                        <p className="text-xs text-ink-tertiary mt-0.5">Chat with TripMind to plan</p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {isAuthenticated && (
               <button
@@ -131,6 +199,13 @@ const Navbar: FC = () => {
         </div>
       </div>
     </nav>
+
+    <NewTripModal
+      isOpen={showFormModal}
+      onClose={() => setShowFormModal(false)}
+      onCreate={handleTripCreated}
+    />
+  </>
   );
 };
 
