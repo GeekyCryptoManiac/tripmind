@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '../services/api';
-import type { Trip } from '../types';
+import type { Trip, TripCreateRequest } from '../types';
 
 interface Props {
   isOpen:   boolean;
@@ -46,17 +46,17 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
 
     setSaveStatus('saving');
     try {
-      const payload: Record<string, unknown> = {
+      const payload: TripCreateRequest = {
         destination:     destination.trim(),
         origin:          origin.trim() || 'Singapore',
         travelers_count: Math.max(1, parseInt(travelers) || 1),
+        ...(startDate                               && { start_date:    startDate }),
+        ...(endDate && !dateError                   && { end_date:      endDate }),
+        ...(durationDays                            && { duration_days: durationDays }),
+        ...(budget !== '' && !isNaN(Number(budget)) && { budget:        parseFloat(budget) }),
       };
-      if (startDate)                                 payload.start_date    = startDate;
-      if (endDate && !dateError)                     payload.end_date      = endDate;
-      if (durationDays)                              payload.duration_days = durationDays;
-      if (budget !== '' && !isNaN(Number(budget)))   payload.budget        = parseFloat(budget);
 
-      const trip = await apiService.createTrip(payload as Parameters<typeof apiService.createTrip>[0]);
+      const trip = await apiService.createTrip(payload);
       onCreate(trip);
       handleClose();
     } catch {
