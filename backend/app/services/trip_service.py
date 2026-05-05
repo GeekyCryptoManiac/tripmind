@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..models import Trip, TripActivity, TripExpense, TripChecklistItem, TripSavedTravel
 from ..schemas import (
-    TripUpdate,
+    TripCreate, TripUpdate,
     ActivityCreate, ActivityUpdate,
     ExpenseCreate, ExpenseUpdate,
     ChecklistItemCreate, ChecklistItemUpdate,
@@ -72,6 +72,27 @@ class TripService:
 
     # ── Trip CRUD ─────────────────────────────────────────────
 
+    def create_trip(self, user_id: int, data: TripCreate) -> Trip:
+        trip = Trip(
+            user_id=user_id,
+            destination=data.destination,
+            origin=data.origin,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            duration_days=data.duration_days,
+            budget=data.budget,
+            travelers_count=data.travelers_count,
+            preferences=data.preferences,
+            notes=data.notes,
+            status="planning",
+            ai_alerts=[],
+            ai_recommendations=[],
+        )
+        self.db.add(trip)
+        self.db.commit()
+        self.db.refresh(trip)
+        return trip
+
     def get_user_trips(self, user_id: int) -> list[Trip]:
         return (
             self.db.query(Trip)
@@ -91,7 +112,7 @@ class TripService:
 
         # Scalar columns — only write if explicitly provided
         simple_fields = [
-            "destination", "start_date", "end_date", "duration_days",
+            "destination", "origin", "start_date", "end_date", "duration_days",
             "budget", "travelers_count", "status",
             "notes", "cover_image_url",
         ]

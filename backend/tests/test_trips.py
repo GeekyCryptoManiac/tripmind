@@ -81,6 +81,30 @@ def test_update_trip_forbidden_for_other_user(client, auth_headers):
     assert resp.status_code == 403
 
 
+def test_create_trip(client, auth_headers):
+    resp = client.post(
+        "/api/trips",
+        json={"destination": "Bali", "origin": "Singapore", "travelers_count": 2},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["destination"] == "Bali"
+    assert data["origin"] == "Singapore"
+    assert data["travelers_count"] == 2
+    assert data["status"] == "planning"
+
+
+def test_create_trip_default_origin(client, auth_headers):
+    resp = client.post(
+        "/api/trips",
+        json={"destination": "Tokyo"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["origin"] == "Singapore"
+
+
 def test_delete_trip(client, auth_headers, test_trip):
     resp = client.delete(f"/api/trips/{test_trip.id}", headers=auth_headers)
     assert resp.status_code == 204

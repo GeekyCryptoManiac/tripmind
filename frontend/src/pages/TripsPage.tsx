@@ -23,6 +23,7 @@ import type { Trip } from '../types';
 import WorldMap from '../components/WorldMap';
 import MapLegend from '../components/MapLegend';
 import TripCard from '../components/TripCard';
+import NewTripModal from '../components/NewTripModal';
 import { useTripPhase } from '../utils/tripStatus';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -231,6 +232,7 @@ const TripsPage: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [modalData, setModalData] = useState<{ trips: Trip[]; countryName: string } | null>(null);
+  const [showNewTrip, setShowNewTrip] = useState(false);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -328,7 +330,7 @@ const TripsPage: FC = () => {
             )}
 
             <button
-              onClick={() => navigate('/chat')}
+              onClick={() => setShowNewTrip(true)}
               className="inline-flex items-center gap-2 bg-ink text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,7 +360,7 @@ const TripsPage: FC = () => {
         )}
 
         {/* ── Empty state ─────────────────────────────────── */}
-        {trips.length === 0 && <EmptyState onPlan={() => navigate('/chat')} />}
+        {trips.length === 0 && <EmptyState onPlan={() => setShowNewTrip(true)} />}
 
         {/* ── Map view ────────────────────────────────────── */}
         {trips.length > 0 && viewMode === 'map' && (
@@ -512,6 +514,17 @@ const TripsPage: FC = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* ── New trip modal ───────────────────────────────── */}
+      <NewTripModal
+        isOpen={showNewTrip}
+        onClose={() => setShowNewTrip(false)}
+        onCreate={(trip) => {
+          setTrips((prev) => [trip, ...prev]);
+          setShowNewTrip(false);
+          navigate(`/trips/${trip.id}`);
+        }}
+      />
     </div>
   );
 };

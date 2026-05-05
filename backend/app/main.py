@@ -30,7 +30,7 @@ from .schemas import (
     # User
     UserCreate, UserResponse,
     # Trip
-    TripUpdate, TripResponse, TripList,
+    TripCreate, TripUpdate, TripResponse, TripList,
     # Activity
     ActivityCreate, ActivityUpdate, ActivityResponse,
     # Expense
@@ -205,6 +205,15 @@ async def get_user_trips(
     return TripList(trips=trips, total=len(trips))
 
 
+@app.post("/api/trips", response_model=TripResponse, status_code=201)
+async def create_trip(
+    data: TripCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return TripService(db).create_trip(current_user.id, data)
+
+
 @app.get("/api/trips/{trip_id}", response_model=TripResponse)
 async def get_trip(
     trip_id: int,
@@ -368,6 +377,7 @@ async def delete_saved_travel(
 
 def _build_suggest_prompt(trip: Trip, suggest_type: str, preferences: str | None) -> str:
     dest     = trip.destination
+    origin   = getattr(trip, "origin", "Singapore")
     budget   = f"${trip.budget:,.0f} total" if trip.budget else "not specified"
     dates    = f"{trip.start_date} to {trip.end_date}" if trip.start_date and trip.end_date else "not set"
     duration = f"{trip.duration_days} days" if trip.duration_days else "not set"
@@ -377,7 +387,7 @@ def _build_suggest_prompt(trip: Trip, suggest_type: str, preferences: str | None
     if suggest_type == "flight":
         return f"""You are a travel expert. Generate exactly 3 realistic flight suggestions.
 
-Trip: {dest} | Dates: {dates} | Travelers: {pax} | Budget: {budget}{prefs}
+Trip: {origin} → {dest} | Dates: {dates} | Travelers: {pax} | Budget: {budget}{prefs}
 
 Return ONLY valid JSON, no markdown:
 {{
