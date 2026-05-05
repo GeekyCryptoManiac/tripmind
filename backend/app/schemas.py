@@ -217,6 +217,18 @@ class TravelSuggestResponse(BaseModel):
 TripStatus = Literal["planning", "booked", "ongoing", "completed", "cancelled"]
 
 
+class TripCreate(BaseModel):
+    destination:     str            = Field(..., min_length=1, max_length=200)
+    origin:          str            = Field("Singapore", min_length=1, max_length=200)
+    start_date:      Optional[str]  = Field(None, description="YYYY-MM-DD")
+    end_date:        Optional[str]  = Field(None, description="YYYY-MM-DD")
+    duration_days:   Optional[int]  = Field(None, gt=0)
+    budget:          Optional[float] = Field(None, gt=0)
+    travelers_count: int            = Field(1, gt=0)
+    preferences:     List[str]      = []
+    notes:           Optional[str]  = Field(None, max_length=2000)
+
+
 class TripUpdate(BaseModel):
     """
     Partial trip update — all fields optional.
@@ -249,6 +261,7 @@ class TripResponse(BaseModel):
     id:              int
     user_id:         int
     destination:     str
+    origin:          str             = "Singapore"
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
     duration_days:   Optional[int]   = None

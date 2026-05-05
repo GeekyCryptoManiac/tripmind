@@ -19,6 +19,7 @@ import type {
   User,
   UserCreate,
   Trip,
+  TripCreateRequest,
   Activity,
   ActivityCreateRequest,
   ActivityUpdateRequest,
@@ -172,6 +173,10 @@ export const apiService = {
   },
 
   // ── Trips ──────────────────────────────────────────────────
+
+  async createTrip(data: TripCreateRequest): Promise<Trip> {
+    return (await api.post<Trip>('/api/trips', data)).data;
+  },
 
   async getUserTrips(userId: number): Promise<Trip[]> {
     return (

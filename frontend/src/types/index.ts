@@ -274,10 +274,23 @@ export interface Recommendation {
 
 export type TripStatus = 'planning' | 'booked' | 'ongoing' | 'completed' | 'cancelled';
 
+export interface TripCreateRequest {
+  destination:     string;
+  origin?:         string;
+  start_date?:     string;
+  end_date?:       string;
+  duration_days?:  number;
+  budget?:         number;
+  travelers_count?: number;
+  preferences?:    string[];
+  notes?:          string;
+}
+
 export interface Trip {
   id:              number;
   user_id:         number;
   destination:     string;
+  origin:          string;
   start_date:      string | null;
   end_date:        string | null;
   duration_days:   number | null;
