@@ -31,6 +31,8 @@ from .schemas import (
     UserCreate, UserResponse,
     # Trip
     TripCreate, TripUpdate, TripResponse, TripList,
+    # Waypoints
+    WaypointCreate, WaypointUpdate, WaypointResponse,
     # Activity
     ActivityCreate, ActivityUpdate, ActivityResponse,
     # Expense
@@ -372,6 +374,41 @@ async def delete_saved_travel(
 
 
 # ═════════════════════════════════════════════════════════════
+# Waypoints
+# ═════════════════════════════════════════════════════════════
+
+@app.post("/api/trips/{trip_id}/waypoints", response_model=WaypointResponse, status_code=201)
+async def add_waypoint(
+    trip_id: int,
+    data: WaypointCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return TripService(db).add_waypoint(trip_id, current_user.id, data)
+
+
+@app.patch("/api/trips/{trip_id}/waypoints/{waypoint_id}", response_model=WaypointResponse)
+async def update_waypoint(
+    trip_id: int,
+    waypoint_id: int,
+    data: WaypointUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return TripService(db).update_waypoint(trip_id, waypoint_id, current_user.id, data)
+
+
+@app.delete("/api/trips/{trip_id}/waypoints/{waypoint_id}", status_code=204)
+async def delete_waypoint(
+    trip_id: int,
+    waypoint_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    TripService(db).delete_waypoint(trip_id, waypoint_id, current_user.id)
+
+
+# ═════════════════════════════════════════════════════════════
 # Travel AI Suggestions  (not persisted — GPT-4 direct calls)
 # ═════════════════════════════════════════════════════════════
 
@@ -384,10 +421,14 @@ def _build_suggest_prompt(trip: Trip, suggest_type: str, preferences: str | None
     pax      = trip.travelers_count or 1
     prefs    = f"\nUser preferences: {preferences}" if preferences else ""
 
+    # waypoints now includes origin (index 0) and destination (last) — just join them all
+    wps = sorted(getattr(trip, "waypoints", None) or [], key=lambda w: w.order_index)
+    route = " → ".join(w.city for w in wps) if wps else f"{origin} → {dest}"
+
     if suggest_type == "flight":
         return f"""You are a travel expert. Generate exactly 3 realistic flight suggestions.
 
-Trip: {origin} → {dest} | Dates: {dates} | Travelers: {pax} | Budget: {budget}{prefs}
+Trip: {route} | Dates: {dates} | Travelers: {pax} | Budget: {budget}{prefs}
 
 Return ONLY valid JSON, no markdown:
 {{

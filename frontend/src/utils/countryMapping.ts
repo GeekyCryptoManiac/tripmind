@@ -95,6 +95,30 @@ export const DESTINATION_TO_COUNTRY_CODE: Record<string, string> = {
   'trinidad and tobago': 'TTO',
 };
 
+// ── Alpha-2 → alpha-3 (for trip.country_code stored in DB) ───────────────────
+const ALPHA2_TO_ALPHA3: Record<string, string> = {
+  'JP': 'JPN', 'CN': 'CHN', 'KR': 'KOR', 'TH': 'THA', 'SG': 'SGP',
+  'MY': 'MYS', 'ID': 'IDN', 'PH': 'PHL', 'VN': 'VNM', 'IN': 'IND',
+  'TW': 'TWN', 'HK': 'HKG', 'KH': 'KHM', 'LA': 'LAO', 'MM': 'MMR',
+  'NP': 'NPL', 'LK': 'LKA', 'MV': 'MDV', 'BT': 'BTN', 'PK': 'PAK',
+  'BD': 'BGD', 'FR': 'FRA', 'DE': 'DEU', 'IT': 'ITA', 'ES': 'ESP',
+  'GB': 'GBR', 'NL': 'NLD', 'BE': 'BEL', 'CH': 'CHE', 'AT': 'AUT',
+  'PT': 'PRT', 'GR': 'GRC', 'NO': 'NOR', 'SE': 'SWE', 'DK': 'DNK',
+  'FI': 'FIN', 'IE': 'IRL', 'PL': 'POL', 'CZ': 'CZE', 'HU': 'HUN',
+  'HR': 'HRV', 'TR': 'TUR', 'RU': 'RUS', 'IS': 'ISL', 'RO': 'ROU',
+  'BG': 'BGR', 'EE': 'EST', 'UA': 'UKR', 'RS': 'SRB', 'SK': 'SVK',
+  'SI': 'SVN', 'LT': 'LTU', 'LV': 'LVA', 'US': 'USA', 'CA': 'CAN',
+  'MX': 'MEX', 'BR': 'BRA', 'AR': 'ARG', 'CL': 'CHL', 'PE': 'PER',
+  'CO': 'COL', 'EC': 'ECU', 'BO': 'BOL', 'UY': 'URY', 'PY': 'PRY',
+  'VE': 'VEN', 'EG': 'EGY', 'ZA': 'ZAF', 'MA': 'MAR', 'KE': 'KEN',
+  'TZ': 'TZA', 'ET': 'ETH', 'NG': 'NGA', 'GH': 'GHA', 'TN': 'TUN',
+  'MG': 'MDG', 'MU': 'MUS', 'SC': 'SYC', 'AU': 'AUS', 'NZ': 'NZL',
+  'FJ': 'FJI', 'AE': 'ARE', 'SA': 'SAU', 'QA': 'QAT', 'IL': 'ISR',
+  'JO': 'JOR', 'LB': 'LBN', 'OM': 'OMN', 'KW': 'KWT', 'BH': 'BHR',
+  'CR': 'CRI', 'PA': 'PAN', 'JM': 'JAM', 'CU': 'CUB', 'DO': 'DOM',
+  'BS': 'BHS', 'BB': 'BRB', 'TT': 'TTO',
+};
+
 // ── Geo name → alpha-3 ────────────────────────────────────────────────────────
 const GEO_NAME_TO_ALPHA3: Record<string, string> = {
   'Afghanistan': 'AFG', 'Albania': 'ALB', 'Algeria': 'DZA', 'Angola': 'AGO',
@@ -170,7 +194,11 @@ export function groupTripsByCountry(trips: Trip[]): Map<string, CountryData> {
   const countryMap = new Map<string, CountryData>();
 
   trips.forEach((trip) => {
-    const countryCode = getCountryCode(trip.destination);
+    // Prefer the stored alpha-2 country_code (set at trip creation via CityAutocomplete),
+    // fall back to destination-name lookup for trips without it
+    const countryCode =
+      (trip.country_code && ALPHA2_TO_ALPHA3[trip.country_code.toUpperCase()]) ||
+      getCountryCode(trip.destination);
     if (!countryCode) return;
 
     if (!countryMap.has(countryCode)) {

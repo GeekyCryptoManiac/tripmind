@@ -277,6 +277,7 @@ export type TripStatus = 'planning' | 'booked' | 'ongoing' | 'completed' | 'canc
 export interface TripCreateRequest {
   destination:     string;
   origin?:         string;
+  country_code?:   string;
   start_date?:     string;
   end_date?:       string;
   duration_days?:  number;
@@ -286,11 +287,44 @@ export interface TripCreateRequest {
   notes?:          string;
 }
 
+export interface Waypoint {
+  id:             number;
+  trip_id:        number;
+  order_index:    number;
+  city:           string;
+  country:        string | null;
+  country_code:   string | null;
+  arrival_date:   string | null;
+  departure_date: string | null;
+  notes:          string | null;
+  created_at:     string;
+}
+
+export interface WaypointCreateRequest {
+  city:            string;
+  country?:        string;
+  country_code?:   string;
+  arrival_date?:   string;
+  departure_date?: string;
+  notes?:          string;
+}
+
+export interface WaypointUpdateRequest {
+  city?:           string;
+  country?:        string;
+  country_code?:   string;
+  order_index?:    number;
+  arrival_date?:   string;
+  departure_date?: string;
+  notes?:          string;
+}
+
 export interface Trip {
   id:              number;
   user_id:         number;
   destination:     string;
   origin:          string;
+  country_code:    string | null;
   start_date:      string | null;
   end_date:        string | null;
   duration_days:   number | null;
@@ -308,6 +342,7 @@ export interface Trip {
   expenses:        Expense[];
   checklist_items: ChecklistItem[];
   saved_travel:    SavedTravel[];
+  waypoints:       Waypoint[];
 
   // AI caches — still untyped arrays (shapes vary, regenerated wholesale)
   ai_alerts:           TravelAlert[];

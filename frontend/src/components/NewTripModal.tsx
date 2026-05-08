@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '../services/api';
 import type { Trip, TripCreateRequest } from '../types';
+import CityAutocomplete from './CityAutocomplete';
+import type { CityEntry } from '../data/cities';
 
 interface Props {
   isOpen:   boolean;
@@ -12,14 +14,16 @@ interface Props {
 type SaveStatus = 'idle' | 'saving' | 'error';
 
 export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
-  const [destination, setDestination] = useState('');
-  const [origin,      setOrigin]      = useState('Singapore');
-  const [startDate,   setStartDate]   = useState('');
-  const [endDate,     setEndDate]     = useState('');
-  const [travelers,   setTravelers]   = useState('1');
-  const [budget,      setBudget]      = useState('');
-  const [saveStatus,  setSaveStatus]  = useState<SaveStatus>('idle');
-  const [dateError,   setDateError]   = useState('');
+  const [destination,        setDestination]        = useState('');
+  const [destinationCountry, setDestinationCountry] = useState<CityEntry | null>(null);
+  const [origin,             setOrigin]             = useState('Singapore');
+  const [originCountry,      setOriginCountry]      = useState<CityEntry | null>(null);
+  const [startDate,          setStartDate]          = useState('');
+  const [endDate,            setEndDate]            = useState('');
+  const [travelers,          setTravelers]          = useState('1');
+  const [budget,             setBudget]             = useState('');
+  const [saveStatus,         setSaveStatus]         = useState<SaveStatus>('idle');
+  const [dateError,          setDateError]          = useState('');
 
   const durationDays = (() => {
     if (!startDate || !endDate) return null;
@@ -36,7 +40,9 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
   };
 
   const handleClose = () => {
-    setDestination(''); setOrigin('Singapore'); setStartDate(''); setEndDate('');
+    setDestination(''); setDestinationCountry(null);
+    setOrigin('Singapore'); setOriginCountry(null);
+    setStartDate(''); setEndDate('');
     setTravelers('1'); setBudget(''); setSaveStatus('idle'); setDateError('');
     onClose();
   };
@@ -49,6 +55,7 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
       const payload: TripCreateRequest = {
         destination:     destination.trim(),
         origin:          origin.trim() || 'Singapore',
+        country_code:    destinationCountry?.country_code ?? undefined,
         travelers_count: Math.max(1, parseInt(travelers) || 1),
         ...(startDate                               && { start_date:    startDate }),
         ...(endDate && !dateError                   && { end_date:      endDate }),
@@ -66,6 +73,7 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
 
   const labelClass = 'block text-xs font-medium text-ink-secondary uppercase tracking-wide mb-1.5';
   const inputClass = 'w-full px-4 py-2.5 bg-surface-bg border border-surface-muted rounded-xl text-sm text-ink placeholder-ink-tertiary focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent transition';
+  void originCountry;
 
   return (
     <AnimatePresence>
@@ -81,7 +89,7 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
           <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
 
           <motion.div
-            className="relative z-10 bg-white rounded-3xl shadow-modal w-full max-w-md overflow-hidden"
+            className="relative z-10 bg-white rounded-3xl shadow-modal w-full max-w-md"
             initial={{ scale: 0.94, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.94, y: 20, opacity: 0 }}
@@ -106,26 +114,20 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
             <div className="px-7 py-6 space-y-5">
               {/* Route row */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>From</label>
-                  <input
-                    type="text"
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                    placeholder="Singapore"
-                    className={inputClass}
-                  />
-                </div>
+                <CityAutocomplete
+                  label="From"
+                  value={origin}
+                  onChange={(city, entry) => { setOrigin(city); setOriginCountry(entry); }}
+                  placeholder="Singapore"
+                />
                 <div>
                   <label className={labelClass}>
                     Destination <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <CityAutocomplete
                     value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
+                    onChange={(city, entry) => { setDestination(city); setDestinationCountry(entry); }}
                     placeholder="Tokyo"
-                    className={inputClass}
                     autoFocus
                   />
                 </div>
