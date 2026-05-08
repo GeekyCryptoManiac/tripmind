@@ -275,7 +275,8 @@ class TripUpdate(BaseModel):
     Only provided fields are written to the DB.
     """
     destination:     Optional[str]   = None
-    origin: Optional[str] = None
+    origin:          Optional[str]   = None
+    country_code:    Optional[str]   = Field(None, min_length=2, max_length=2)
     start_date:      Optional[str]   = Field(None, description="YYYY-MM-DD")
     end_date:        Optional[str]   = Field(None, description="YYYY-MM-DD")
     duration_days:   Optional[int]   = Field(None, gt=0)
