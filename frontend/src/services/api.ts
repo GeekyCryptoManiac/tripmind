@@ -20,6 +20,9 @@ import type {
   UserCreate,
   Trip,
   TripCreateRequest,
+  Waypoint,
+  WaypointCreateRequest,
+  WaypointUpdateRequest,
   Activity,
   ActivityCreateRequest,
   ActivityUpdateRequest,
@@ -194,6 +197,20 @@ export const apiService = {
 
   async deleteTrip(tripId: number): Promise<void> {
     await api.delete(`/api/trips/${tripId}`);
+  },
+
+  // ── Waypoints ──────────────────────────────────────────────
+
+  async addWaypoint(tripId: number, data: WaypointCreateRequest): Promise<Waypoint> {
+    return (await api.post<Waypoint>(`/api/trips/${tripId}/waypoints`, data)).data;
+  },
+
+  async updateWaypoint(tripId: number, waypointId: number, data: WaypointUpdateRequest): Promise<Waypoint> {
+    return (await api.patch<Waypoint>(`/api/trips/${tripId}/waypoints/${waypointId}`, data)).data;
+  },
+
+  async deleteWaypoint(tripId: number, waypointId: number): Promise<void> {
+    await api.delete(`/api/trips/${tripId}/waypoints/${waypointId}`);
   },
 
   // ── Activities ─────────────────────────────────────────────

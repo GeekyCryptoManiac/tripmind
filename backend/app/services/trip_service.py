@@ -23,9 +23,10 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from ..models import Trip, TripActivity, TripExpense, TripChecklistItem, TripSavedTravel
+from ..models import Trip, TripActivity, TripExpense, TripChecklistItem, TripSavedTravel, TripWaypoint
 from ..schemas import (
     TripCreate, TripUpdate,
+    WaypointCreate, WaypointUpdate,
     ActivityCreate, ActivityUpdate,
     ExpenseCreate, ExpenseUpdate,
     ChecklistItemCreate, ChecklistItemUpdate,
@@ -48,6 +49,7 @@ class TripService:
                 joinedload(Trip.expenses),
                 joinedload(Trip.checklist_items),
                 joinedload(Trip.saved_travel),
+                joinedload(Trip.waypoints),
             )
             .filter(Trip.id == trip_id)
             .first()
@@ -77,6 +79,7 @@ class TripService:
             user_id=user_id,
             destination=data.destination,
             origin=data.origin,
+            country_code=data.country_code,
             start_date=data.start_date,
             end_date=data.end_date,
             duration_days=data.duration_days,
@@ -89,6 +92,14 @@ class TripService:
             ai_recommendations=[],
         )
         self.db.add(trip)
+        self.db.flush()  # populate trip.id before inserting waypoints
+
+        # Seed origin (index 0) and destination (index 1) as the initial route
+        self.db.add(TripWaypoint(trip_id=trip.id, order_index=0, city=data.origin))
+        self.db.add(TripWaypoint(
+            trip_id=trip.id, order_index=1,
+            city=data.destination, country_code=data.country_code,
+        ))
         self.db.commit()
         self.db.refresh(trip)
         return trip
@@ -101,6 +112,7 @@ class TripService:
                 joinedload(Trip.expenses),
                 joinedload(Trip.checklist_items),
                 joinedload(Trip.saved_travel),
+                joinedload(Trip.waypoints),
             )
             .filter(Trip.user_id == user_id)
             .order_by(Trip.updated_at.desc().nullslast(), Trip.created_at.desc())
@@ -112,8 +124,8 @@ class TripService:
 
         # Scalar columns — only write if explicitly provided
         simple_fields = [
-            "destination", "origin", "start_date", "end_date", "duration_days",
-            "budget", "travelers_count", "status",
+            "destination", "origin", "country_code", "start_date", "end_date",
+            "duration_days", "budget", "travelers_count", "status",
             "notes", "cover_image_url",
         ]
         for field in simple_fields:
@@ -383,5 +395,114 @@ class TripService:
             raise HTTPException(status_code=404, detail="Saved travel item not found")
 
         self.db.delete(item)
+        self._touch(trip)
+        self.db.commit()
+
+    # ── Waypoints ─────────────────────────────────────────────
+
+    def _ordered_waypoints(self, trip_id: int) -> list[TripWaypoint]:
+        return (
+            self.db.query(TripWaypoint)
+            .filter(TripWaypoint.trip_id == trip_id)
+            .order_by(TripWaypoint.order_index)
+            .all()
+        )
+
+    def add_waypoint(
+        self, trip_id: int, user_id: int, data: WaypointCreate
+    ) -> TripWaypoint:
+        trip = self.get_trip_or_404(trip_id, user_id)
+
+        wps = self._ordered_waypoints(trip_id)
+        if len(wps) < 2:
+            raise HTTPException(status_code=400, detail="Trip must have origin and destination first")
+
+        # Always insert immediately before destination (last node)
+        dest = wps[-1]
+        dest.order_index += 1
+
+        waypoint = TripWaypoint(
+            trip_id=trip_id,
+            order_index=dest.order_index - 1,
+            city=data.city,
+            country=data.country,
+            country_code=data.country_code,
+            arrival_date=data.arrival_date,
+            departure_date=data.departure_date,
+            notes=data.notes,
+        )
+        self.db.add(waypoint)
+        self._touch(trip)
+        self.db.commit()
+        self.db.refresh(waypoint)
+        return waypoint
+
+    def update_waypoint(
+        self, trip_id: int, waypoint_id: int, user_id: int, data: WaypointUpdate
+    ) -> TripWaypoint:
+        trip = self.get_trip_or_404(trip_id, user_id)
+
+        waypoint = (
+            self.db.query(TripWaypoint)
+            .filter(TripWaypoint.id == waypoint_id, TripWaypoint.trip_id == trip_id)
+            .first()
+        )
+        if not waypoint:
+            raise HTTPException(status_code=404, detail="Waypoint not found")
+
+        wps = self._ordered_waypoints(trip_id)
+        is_origin = bool(wps) and waypoint.id == wps[0].id
+
+        # City / country / dates — allowed on any node
+        for field in ["city", "country", "country_code", "arrival_date", "departure_date", "notes"]:
+            value = getattr(data, field)
+            if value is not None:
+                setattr(waypoint, field, value)
+
+        # Reordering — allowed on all nodes except origin
+        if data.order_index is not None and not is_origin:
+            if data.order_index == 0:
+                raise HTTPException(status_code=400, detail="Cannot move a stop to the origin position")
+            waypoint.order_index = data.order_index
+
+        # Sync origin cache if origin city changed
+        if data.city is not None and is_origin:
+            trip.origin = data.city
+
+        # Recompute destination cache from whichever waypoint ends up last
+        self.db.flush()
+        updated_wps = self._ordered_waypoints(trip_id)
+        if updated_wps:
+            last = updated_wps[-1]
+            trip.destination = last.city
+            if last.country_code is not None:
+                trip.country_code = last.country_code
+
+        self._touch(trip)
+        self.db.commit()
+        self.db.refresh(waypoint)
+        return waypoint
+
+    def delete_waypoint(
+        self, trip_id: int, waypoint_id: int, user_id: int
+    ) -> None:
+        trip = self.get_trip_or_404(trip_id, user_id)
+
+        waypoint = (
+            self.db.query(TripWaypoint)
+            .filter(TripWaypoint.id == waypoint_id, TripWaypoint.trip_id == trip_id)
+            .first()
+        )
+        if not waypoint:
+            raise HTTPException(status_code=404, detail="Waypoint not found")
+
+        wps = self._ordered_waypoints(trip_id)
+        if waypoint.id == wps[0].id or waypoint.id == wps[-1].id:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete origin or destination — edit the city instead",
+            )
+
+        self.db.delete(waypoint)
         self._touch(trip)
         self.db.commit()

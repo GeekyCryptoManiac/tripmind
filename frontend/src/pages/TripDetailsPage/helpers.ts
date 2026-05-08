@@ -7,7 +7,7 @@
 import type { Trip } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────
-export type TabType = 'overview' | 'itinerary' | 'travel' | 'chat';
+export type TabType = 'overview' | 'route' | 'itinerary' | 'travel' | 'chat';
 export type TravelSubTab = 'flights' | 'hotels' | 'transport';
 
 export interface ProgressTask {

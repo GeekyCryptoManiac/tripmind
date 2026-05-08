@@ -93,7 +93,8 @@ class Trip(Base):
 
     # Core fields
     destination     = Column(String(200), nullable=False)
-    origin          = Column(String(200), nullable=False, server_default="Singapore")  # ← add this
+    origin          = Column(String(200), nullable=False, server_default="Singapore")
+    country_code    = Column(String(2), nullable=True)
     start_date      = Column(String(10), nullable=True)   # "YYYY-MM-DD" kept as string for flexibility
     end_date        = Column(String(10), nullable=True)
     duration_days   = Column(Integer, nullable=True)
@@ -144,6 +145,13 @@ class Trip(Base):
         back_populates="trip",
         cascade="all, delete-orphan",
         order_by="TripSavedTravel.created_at",
+        lazy="select",
+    )
+    waypoints = relationship(
+        "TripWaypoint",
+        back_populates="trip",
+        cascade="all, delete-orphan",
+        order_by="TripWaypoint.order_index",
         lazy="select",
     )
 
@@ -301,3 +309,34 @@ class TripSavedTravel(Base):
 
     def __repr__(self):
         return f"<TripSavedTravel id={self.id} type={self.type!r}>"
+
+
+# ═════════════════════════════════════════════════════════════
+# TripWaypoint
+# ═════════════════════════════════════════════════════════════
+
+class TripWaypoint(Base):
+    """One ordered stop in a multi-city trip route."""
+    __tablename__ = "trip_waypoints"
+    __table_args__ = (
+        Index("ix_trip_waypoints_trip_order", "trip_id", "order_index"),
+    )
+
+    id             = Column(Integer, primary_key=True, index=True)
+    trip_id        = Column(
+        Integer, ForeignKey("trips.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    order_index    = Column(Integer, nullable=False)
+    city           = Column(String(200), nullable=False)
+    country        = Column(String(100), nullable=True)
+    country_code   = Column(String(2), nullable=True)
+    arrival_date   = Column(String(10), nullable=True)   # "YYYY-MM-DD"
+    departure_date = Column(String(10), nullable=True)
+    notes          = Column(Text, nullable=True)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    trip = relationship("Trip", back_populates="waypoints")
+
+    def __repr__(self):
+        return f"<TripWaypoint id={self.id} city={self.city!r} order={self.order_index}>"

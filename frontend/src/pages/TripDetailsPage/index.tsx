@@ -26,6 +26,7 @@ import TripSummaryCard from './TripSummaryCard';
 import OverviewTab from './OverviewTab';
 import ItineraryTab from './ItineraryTab';
 import TravelTab from './TravelTab';
+import WaypointEditor from './WaypointEditor';
 import StatusBanner from './StatusBanner';
 import { useTripPhase } from '../../utils/tripStatus';
 import { exportTripPDF } from '../../utils/exportPDF';
@@ -51,6 +52,13 @@ const PlaneIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
       d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+  </svg>
+);
+
+const RouteIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
   </svg>
 );
 
@@ -413,6 +421,7 @@ export default function TripDetailsPage() {
             <div className="flex gap-0.5">
               {[
                 { key: 'overview'  as const, label: 'Overview',  Icon: OverviewIcon  },
+                { key: 'route'     as const, label: 'Route',     Icon: RouteIcon     },
                 { key: 'itinerary' as const, label: 'Itinerary', Icon: CalendarIcon  },
                 { key: 'travel'    as const, label: 'Travel',    Icon: PlaneIcon     },
                 { key: 'chat'      as const, label: 'Chat',      Icon: ChatIcon      },
@@ -483,6 +492,16 @@ export default function TripDetailsPage() {
                     initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
                     <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
+                  </motion.div>
+                )}
+
+                {activeTab === 'route' && (
+                  <motion.div key="route"
+                    initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
+                    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+                      <WaypointEditor trip={trip} onTripUpdate={setTrip} />
+                    </div>
                   </motion.div>
                 )}
 

@@ -196,6 +196,45 @@ class SavedTravelResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ═════════════════════════════════════════════════════════════
+# TripWaypoint
+# ═════════════════════════════════════════════════════════════
+
+class WaypointCreate(BaseModel):
+    city:           str            = Field(..., min_length=1, max_length=200)
+    country:        Optional[str]  = Field(None, max_length=100)
+    country_code:   Optional[str]  = Field(None, min_length=2, max_length=2)
+    order_index:    Optional[int]  = Field(None, ge=0)   # server handles placement
+    arrival_date:   Optional[str]  = Field(None, description="YYYY-MM-DD")
+    departure_date: Optional[str]  = Field(None, description="YYYY-MM-DD")
+    notes:          Optional[str]  = Field(None, max_length=500)
+
+
+class WaypointUpdate(BaseModel):
+    city:           Optional[str]  = Field(None, max_length=200)
+    country:        Optional[str]  = Field(None, max_length=100)
+    country_code:   Optional[str]  = Field(None, min_length=2, max_length=2)
+    order_index:    Optional[int]  = Field(None, ge=0)
+    arrival_date:   Optional[str]  = None
+    departure_date: Optional[str]  = None
+    notes:          Optional[str]  = None
+
+
+class WaypointResponse(BaseModel):
+    id:             int
+    trip_id:        int
+    order_index:    int
+    city:           str
+    country:        Optional[str]  = None
+    country_code:   Optional[str]  = None
+    arrival_date:   Optional[str]  = None
+    departure_date: Optional[str]  = None
+    notes:          Optional[str]  = None
+    created_at:     datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── AI suggest (not persisted — just the request) ─────────────
 
 class TravelSuggestRequest(BaseModel):
@@ -220,6 +259,7 @@ TripStatus = Literal["planning", "booked", "ongoing", "completed", "cancelled"]
 class TripCreate(BaseModel):
     destination:     str            = Field(..., min_length=1, max_length=200)
     origin:          str            = Field("Singapore", min_length=1, max_length=200)
+    country_code:    Optional[str]  = Field(None, min_length=2, max_length=2)
     start_date:      Optional[str]  = Field(None, description="YYYY-MM-DD")
     end_date:        Optional[str]  = Field(None, description="YYYY-MM-DD")
     duration_days:   Optional[int]  = Field(None, gt=0)
@@ -262,6 +302,7 @@ class TripResponse(BaseModel):
     user_id:         int
     destination:     str
     origin:          str             = "Singapore"
+    country_code:    Optional[str]   = None
     start_date:      Optional[str]   = None
     end_date:        Optional[str]   = None
     duration_days:   Optional[int]   = None
@@ -277,6 +318,7 @@ class TripResponse(BaseModel):
     expenses:        List[ExpenseResponse]        = []
     checklist_items: List[ChecklistItemResponse]  = []
     saved_travel:    List[SavedTravelResponse]    = []
+    waypoints:       List[WaypointResponse]       = []
 
     # AI caches — still returned as dicts (shapes vary, not individually addressed)
     ai_alerts:          List[Dict[str, Any]] = []
