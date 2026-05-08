@@ -406,8 +406,6 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
 
   // ── Render ────────────────────────────────────────────────────
 
-  const middleStops = waypoints.slice(1, -1);
-
   return (
     <div className="space-y-6">
       <div>
