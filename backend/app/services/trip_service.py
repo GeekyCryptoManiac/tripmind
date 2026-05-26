@@ -228,6 +228,18 @@ class TripService:
         self._touch(trip)
         self.db.commit()
 
+    def delete_all_activities(self, trip_id: int, user_id: int) -> int:
+        """Delete every activity for a trip. Returns the count deleted."""
+        trip = self.get_trip_or_404(trip_id, user_id)
+        deleted = (
+            self.db.query(TripActivity)
+            .filter(TripActivity.trip_id == trip_id)
+            .delete(synchronize_session=False)
+        )
+        self._touch(trip)
+        self.db.commit()
+        return deleted
+
     def get_activities_for_day(self, trip_id: int, day: int) -> list[TripActivity]:
         return (
             self.db.query(TripActivity)

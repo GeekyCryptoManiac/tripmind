@@ -277,7 +277,12 @@ const TripsPage: FC = () => {
     return (
       <div className="min-h-screen bg-surface-bg flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-sm text-center">
-          <p className="text-2xl mb-3">⚠️</p>
+          <div className="flex justify-center mb-3">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
           <p className="text-red-800 font-medium mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -323,7 +328,23 @@ const TripsPage: FC = () => {
                         : 'text-ink-secondary hover:text-ink'
                     }`}
                   >
-                    {mode === 'map' ? '🗺 Map' : '☰ List'}
+                    {mode === 'map' ? (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                            d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                        </svg>
+                        Map
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                        List
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

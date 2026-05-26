@@ -350,12 +350,19 @@ export default function TripDetailsPage() {
     ? {
         tripId: trip.id,
         destination: trip.destination,
+        origin: trip.origin,
         status: trip.status,
         budget: trip.budget,
         startDate: trip.start_date,
         endDate: trip.end_date,
         durationDays: trip.duration_days,
         travelersCount: trip.travelers_count,
+        activitiesCount: trip.activities.length,
+        waypointCities: trip.waypoints
+          .slice()
+          .sort((a, b) => a.order_index - b.order_index)
+          .slice(1, -1)
+          .map((w) => w.city),
       }
     : undefined;
 

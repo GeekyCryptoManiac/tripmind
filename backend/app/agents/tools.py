@@ -299,6 +299,41 @@ def generate_itinerary(
         prefs    = ", ".join(preferences or trip.preferences or [])
         pref_str = f"\nPreferences: {prefs}" if prefs else ""
 
+        # ── Waypoint city ranges (multi-city trips) ────────────
+        sorted_wps = sorted(trip.waypoints or [], key=lambda w: w.order_index)
+        city_range_lines = ""
+        if len(sorted_wps) > 2 and trip.start_date:
+            origin      = sorted_wps[0]
+            destination = sorted_wps[-1]
+            intermediate = [w for w in sorted_wps[1:-1] if w.arrival_date]
+            if intermediate:
+                trip_start_ms = datetime.strptime(trip.start_date, "%Y-%m-%d").timestamp() * 1000
+                def day_of(date_str: str) -> int:
+                    ts = datetime.strptime(date_str, "%Y-%m-%d").timestamp() * 1000
+                    return round((ts - trip_start_ms) / 86_400_000) + 1
+
+                ranges: list[str] = []
+                first_arr = day_of(intermediate[0].arrival_date)
+                if first_arr > 1:
+                    ranges.append(f"Days 1–{first_arr - 1}: {origin.city}")
+                else:
+                    ranges.append(f"Day 1: {origin.city} (departure/transit day)")
+
+                for i, wp in enumerate(intermediate):
+                    arr = day_of(wp.arrival_date)
+                    dep = day_of(wp.departure_date) if wp.departure_date else (
+                        day_of(intermediate[i + 1].arrival_date) if i + 1 < len(intermediate) else trip_duration
+                    )
+                    ranges.append(
+                        f"Day {arr}: {wp.city}" if arr == dep
+                        else f"Days {arr}–{dep}: {wp.city}"
+                    )
+
+                last_dep = day_of(intermediate[-1].departure_date) if intermediate[-1].departure_date else trip_duration
+                ranges.append(f"Days {last_dep}–{trip_duration}: {destination.city}")
+                city_range_lines = "\n- City schedule:\n" + "\n".join(f"  {r}" for r in ranges)
+                city_range_lines += "\nIMPORTANT: Each activity's location and content MUST match the city assigned to that day. Do not mix cities across days."
+
         prompt = f"""You are a travel itinerary expert. Generate a detailed day-by-day itinerary.
 
 Trip details:
@@ -306,8 +341,7 @@ Trip details:
 - Dates: {dates}
 - Days to generate: {days_needed}
 - Travelers: {pax}
-- Budget: {budget}
-{pref_str}
+- Budget: {budget}{pref_str}{city_range_lines}
 
 Return ONLY valid JSON, no markdown or explanation:
 {{
@@ -334,7 +368,7 @@ Rules:
 - type must be one of: activity | dining | flight | hotel | transport
 - Include 4-6 activities per day
 - Times in HH:MM 24-hour format
-- Be specific to {dest} — use real place names and actual neighbourhoods"""
+- Be specific to the correct city for each day — use real place names and actual neighbourhoods"""
 
         # ── Sync GPT-4 call — safe inside a thread pool ───────
         llm = ChatOpenAI(
@@ -433,9 +467,22 @@ def _format_trip_for_agent(trip: Trip) -> Dict[str, Any]:
         for day, acts in sorted(days.items())
     ]
 
+    sorted_wps = sorted(trip.waypoints or [], key=lambda w: w.order_index)
+    route = " → ".join(w.city for w in sorted_wps) if sorted_wps else trip.destination
+
     return {
         "id":              trip.id,
         "destination":     trip.destination,
+        "route":           route,
+        "waypoints": [
+            {
+                "order": w.order_index,
+                "city":  w.city,
+                "arrival_date":   w.arrival_date,
+                "departure_date": w.departure_date,
+            }
+            for w in sorted_wps
+        ],
         "start_date":      trip.start_date,
         "end_date":        trip.end_date,
         "duration_days":   trip.duration_days,

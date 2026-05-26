@@ -13,7 +13,7 @@
  */
 
 import { useRef } from 'react';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useInView, type Variants } from 'framer-motion';
 
@@ -39,11 +39,47 @@ const steps = [
   },
 ];
 
-const features = [
-  { icon: '🤖', label: 'Multi-Agent AI',    desc: '5 specialized agents, one seamless flow' },
-  { icon: '💰', label: 'Smart Budget',       desc: 'Real-time tracking & optimization' },
-  { icon: '🌍', label: 'World Map',          desc: 'All trips, beautifully visualized' },
-  { icon: '📄', label: 'PDF Export',         desc: 'Share your itinerary anywhere' },
+const features: { icon: ReactNode; label: string; desc: string }[] = [
+  {
+    icon: (
+      <svg className="w-8 h-8 mx-auto text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+      </svg>
+    ),
+    label: 'Multi-Agent AI',
+    desc: '5 specialized agents, one seamless flow',
+  },
+  {
+    icon: (
+      <svg className="w-8 h-8 mx-auto text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+      </svg>
+    ),
+    label: 'Smart Budget',
+    desc: 'Real-time tracking & optimization',
+  },
+  {
+    icon: (
+      <svg className="w-8 h-8 mx-auto text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+      </svg>
+    ),
+    label: 'World Map',
+    desc: 'All trips, beautifully visualized',
+  },
+  {
+    icon: (
+      <svg className="w-8 h-8 mx-auto text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    ),
+    label: 'PDF Export',
+    desc: 'Share your itinerary anywhere',
+  },
 ];
 
 // ── Animation helpers ─────────────────────────────────────────
@@ -357,7 +393,7 @@ const HomePage: FC = () => {
             {features.map((f, i) => (
               <RevealSection key={f.label} delay={i * 0.07}>
                 <div className="bg-white rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-shadow group text-center">
-                  <div className="text-3xl mb-4">{f.icon}</div>
+                  <div className="mb-4">{f.icon}</div>
                   <p className="font-semibold text-ink text-sm mb-1">{f.label}</p>
                   <p className="text-ink-tertiary text-xs leading-relaxed">{f.desc}</p>
                 </div>

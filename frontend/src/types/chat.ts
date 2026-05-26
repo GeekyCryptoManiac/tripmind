@@ -9,12 +9,15 @@ export type ChatType = 'general' | 'trip';
 export interface TripChatContext {
   tripId: number;
   destination: string;
+  origin: string;
   status: string;
   budget: number | null;
   startDate: string | null;
   endDate: string | null;
   durationDays: number | null;
   travelersCount: number;
+  activitiesCount: number;
+  waypointCities: string[];
 }
 
 /** What we send TO the chat service */

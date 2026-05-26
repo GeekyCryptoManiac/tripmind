@@ -279,6 +279,17 @@ async def delete_activity(
     TripService(db).delete_activity(trip_id, activity_id, current_user.id)
 
 
+@app.delete("/api/trips/{trip_id}/activities", status_code=200)
+async def clear_all_activities(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete all activities for a trip (used by Regenerate Itinerary)."""
+    deleted = TripService(db).delete_all_activities(trip_id, current_user.id)
+    return {"deleted": deleted}
+
+
 # ═════════════════════════════════════════════════════════════
 # Expenses
 # ═════════════════════════════════════════════════════════════
@@ -445,15 +456,18 @@ Return ONLY valid JSON, no markdown:
 Rules: estimated_price is per person USD. Use real airlines. Vary price points."""
 
     elif suggest_type == "hotel":
-        return f"""You are a travel expert. Generate exactly 3 realistic hotel suggestions.
+        city_list = ", ".join(w.city for w in wps) if wps else dest
+        return f"""You are a travel expert. Generate exactly 3 realistic hotel suggestions spread across all stops.
 
-Trip: {dest} | Dates: {dates} | Duration: {duration} | Travelers: {pax} | Budget: {budget}{prefs}
+Trip: {route} | Stops: {city_list} | Dates: {dates} | Duration: {duration} | Travelers: {pax} | Budget: {budget}{prefs}
+
+Spread the 3 suggestions across all stop cities — at least 1 hotel per city if possible. Each suggestion must specify the city it belongs to.
 
 Return ONLY valid JSON, no markdown:
 {{
   "suggestions": [
     {{
-      "name": "Hotel Name", "location": "{dest}", "area": "District Name",
+      "name": "Hotel Name", "location": "City Name", "area": "District Name",
       "star_rating": 4, "price_per_night": 120, "currency": "USD",
       "highlights": ["Central location", "Free breakfast"],
       "check_in": "15:00", "check_out": "11:00",
@@ -461,7 +475,7 @@ Return ONLY valid JSON, no markdown:
     }}
   ]
 }}
-Rules: price_per_night is total for all travelers USD. Vary budget/mid/luxury."""
+Rules: price_per_night is total for all travelers USD. Vary budget/mid/luxury. Cover all stop cities."""
 
     else:  # transport
         return f"""You are a travel expert. Generate exactly 3 local transport options for {dest}.

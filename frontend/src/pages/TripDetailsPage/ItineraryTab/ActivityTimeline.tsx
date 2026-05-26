@@ -15,6 +15,7 @@ import type { ItineraryDay, SavedTravel } from '../../../types';
 interface ActivityTimelineProps {
   day: ItineraryDay;
   tripStartDate?: string | null;
+  cityName?: string;
   flights?: SavedTravel[];
   hotels?: SavedTravel[];
   onAddActivity?: (day: number) => void;
@@ -31,6 +32,7 @@ const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 export default function ActivityTimeline({
   day,
   tripStartDate,
+  cityName,
   flights = [],
   hotels = [],
   onAddActivity,
@@ -75,9 +77,16 @@ export default function ActivityTimeline({
             {day.day}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-ink">
-              {day.title || `Day ${day.day}`}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-ink">
+                {day.title || `Day ${day.day}`}
+              </h3>
+              {cityName && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-100">
+                  {cityName}
+                </span>
+              )}
+            </div>
             {computedDate && (
               <p className="text-sm text-ink-secondary">{computedDate}</p>
             )}

@@ -21,6 +21,24 @@ interface ChatMessage {
   timestamp: string;
 }
 
+// ── localStorage helpers ──────────────────────────────────────
+function loadChatHistory(tripId: number): ChatMessage[] | null {
+  try {
+    const raw = localStorage.getItem(`chat_trip_${tripId}`);
+    return raw ? (JSON.parse(raw) as ChatMessage[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveChatHistory(tripId: number, messages: ChatMessage[]): void {
+  try {
+    localStorage.setItem(`chat_trip_${tripId}`, JSON.stringify(messages));
+  } catch {
+    // Quota exceeded — fail silently
+  }
+}
+
 interface ChatInterfaceProps {
   userId: number;
   chatType?: ChatType;
@@ -59,9 +77,25 @@ export default function ChatInterface({
   // ── Initial greeting ────────────────────────────────────────
   const getInitialMessage = (): ChatMessage => {
     if (chatType === 'trip' && tripContext) {
+      const { destination, origin, activitiesCount, waypointCities, durationDays, travelersCount } = tripContext;
+
+      const routeParts = [origin, ...waypointCities, destination];
+      const routeStr = routeParts.length > 2
+        ? routeParts.join(' → ')
+        : destination;
+
+      let contextLine = '';
+      if (durationDays) contextLine += `${durationDays}-day `;
+      if (travelersCount > 1) contextLine += `trip for ${travelersCount} travellers`;
+      else contextLine += 'trip';
+
+      const itineraryLine = activitiesCount > 0
+        ? `You have **${activitiesCount} activit${activitiesCount === 1 ? 'y' : 'ies'}** planned so far.`
+        : "Your itinerary is empty — I can help you fill it in.";
+
       return {
         role: 'assistant',
-        content: `Hi! I'm your AI assistant for **${tripContext.destination}**. I can help with itinerary planning, budget management, flights, accommodation, packing, and preparation. What would you like to know?`,
+        content: `Hi! I'm your AI assistant for your **${routeStr}** ${contextLine}. ${itineraryLine} Ask me anything — itinerary ideas, budget tips, flights, hotels, packing, or local advice.`,
         timestamp: new Date().toISOString(),
       };
     }
@@ -72,10 +106,55 @@ export default function ChatInterface({
     };
   };
 
-  const [messages, setMessages] = useState<ChatMessage[]>([getInitialMessage()]);
+  // ── Suggested prompts ───────────────────────────────────────
+  const getSuggestedPrompts = (): string[] => {
+    if (chatType !== 'trip' || !tripContext) return [];
+    const { destination, activitiesCount, waypointCities, budget, durationDays } = tripContext;
+    const stops = waypointCities.length > 0 ? waypointCities : [destination];
+    const prompts: string[] = [];
+
+    if (activitiesCount === 0) {
+      prompts.push(`Build me a day-by-day itinerary for ${destination}`);
+    } else {
+      prompts.push(`Review my itinerary and suggest improvements`);
+    }
+
+    if (stops.length > 1) {
+      prompts.push(`What's the best order to visit ${stops.join(', ')} and ${destination}?`);
+    } else {
+      prompts.push(`What are the must-see attractions in ${destination}?`);
+    }
+
+    if (budget) {
+      prompts.push(`How can I make the most of my ${budget} budget?`);
+    } else {
+      prompts.push(`What's a realistic budget for this trip?`);
+    }
+
+    if (durationDays && durationDays <= 5) {
+      prompts.push(`Give me a tight ${durationDays}-day plan for ${destination}`);
+    } else {
+      prompts.push(`What are the best local food experiences in ${destination}?`);
+    }
+
+    return prompts.slice(0, 4);
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (chatType === 'trip' && tripId) {
+      const saved = loadChatHistory(tripId);
+      if (saved && saved.length > 0) return saved;
+    }
+    return [getInitialMessage()];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastTripData, setLastTripData] = useState<any>(null);
+  const [chipsDismissed, setChipsDismissed] = useState(() => {
+    if (chatType !== 'trip' || !tripId) return false;
+    const saved = loadChatHistory(tripId);
+    return (saved?.length ?? 0) > 1;
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -86,13 +165,21 @@ export default function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Persist trip chat to localStorage on every update
+  useEffect(() => {
+    if (chatType === 'trip' && tripId) {
+      saveChatHistory(tripId, messages);
+    }
+  }, [messages, chatType, tripId]);
+
   // ── Send ────────────────────────────────────────────────────
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSendText = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+    setChipsDismissed(true);
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: input,
+      content: text,
       timestamp: new Date().toISOString(),
     };
 
@@ -103,7 +190,7 @@ export default function ChatInterface({
     try {
       const response = await chatService.sendMessage({
         user_id: userId,
-        message: input,
+        message: text,
         trip_id: tripId,
         tripContext,
         conversationHistory: messages.map((m) => ({
@@ -140,6 +227,8 @@ export default function ChatInterface({
     }
   };
 
+  const handleSend = () => handleSendText(input);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -157,22 +246,15 @@ export default function ChatInterface({
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto">
           
-          {/* Empty state — centered welcome */}
+          {/* Empty state — centered welcome (full-page only) */}
           {showEmptyState && !embedded && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-              {/* AI icon */}
               <div className="w-16 h-16 rounded-full bg-chat-avatar flex items-center justify-center mb-6">
-              <img 
-                  src={logoAsset} 
-                  alt="TripMind AI" 
-                  className="w-15 h-15 object-contain" // Slightly smaller than the container for "breathing room"
-                />
+                <img src={logoAsset} alt="TripMind AI" className="w-15 h-15 object-contain" />
               </div>
-              {/* Headline */}
               <h1 className="text-4xl font-semibold text-ink mb-3">
                 How can we <span className="text-purple-600">assist</span> you today?
               </h1>
-              {/* Subtitle */}
               <p className="text-ink-secondary max-w-md leading-relaxed">
                 {chatType === 'trip' && tripContext
                   ? `Get personalized help for your ${tripContext.destination} trip. Ask about itineraries, budgets, bookings, or anything else.`
@@ -181,8 +263,8 @@ export default function ChatInterface({
             </div>
           )}
 
-          {/* Message list */}
-          {!showEmptyState && messages.map((msg, idx) => (
+          {/* Message list — always rendered in embedded mode so it never shows blank */}
+          {(!showEmptyState || embedded) && messages.map((msg, idx) => (
             <div
               key={idx}
               className={`flex gap-3 mb-6 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
@@ -215,6 +297,21 @@ export default function ChatInterface({
                 <p className="text-xs text-ink-tertiary mt-1.5 px-2">
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
+                {/* Suggestion chips — shown below the first assistant message only */}
+                {idx === 0 && msg.role === 'assistant' && !chipsDismissed && getSuggestedPrompts().length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {getSuggestedPrompts().map((prompt) => (
+                      <button
+                        key={prompt}
+                        onClick={() => handleSendText(prompt)}
+                        disabled={isLoading}
+                        className="text-xs px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 hover:border-purple-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -193,33 +193,38 @@ const STATUS_PRIORITY: Record<TripStatus, number> = {
 export function groupTripsByCountry(trips: Trip[]): Map<string, CountryData> {
   const countryMap = new Map<string, CountryData>();
 
+  const registerCountry = (code: string, trip: Trip) => {
+    if (!countryMap.has(code)) {
+      countryMap.set(code, { countryCode: code, status: null, tripCount: 0, trips: [] });
+    }
+    const entry = countryMap.get(code)!;
+    entry.tripCount++;
+    entry.trips.push(trip);
+    const currentPriority = entry.status ? STATUS_PRIORITY[entry.status] : 0;
+    const tripPriority = STATUS_PRIORITY[trip.status] ?? 0;
+    if (tripPriority > currentPriority) entry.status = trip.status;
+  };
+
   trips.forEach((trip) => {
-    // Prefer the stored alpha-2 country_code (set at trip creation via CityAutocomplete),
-    // fall back to destination-name lookup for trips without it
-    const countryCode =
+    // Collect every alpha-3 code this trip touches (skip origin at index 0)
+    const codes = new Set<string>();
+
+    const primary =
       (trip.country_code && ALPHA2_TO_ALPHA3[trip.country_code.toUpperCase()]) ||
       getCountryCode(trip.destination);
-    if (!countryCode) return;
+    if (primary) codes.add(primary);
 
-    if (!countryMap.has(countryCode)) {
-      countryMap.set(countryCode, {
-        countryCode,
-        status: null,
-        tripCount: 0,
-        trips: [],
+    // Middle stops + destination from waypoints (skip origin = order_index 0)
+    (trip.waypoints ?? [])
+      .filter((wp) => wp.order_index > 0)
+      .forEach((wp) => {
+        const wpCode =
+          (wp.country_code && ALPHA2_TO_ALPHA3[wp.country_code.toUpperCase()]) ||
+          getCountryCode(wp.city);
+        if (wpCode) codes.add(wpCode);
       });
-    }
 
-    const countryData = countryMap.get(countryCode)!;
-    countryData.tripCount++;
-    countryData.trips.push(trip);
-
-    // Replace status if this trip has higher priority
-    const currentPriority = countryData.status ? STATUS_PRIORITY[countryData.status] : 0;
-    const tripPriority = STATUS_PRIORITY[trip.status] ?? 0;
-    if (tripPriority > currentPriority) {
-      countryData.status = trip.status;
-    }
+    codes.forEach((code) => registerCountry(code, trip));
   });
 
   return countryMap;

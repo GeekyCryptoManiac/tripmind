@@ -32,6 +32,59 @@ import ActivityTimeline from './ItineraryTab/ActivityTimeline';
 import EmptyDayState from './ItineraryTab/EmptyDayState';
 import AddActivityModal from './ItineraryTab/AddActivityModal';
 import { groupActivitiesByDay } from '../../types';
+import type { Waypoint } from '../../types';
+
+// ── City-grouping helper ──────────────────────────────────────
+// Maps each 1-based day number → city name, using waypoint arrival dates.
+// Returns an empty map when dates are missing or the trip is single-city.
+function buildDayToCityMap(
+  waypoints: Waypoint[],
+  startDate: string | null,
+  totalDays: number,
+): Map<number, string> {
+  const map = new Map<number, string>();
+  if (!startDate || waypoints.length <= 2) return map;
+
+  const tripStart = new Date(startDate).getTime();
+  const sorted = [...waypoints].sort((a, b) => a.order_index - b.order_index);
+  const origin      = sorted[0];
+  const destination = sorted[sorted.length - 1];
+
+  // Only intermediate stops that have arrival dates
+  const dated = sorted.slice(1, -1).filter((wp) => wp.arrival_date);
+  if (dated.length === 0) return map;
+
+  // Days before the first intermediate arrives → origin city
+  const firstArrDay =
+    Math.round((new Date(dated[0].arrival_date!).getTime() - tripStart) / 86_400_000) + 1;
+  for (let d = 1; d < firstArrDay; d++) map.set(d, origin.city);
+
+  // Each intermediate stop: arrival through departure (exclusive)
+  dated.forEach((wp, i) => {
+    const arrDay =
+      Math.round((new Date(wp.arrival_date!).getTime() - tripStart) / 86_400_000) + 1;
+    const nextArrDay =
+      i < dated.length - 1 && dated[i + 1].arrival_date
+        ? Math.round((new Date(dated[i + 1].arrival_date!).getTime() - tripStart) / 86_400_000) + 1
+        : totalDays + 1;
+    const endDay = wp.departure_date
+      ? Math.round((new Date(wp.departure_date).getTime() - tripStart) / 86_400_000) + 1
+      : nextArrDay;
+    for (let d = Math.max(1, arrDay); d < Math.min(endDay, totalDays + 1); d++) {
+      map.set(d, wp.city);
+    }
+  });
+
+  // Days from last intermediate's departure onward → destination city
+  const lastStop = dated[dated.length - 1];
+  if (lastStop.departure_date) {
+    const destStartDay =
+      Math.round((new Date(lastStop.departure_date).getTime() - tripStart) / 86_400_000) + 1;
+    for (let d = destStartDay; d <= totalDays; d++) map.set(d, destination.city);
+  }
+
+  return map;
+}
 
 interface ItineraryTabProps {
   trip: Trip;
@@ -55,7 +108,8 @@ export default function ItineraryTab({
   const [selectedDay, setSelectedDay] = useState(() =>
     phase === 'active' ? currentDay : 1
   );
-  const [isGenerating, setIsGenerating]     = useState(false);
+  const [isGenerating, setIsGenerating]       = useState(false);
+  const [isRegenerating, setIsRegenerating]   = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   // ── Week 8: modal state ───────────────────────────────────
@@ -71,6 +125,7 @@ const totalDays         = trip.duration_days || itinerary.length || 1;
 const hasAnyItinerary   = itinerary.length > 0;
 const daysWithItinerary = itinerary.map((d) => d.day);
 const currentDayData    = itinerary.find((d) => d.day === selectedDay);
+const dayToCity         = buildDayToCityMap(trip.waypoints, trip.start_date, totalDays);
 
   // ── Reset selected day when trip changes ──────────────────
   useEffect(() => {
@@ -84,9 +139,54 @@ const currentDayData    = itinerary.find((d) => d.day === selectedDay);
 
   try {
     const chatService = getChatService('trip');
+
+    const sortedWaypoints = [...trip.waypoints].sort((a, b) => a.order_index - b.order_index);
+    const isMultiCity = sortedWaypoints.length > 2;
+    const daysStr = trip.duration_days ? `${trip.duration_days}-day ` : '';
+
+    // For multi-city trips, require dates on all intermediate stops so we can
+    // assign precise day ranges per city in the prompt
+    let message: string;
+    if (isMultiCity) {
+      const intermediate = sortedWaypoints.slice(1, -1);
+      const missingDates = intermediate.filter(wp => !wp.arrival_date || !wp.departure_date);
+
+      if (missingDates.length > 0) {
+        setGenerationError(
+          `Add arrival and departure dates to all stops before generating: ${missingDates.map(w => w.city).join(', ')}.`
+        );
+        setIsGenerating(false);
+        return;
+      }
+
+      // Compute explicit city day ranges from waypoint dates
+      const tripStart = new Date(trip.start_date!).getTime();
+      const origin = sortedWaypoints[0];
+      const destination = sortedWaypoints[sortedWaypoints.length - 1];
+      const cityRanges: string[] = [];
+
+      const firstArrDay = Math.round((new Date(intermediate[0].arrival_date!).getTime() - tripStart) / 86_400_000) + 1;
+      cityRanges.push(firstArrDay > 1
+        ? `Days 1–${firstArrDay - 1}: ${origin.city}`
+        : `Day 1: ${origin.city} (transit/departure day)`);
+
+      intermediate.forEach((wp) => {
+        const arrDay = Math.round((new Date(wp.arrival_date!).getTime() - tripStart) / 86_400_000) + 1;
+        const depDay = Math.round((new Date(wp.departure_date!).getTime() - tripStart) / 86_400_000) + 1;
+        cityRanges.push(arrDay === depDay ? `Day ${arrDay}: ${wp.city}` : `Days ${arrDay}–${depDay}: ${wp.city}`);
+      });
+
+      const lastDepDay = Math.round((new Date(intermediate[intermediate.length - 1].departure_date!).getTime() - tripStart) / 86_400_000) + 1;
+      cityRanges.push(`Days ${lastDepDay}–${totalDays}: ${destination.city}`);
+
+      message = `Generate a detailed day-by-day itinerary for this ${daysStr}trip. Assign activities to exactly these city day ranges:\n${cityRanges.map(r => `- ${r}`).join('\n')}\nGenerate activities only within each city's assigned days. Do not mix cities across days.`;
+    } else {
+      message = `Generate a detailed itinerary for this ${daysStr}trip to ${trip.destination}.`;
+    }
+
     const response = await chatService.sendMessage({
       user_id: trip.user_id,
-      message: 'Generate a detailed itinerary for this trip',
+      message,
       trip_id: trip.id,
     });
 
@@ -115,6 +215,24 @@ const currentDayData    = itinerary.find((d) => d.day === selectedDay);
   }
 };
 
+  // ── Regenerate: clear all activities then re-generate ─────
+  const handleRegenerate = async () => {
+    if (!window.confirm('This will delete all existing activities and regenerate the itinerary. Continue?')) return;
+    setIsRegenerating(true);
+    setGenerationError(null);
+    try {
+      await apiService.clearAllActivities(trip.id);
+      // Optimistically clear local state so handleGenerate sees an empty trip
+      if (onTripUpdate) onTripUpdate({ ...trip, activities: [] });
+    } catch (err) {
+      setGenerationError('Failed to clear existing itinerary. Please try again.');
+      setIsRegenerating(false);
+      return;
+    }
+    setIsRegenerating(false);
+    await handleGenerate();
+  };
+
   // ── Week 8: open modal for a specific day ─────────────────
   // Called from both EmptyDayState and ActivityTimeline's "+ Add activity" button
   const handleManualAdd = (day?: number) => {
@@ -142,15 +260,36 @@ const handleDeleteActivity = async (activityId: number) => {
   return (
     <div className="space-y-5">
 
-      {/* ── Day navigation (only when itinerary exists) ───── */}
+      {/* ── Day navigation + Regenerate (only when itinerary exists) */}
       {hasAnyItinerary && (
-        <DayNavigation
-          totalDays={totalDays}
-          selectedDay={selectedDay}
-          daysWithItinerary={daysWithItinerary}
-          onSelectDay={setSelectedDay}
-          todayDay={phase === 'active' ? currentDay : undefined}
-        />
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <DayNavigation
+              totalDays={totalDays}
+              selectedDay={selectedDay}
+              daysWithItinerary={daysWithItinerary}
+              onSelectDay={setSelectedDay}
+              todayDay={phase === 'active' ? currentDay : undefined}
+              dayToCity={dayToCity}
+            />
+          </div>
+          <button
+            onClick={handleRegenerate}
+            disabled={isGenerating || isRegenerating}
+            title="Clear all activities and regenerate the itinerary"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ink-secondary bg-white ring-1 ring-black/[0.06] rounded-xl hover:bg-surface-bg hover:text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isRegenerating ? (
+              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary border-t-ink rounded-full animate-spin" />
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            Regenerate
+          </button>
+        </div>
       )}
 
       {/* ── Generating state ──────────────────────────────── */}
@@ -213,6 +352,7 @@ const handleDeleteActivity = async (activityId: number) => {
                 <ActivityTimeline
                   day={currentDayData}
                   tripStartDate={trip.start_date}
+                  cityName={dayToCity.get(selectedDay)}
                   flights={flights}
                   hotels={hotels}
                   onAddActivity={handleManualAdd}

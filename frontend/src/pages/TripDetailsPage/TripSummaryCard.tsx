@@ -101,6 +101,15 @@ export default function TripSummaryCard({
     ? new Date(trip.start_date).getFullYear()
     : null;
 
+  // Full route string from waypoints, same logic as TripDetailsHero
+  const sortedWps = [...(trip.waypoints ?? [])].sort((a, b) => a.order_index - b.order_index);
+  const routeLabel =
+    sortedWps.length > 1
+      ? sortedWps.map((w) => w.city).join(' → ')
+      : trip.origin && trip.origin !== trip.destination
+      ? `${trip.origin} → ${trip.destination}`
+      : null;
+
   return (
     <div className="lg:w-80 xl:w-96 shrink-0">
       <div className="lg:sticky lg:top-4 bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
@@ -162,14 +171,14 @@ export default function TripSummaryCard({
             </div>
           </div>
 
-          {/* Destination */}
+          {/* Destination / Route */}
           <div className="flex items-start gap-3">
             <div className="text-ink-tertiary flex-shrink-0">
               <GlobeIcon />
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">{trip.destination}</p>
-              <p className="text-xs text-ink-tertiary">Destination</p>
+              <p className="text-sm font-medium text-ink">{routeLabel ?? trip.destination}</p>
+              <p className="text-xs text-ink-tertiary">{routeLabel ? 'Route' : 'Destination'}</p>
             </div>
           </div>
         </div>

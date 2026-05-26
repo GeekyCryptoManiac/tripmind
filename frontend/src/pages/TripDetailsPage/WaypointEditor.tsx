@@ -34,20 +34,26 @@ function WaypointRow({
   isLast,
   canMoveUp,
   canMoveDown,
+  tripStartDate,
+  tripEndDate,
+  activitiesCount,
   onMoveUp,
   onMoveDown,
   onDelete,
   onUpdateDates,
   onUpdateCity,
 }: {
-  waypoint:     Waypoint;
-  isFirst:      boolean;
-  isLast:       boolean;
-  canMoveUp:    boolean;
-  canMoveDown:  boolean;
-  onMoveUp:     () => void;
-  onMoveDown:   () => void;
-  onDelete:     () => void;
+  waypoint:      Waypoint;
+  isFirst:       boolean;
+  isLast:        boolean;
+  canMoveUp:     boolean;
+  canMoveDown:   boolean;
+  tripStartDate: string | null;
+  tripEndDate:   string | null;
+  onMoveUp:      () => void;
+  onMoveDown:    () => void;
+  onDelete:      () => void;
+  activitiesCount: number;
   onUpdateDates: (arrival: string, departure: string) => Promise<void>;
   onUpdateCity:  (city: string, entry: CityEntry | null) => Promise<void>;
 }) {
@@ -58,7 +64,19 @@ function WaypointRow({
   const [cityEntry,  setCityEntry]  = useState<CityEntry | null>(null);
   const [saving,     setSaving]     = useState(false);
 
+  // ── Date validation ───────────────────────────────────────────
+  const dateError = (() => {
+    if (arrival && tripStartDate && arrival < tripStartDate)
+      return `Arrival cannot be before trip start (${tripStartDate})`;
+    if (departure && tripEndDate && departure > tripEndDate)
+      return `Departure cannot be after trip end (${tripEndDate})`;
+    if (arrival && departure && departure < arrival)
+      return 'Departure must be on or after arrival';
+    return null;
+  })();
+
   const handleSaveDates = async () => {
+    if (dateError) return;
     setSaving(true);
     try { await onUpdateDates(arrival, departure); }
     finally { setSaving(false); setPanel('none'); }
@@ -201,8 +219,26 @@ function WaypointRow({
                     placeholder="Search city…"
                     autoFocus
                   />
+
+                  {/* Passive warning — visible as soon as a different city is chosen */}
+                  {activitiesCount > 0 && cityVal.trim() !== waypoint.city && cityVal.trim().length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                      <p className="text-xs font-semibold text-amber-800 mb-0.5">Itinerary may become outdated</p>
+                      <p className="text-xs text-amber-700">
+                        This trip has <strong>{activitiesCount}</strong> planned{' '}
+                        {activitiesCount === 1 ? 'activity' : 'activities'}. Changing this stop won't
+                        update them automatically — consider regenerating the itinerary after saving.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => setPanel('none')} className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink transition-colors">Cancel</button>
+                    <button
+                      onClick={() => setPanel('none')}
+                      className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink transition-colors"
+                    >
+                      Cancel
+                    </button>
                     <button
                       onClick={handleSaveCity}
                       disabled={!cityVal.trim() || saving}
@@ -224,21 +260,40 @@ function WaypointRow({
                 transition={{ duration: 0.18 }}
                 className="overflow-hidden border-t border-surface-muted"
               >
-                <div className="px-4 py-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-ink-tertiary mb-1">Arrival date</label>
-                    <input type="date" value={arrival} onChange={e => setArrival(e.target.value)} className={inputCls} />
+                <div className="px-4 py-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-ink-tertiary mb-1">Arrival date</label>
+                      <input
+                        type="date"
+                        value={arrival}
+                        min={tripStartDate ?? undefined}
+                        max={tripEndDate ?? undefined}
+                        onChange={e => setArrival(e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-ink-tertiary mb-1">Departure date</label>
+                      <input
+                        type="date"
+                        value={departure}
+                        min={arrival || tripStartDate || undefined}
+                        max={tripEndDate ?? undefined}
+                        onChange={e => setDeparture(e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs text-ink-tertiary mb-1">Departure date</label>
-                    <input type="date" value={departure} onChange={e => setDeparture(e.target.value)} className={inputCls} />
-                  </div>
-                  <div className="col-span-2 flex justify-end gap-2">
+                  {dateError && (
+                    <p className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{dateError}</p>
+                  )}
+                  <div className="flex justify-end gap-2">
                     <button onClick={() => setPanel('none')} className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink transition-colors">Cancel</button>
                     <button
                       onClick={handleSaveDates}
-                      disabled={saving}
-                      className="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+                      disabled={saving || !!dateError}
+                      className="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {saving ? 'Saving…' : 'Save dates'}
                     </button>
@@ -255,18 +310,34 @@ function WaypointRow({
 
 // ── Add stop form ─────────────────────────────────────────────
 
-function AddStopForm({ onAdd, onCancel }: {
-  onAdd:    (city: string, entry: CityEntry | null) => Promise<void>;
-  onCancel: () => void;
+function AddStopForm({ onAdd, onCancel, tripStartDate, tripEndDate }: {
+  onAdd:         (city: string, entry: CityEntry | null, arrival: string, departure: string) => Promise<void>;
+  onCancel:      () => void;
+  tripStartDate: string | null;
+  tripEndDate:   string | null;
 }) {
-  const [city,   setCity]   = useState('');
-  const [entry,  setEntry]  = useState<CityEntry | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [city,      setCity]      = useState('');
+  const [entry,     setEntry]     = useState<CityEntry | null>(null);
+  const [arrival,   setArrival]   = useState('');
+  const [departure, setDeparture] = useState('');
+  const [adding,    setAdding]    = useState(false);
+
+  const dateError = (() => {
+    if (arrival && tripStartDate && arrival < tripStartDate)
+      return `Arrival cannot be before trip start (${tripStartDate})`;
+    if (departure && tripEndDate && departure > tripEndDate)
+      return `Departure cannot be after trip end (${tripEndDate})`;
+    if (arrival && departure && departure < arrival)
+      return 'Departure must be on or after arrival';
+    return null;
+  })();
+
+  const canSubmit = city.trim() && arrival && departure && !dateError;
 
   const handleAdd = async () => {
-    if (!city.trim() || adding) return;
+    if (!canSubmit || adding) return;
     setAdding(true);
-    try { await onAdd(city.trim(), entry); }
+    try { await onAdd(city.trim(), entry, arrival, departure); }
     finally { setAdding(false); }
   };
 
@@ -288,11 +359,51 @@ function AddStopForm({ onAdd, onCancel }: {
           placeholder="Search city…"
           autoFocus
         />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-ink-tertiary mb-1">
+              Arrival date <span className="text-amber-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={arrival}
+              min={tripStartDate ?? undefined}
+              max={tripEndDate ?? undefined}
+              onChange={e => setArrival(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-ink-tertiary mb-1">
+              Departure date <span className="text-amber-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={departure}
+              min={arrival || tripStartDate || undefined}
+              max={tripEndDate ?? undefined}
+              onChange={e => setDeparture(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+        </div>
+
+        {dateError && (
+          <p className="text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{dateError}</p>
+        )}
+
+        {!dateError && (!arrival || !departure) && city.trim() && (
+          <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+            Arrival and departure dates are required to assign itinerary days to this stop.
+          </p>
+        )}
+
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink transition-colors">Cancel</button>
           <button
             onClick={handleAdd}
-            disabled={!city.trim() || adding}
+            disabled={!canSubmit || adding}
             className="px-3 py-1.5 text-xs font-medium bg-ink text-white rounded-lg hover:bg-ink/80 transition-colors disabled:opacity-40"
           >
             {adding ? 'Adding…' : 'Add stop'}
@@ -316,13 +427,15 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
 
   // ── Add stop (always inserts before destination on backend) ──
 
-  const handleAdd = async (city: string, cityEntry: CityEntry | null) => {
+  const handleAdd = async (city: string, cityEntry: CityEntry | null, arrival: string, departure: string) => {
     try {
       setError(null);
       await apiService.addWaypoint(trip.id, {
         city,
-        country:      cityEntry?.country      ?? undefined,
-        country_code: cityEntry?.country_code ?? undefined,
+        country:        cityEntry?.country      ?? undefined,
+        country_code:   cityEntry?.country_code ?? undefined,
+        arrival_date:   arrival   || undefined,
+        departure_date: departure || undefined,
       });
       // Refetch so order_indices are accurate after backend shift
       const refreshed = await apiService.getTrip(trip.id);
@@ -441,6 +554,9 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
                   isLast={isLast}
                   canMoveUp={canMoveUp}
                   canMoveDown={canMoveDown}
+                  tripStartDate={trip.start_date}
+                  tripEndDate={trip.end_date}
+                  activitiesCount={trip.activities.length}
                   onMoveUp={() => handleMove(i, 'up')}
                   onMoveDown={() => handleMove(i, 'down')}
                   onDelete={() => handleDelete(wp.id)}
@@ -458,7 +574,12 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
                           </div>
                           <div />
                         </div>
-                        <AddStopForm onAdd={handleAdd} onCancel={() => setShowAddForm(false)} />
+                        <AddStopForm
+                          onAdd={handleAdd}
+                          onCancel={() => setShowAddForm(false)}
+                          tripStartDate={trip.start_date}
+                          tripEndDate={trip.end_date}
+                        />
                         <div className="flex gap-3">
                           <div className="flex flex-col items-center flex-shrink-0" style={{ width: 14 }}>
                             <Connector />

@@ -30,12 +30,59 @@ interface AddActivityModalProps {
 }
 
 // ── Activity type options ─────────────────────────────────────
-const ACTIVITY_TYPES: { value: Activity['type']; label: string; icon: string }[] = [
-  { value: 'activity',  label: 'Sightseeing / Activity', icon: '🏛️' },
-  { value: 'dining',    label: 'Dining',                 icon: '🍽️' },
-  { value: 'transport', label: 'Transport',              icon: '🚌' },
-  { value: 'hotel',     label: 'Accommodation',          icon: '🏨' },
-  { value: 'flight',    label: 'Flight',                 icon: '✈️' },
+const ACTIVITY_TYPES: { value: Activity['type']; label: string; icon: React.ReactNode }[] = [
+  {
+    value: 'activity',
+    label: 'Sightseeing',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'dining',
+    label: 'Dining',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5M9 8.25v-1.5M6 13.121V18a1 1 0 001 1h10a1 1 0 001-1v-4.879M6 13.121c-.839-.08-1.5-.773-1.5-1.621v-.879c0-.952.8-1.726 1.8-1.726H17.7c1 0 1.8.774 1.8 1.726v.879c0 .848-.661 1.54-1.5 1.621" />
+      </svg>
+    ),
+  },
+  {
+    value: 'transport',
+    label: 'Transport',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+      </svg>
+    ),
+  },
+  {
+    value: 'hotel',
+    label: 'Hotel',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'flight',
+    label: 'Flight',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+      </svg>
+    ),
+  },
 ];
 
 // ── SVG Icons ─────────────────────────────────────────────────
@@ -196,31 +243,36 @@ export default function AddActivityModal({
                 />
               </Field>
 
-              {/* Type + Time — side by side */}
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Type" required>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as Activity['type'])}
-                    className={inputClass}
-                  >
-                    {ACTIVITY_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.icon} {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+              {/* Type */}
+              <Field label="Type" required>
+                <div className="flex gap-2 flex-wrap">
+                  {ACTIVITY_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setType(t.value)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+                        type === t.value
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
+                          : 'bg-surface-bg text-ink-secondary border-surface-muted hover:border-brand-400 hover:text-ink'
+                      }`}
+                    >
+                      {t.icon}
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
 
-                <Field label="Time" required>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
+              {/* Time */}
+              <Field label="Time" required>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
 
               {/* Location */}
               <Field label="Location">

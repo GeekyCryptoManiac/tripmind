@@ -57,6 +57,16 @@ export default function TripDetailsHero({ trip, phase, onBack }: TripDetailsHero
     ? new Date(trip.start_date).getFullYear()
     : null;
 
+  // Build full route label from waypoints (includes origin + stops + destination)
+  // Falls back to origin → destination if no waypoints, or hides if no origin set
+  const sortedWps = [...(trip.waypoints ?? [])].sort((a, b) => a.order_index - b.order_index);
+  const routeLabel =
+    sortedWps.length > 1
+      ? sortedWps.map((w) => w.city).join(' → ')
+      : trip.origin && trip.origin !== trip.destination
+      ? `${trip.origin} → ${trip.destination}`
+      : null;
+
   return (
     <div className="relative w-full overflow-hidden" style={{ minHeight: '260px' }}>
       {/* Soft lavender → warm cream gradient (matches HomePage hero) */}
@@ -93,6 +103,12 @@ export default function TripDetailsHero({ trip, phase, onBack }: TripDetailsHero
       <div className="absolute bottom-0 left-0 right-0 px-6 py-5 bg-gradient-to-t from-black/20 to-transparent">
         <div className="max-w-7xl mx-auto flex items-end justify-between">
           <div>
+            {/* Full route subtitle: Singapore → Helsinki → Tallinn */}
+            {routeLabel && (
+              <p className="text-ink-secondary/80 text-sm font-medium drop-shadow-sm mb-1">
+                {routeLabel}
+              </p>
+            )}
             <h1 className="font-display text-4xl text-ink drop-shadow-sm">{trip.destination}</h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <StatusBadge status={phase} />

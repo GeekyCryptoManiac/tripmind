@@ -235,6 +235,10 @@ export const apiService = {
     await api.delete(`/api/trips/${tripId}/activities/${activityId}`);
   },
 
+  async clearAllActivities(tripId: number): Promise<{ deleted: number }> {
+    return (await api.delete<{ deleted: number }>(`/api/trips/${tripId}/activities`)).data;
+  },
+
   // ── Expenses ───────────────────────────────────────────────
 
   async addExpense(tripId: number, data: ExpenseCreateRequest): Promise<Expense> {
