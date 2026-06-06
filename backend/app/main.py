@@ -46,6 +46,7 @@ from .routers import checklist as checklist_router
 from .routers import waypoints as waypoints_router
 from .routers import travel as travel_router
 from .routers import overview as overview_router
+from .routers import chat as chat_router
 from .limiter import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -80,6 +81,7 @@ app.include_router(checklist_router.router)
 app.include_router(waypoints_router.router)
 app.include_router(travel_router.router)
 app.include_router(overview_router.router)
+app.include_router(chat_router.router)
 
 # Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
@@ -102,42 +104,6 @@ async def health_check(db: Session = Depends(get_db)):
     except Exception as e:
         db_status = f"error: {e}"
     return {"status": "healthy", "database": db_status}
-
-
-# ═════════════════════════════════════════════════════════════
-# Chat
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/chat", response_model=ChatResponse)
-@limiter.limit("10/minute")
-async def chat(
-    request: Request,
-    data: ChatRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    try:
-        from .agents.base_agent import TripMindAgent
-
-        agent = TripMindAgent(db=db, user_id=current_user.id, trip_id=data.trip_id)
-        history = [m.model_dump() for m in (data.chat_history or [])]
-        response = await agent.process_message(
-            message=data.message,
-            chat_history=history,
-        )
-        return ChatResponse(
-            message=response["response"],
-            action_taken=response.get("action_taken", "answered_question"),
-            trip_data=response.get("trip_data"),
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ChatResponse(
-            message=f"I encountered an error: {e}",
-            action_taken="error",
-            trip_data=None,
-        )
 
 
 # ═════════════════════════════════════════════════════════════
