@@ -34,8 +34,6 @@ from .models import User, Trip
 from .schemas import (
     # User
     UserCreate, UserResponse,
-    # Waypoints
-    WaypointCreate, WaypointUpdate, WaypointResponse,
     # Travel
     TravelSuggestRequest, TravelSuggestResponse,
     TravelSaveRequest, SavedTravelResponse,
@@ -50,6 +48,7 @@ from .routers import trips as trips_router
 from .routers import activities as activities_router
 from .routers import expenses as expenses_router
 from .routers import checklist as checklist_router
+from .routers import waypoints as waypoints_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -82,6 +81,7 @@ app.include_router(trips_router.users_router)
 app.include_router(activities_router.router)
 app.include_router(expenses_router.router)
 app.include_router(checklist_router.router)
+app.include_router(waypoints_router.router)
 
 # Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
@@ -164,41 +164,6 @@ async def delete_saved_travel(
     current_user: User = Depends(get_current_user),
 ):
     TripService(db).delete_saved_travel(trip_id, item_id, current_user.id)
-
-
-# ═════════════════════════════════════════════════════════════
-# Waypoints
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/trips/{trip_id}/waypoints", response_model=WaypointResponse, status_code=201)
-async def add_waypoint(
-    trip_id: int,
-    data: WaypointCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).add_waypoint(trip_id, current_user.id, data)
-
-
-@app.patch("/api/trips/{trip_id}/waypoints/{waypoint_id}", response_model=WaypointResponse)
-async def update_waypoint(
-    trip_id: int,
-    waypoint_id: int,
-    data: WaypointUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).update_waypoint(trip_id, waypoint_id, current_user.id, data)
-
-
-@app.delete("/api/trips/{trip_id}/waypoints/{waypoint_id}", status_code=204)
-async def delete_waypoint(
-    trip_id: int,
-    waypoint_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    TripService(db).delete_waypoint(trip_id, waypoint_id, current_user.id)
 
 
 # ═════════════════════════════════════════════════════════════
