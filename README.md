@@ -1,241 +1,176 @@
-# TripMind - AI Travel Planning Assistant
+# TripMind
 
-AI-powered travel companion using agentic workflows and LLM function calling.
-
-## Tech Stack
-
-**Backend:**
-- FastAPI + PostgreSQL
-- LangChain + OpenAI GPT-4
-- SQLAlchemy ORM
-
-**Frontend:**
-- React + TypeScript
-- Tailwind CSS
-- Vite
-
-## Project Structure
-```
-tripmind/
-├── backend/          # FastAPI backend with AI agent
-├── frontend/         # React frontend
-└── README.md
-```
-
-## Setup Instructions
-
-See individual README files in `backend/` and `frontend/` directories.
-
-## Development Roadmap
-
-- [x] Week 1-2: MVP with single agent
-- [ ] Week 3: Flight search integration
-- [ ] Week 4: Hotel search + itinerary
-- [ ] Week 5: Web intelligence
-- [ ] Week 6: Multi-agent system
-- [ ] Week 7: Real-time features
-- [ ] Week 8: Production deployment
-
-## Author
-
-Year 2 Software Engineering Student Portfolio Project
-# ✈️ TripMind
-
-**Full-stack travel planner with agentic AI**
-
-I built TripMind to explore what it actually feels like to wire a real agentic AI workflow into a production app — not just an API call that returns text, but a multi-tool agent that reasons, plans, and persists state across a conversation. It turned into one of the more interesting things I've built.
+AI-powered trip planning application. Users describe where they want to go and a GPT-4o agent creates the trip, builds a day-by-day itinerary, and stores everything in a normalized PostgreSQL database. A React frontend provides trip management, expense tracking, checklist, multi-city waypoints, and AI-generated travel suggestions and alerts.
 
 **Live demo:** [tripmind-main.vercel.app](https://tripmind-main.vercel.app)
 
-![TripMind Dashboard](./docs/screenshots/dashboard.png)
-
 ---
 
-## What it does
+## Tech Stack
 
-You chat with an AI that genuinely understands travel planning context. Tell it "I want to go to Japan in March with a $2000 budget" and it plans the trip, saves it to the database, and colours Japan on your world map — all in one message. Follow up with "actually make it April" and it updates the existing trip instead of creating a duplicate.
-
-Under the hood, a LangChain agent with six tools decides what to do with each message: create a trip, update one, retrieve your trips, generate a full day-by-day itinerary, or just answer a travel question. The agent carries conversation history across turns so context isn't lost between messages.
-
-**Core features:**
-
-- **Conversational trip planning** — describe a trip in natural language, the agent extracts and saves the details
-- **Chat memory** — full conversation history passed to the agent on every turn, so "update it to December" works correctly
-- **Duplicate detection** — before inserting, checks if a trip to the same destination already exists; upserts if same month/year, inserts if different dates (two legitimate trips), asks for clarification if genuinely ambiguous
-- **Itinerary generation** — GPT-4 generates a structured day-by-day itinerary with activities, mock flights, and hotels, saved directly to the trip
-- **Interactive world map** — countries colour-coded by trip status (planning / booked / completed); city-based destinations (e.g. "Moscow") resolve to the correct country via ISO alpha-3 codes stored at save time
-- **Expense tracker** — log expenses in any currency, converted to USD for totals
-- **Pre-trip checklist** — persistent checklist saved per trip
-- **PDF export** — one-click export of the full trip plan
-- **Input guardrails** — destination validation (no fictional places or space travel), currency clarification, past date detection, duplicate budget confirmation
-
----
-
-## Tech stack
-
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
-![LangChain](https://img.shields.io/badge/LangChain-121212?style=flat)
-![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=flat&logo=openai&logoColor=white)
-![Railway](https://img.shields.io/badge/Railway-131415?style=flat&logo=railway&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)
-
-| Layer | Stack |
+| Layer | Technology |
 |---|---|
-| Backend | FastAPI + SQLAlchemy 2.x + PostgreSQL |
-| AI | LangChain `create_openai_functions_agent` + GPT-4 Turbo |
-| Frontend | React 19 + TypeScript + Tailwind CSS + Framer Motion |
-| Map | react-simple-maps (SVG world map, ISO alpha-3 country codes) |
-| Auth | UUID-based guest identity (real auth scaffolded, ready to wire) |
-| Hosting | Railway (backend + DB) · Vercel (frontend) |
+| API framework | FastAPI 0.115 |
+| Language | Python 3.11+ |
+| ORM | SQLAlchemy 2.0 |
+| Database | PostgreSQL 15 |
+| Migrations | Alembic |
+| AI agent | LangChain 0.3 + `create_openai_functions_agent` |
+| LLM | OpenAI GPT-4o (`gpt-4o`) |
+| Auth | JWT HS256 via `python-jose`, bcrypt passwords |
+| Rate limiting | slowapi |
+| Frontend | React 19 + TypeScript + Vite |
+| Styling | Tailwind CSS 3 |
+| HTTP client | Axios 1.x (with silent 401 refresh interceptor) |
+| Animations | Framer Motion 12 |
+| Routing | React Router DOM v7 |
+| PDF export | jsPDF + jspdf-autotable |
+| Infrastructure | AWS EC2 (Docker), GitHub Actions CI/CD, AWS SSM Parameter Store |
 
 ---
 
-## Architecture
+## Local Setup
 
-```
-┌─────────────────────────────────────────────────────┐
-│                     Frontend (Vercel)                │
-│                                                     │
-│  ChatInterface → chatService → apiService           │
-│       ↑                            ↓                │
-│  messages state             POST /api/chat           │
-│  (passed as chat_history)   { message, user_id,     │
-│                               trip_id,              │
-│                               chat_history }        │
-└──────────────────────────┬──────────────────────────┘
-                           │ HTTPS
-┌──────────────────────────▼──────────────────────────┐
-│                  Backend (Railway)                   │
-│                                                     │
-│  FastAPI /api/chat                                  │
-│       ↓                                             │
-│  TripMindAgent(db, user_id, trip_id)                │
-│       ↓                                             │
-│  LangChain AgentExecutor                            │
-│  system prompt + chat_history + input               │
-│       ↓                                             │
-│  GPT-4 decides which tool to call                   │
-│       ↓                                             │
-│  ┌──────────────────────────────────┐               │
-│  │ Tools (SQLAlchemy → PostgreSQL)  │               │
-│  │  • plan_trip    • update_trip    │               │
-│  │  • get_trips    • get_trip_details│              │
-│  │  • generate_itinerary            │               │
-│  │  • answer_question               │               │
-│  └──────────────────────────────────┘               │
-└─────────────────────────────────────────────────────┘
-```
+### Prerequisites
 
----
-
-## Screenshots
-
-| | |
-|---|---|
-| ![Chat](./docs/screenshots/chat.png) | ![Trip Details](./docs/screenshots/trip-details.png) |
-| *Conversational trip planning* | *Trip details with itinerary* |
-| ![World Map](./docs/screenshots/map.png) | ![Expense Tracker](./docs/screenshots/expenses.png) |
-| *Interactive world map* | *Expense tracker with currency conversion* |
-
----
-
-## Local setup
-
-**Prerequisites:** Python 3.11, Node.js 18+, PostgreSQL
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 15 running locally
+- An OpenAI API key
 
 ### Backend
 
 ```bash
-# Clone and navigate
-git clone https://github.com/your-username/tripmind.git
-cd tripmind/backend
+cd backend
 
-# Create virtual environment (Python 3.11 required — 3.13 breaks some AI packages)
-python3.11 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set environment variables
+# Create the environment file and fill in the values (see table below)
 cp .env.example .env
-# Fill in: DATABASE_URL, OPENAI_API_KEY, SECRET_KEY, FRONTEND_URL
 
-# Run
+# Apply database migrations
+alembic upgrade head
+
+# Start the API server
 uvicorn app.main:app --reload --port 8000
 ```
+
+The API is available at `http://localhost:8000`.  
+Interactive docs: `http://localhost:8000/docs`
 
 ### Frontend
 
 ```bash
-cd tripmind/frontend
+cd frontend
 
-# Install dependencies (legacy-peer-deps required for react-simple-maps + React 19)
 npm install
 
-# Set environment variables
-cp .env.example .env
-# Fill in: VITE_API_URL=http://localhost:8000
+# Point the frontend at the local backend
+echo 'VITE_API_URL=http://localhost:8000' > .env.local
 
-# Run
 npm run dev
 ```
 
-API docs available at `http://localhost:8000/docs` once the backend is running.
+The frontend is available at `http://localhost:5173`.
 
-### Environment variables
+### Docker (production)
 
-**Backend (`.env`)**
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/tripmind
-OPENAI_API_KEY=sk-...
-SECRET_KEY=<32-byte hex>
-FRONTEND_URL=http://localhost:5173
-```
-
-**Frontend (`.env`)**
-```
-VITE_API_URL=http://localhost:8000
+```bash
+cd backend
+docker-compose -f docker-compose.prod.yml up --build
 ```
 
 ---
 
-## Known limitations
+## Environment Variables
 
-- **No real authentication** — users are identified by a UUID stored in localStorage. Trips persist across refreshes on the same browser but not across devices. Real auth is scaffolded (`UserContext` has the full interface ready) but not wired up yet.
-- **Itinerary generation capped at 5 days** — longer trips generate the first 5 days only. GPT-4's context window handles more, but response time and token cost made this a reasonable tradeoff for an MVP.
-- **City-to-country resolution** — new trips resolve destination → ISO country code via the agent at save time. Trips created before this feature was added fall back to a static lookup table; obscure destinations not in the table won't appear on the map.
-- **Mock flights and hotels** — the itinerary generator creates realistic-looking but entirely fictional booking references. No real booking API is integrated.
-- **No rate limiting** — the `/api/chat` endpoint calls GPT-4 on every message with no throttling. Fine for a demo, would need rate limiting before any real traffic.
+### Backend (`backend/.env`)
 
----
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | — | PostgreSQL DSN, e.g. `postgresql://user:pass@localhost:5432/tripmind` |
+| `OPENAI_API_KEY` | Yes | — | OpenAI API key |
+| `SECRET_KEY` | Yes | — | Random secret for JWT signing — generate with `openssl rand -hex 32` |
+| `DEBUG` | No | `False` | Enables debug mode |
+| `FRONTEND_URL` | No | `http://localhost:5173` | Allowed CORS origin |
 
-## Roadmap
+### Frontend (`frontend/.env.local`)
 
-Things I want to explore next:
-
-- [ ] Real auth (JWT or OAuth) — the groundwork is already there
-- [ ] Streaming responses — pipe GPT-4 tokens to the frontend as they arrive instead of waiting for the full response
-- [ ] Trip sharing — share a read-only trip plan via a public URL
-- [ ] Real flight/hotel search — integrate an actual travel API (Amadeus, Skyscanner)
-- [ ] Mobile app — the backend is fully API-driven, a React Native frontend would be a natural extension
-- [ ] Multi-language support — the agent already handles non-English input reasonably well
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_URL` | No | `http://localhost:8000` | Base URL of the backend API |
 
 ---
 
-## What I learned
+## Running Tests
 
-The interesting problems weren't the ones I expected. Getting GPT-4 to call the right tool was straightforward — the hard parts were:
+```bash
+cd backend
+source venv/bin/activate
+pytest -v
+```
 
-- **Stateless agents** — each request is a fresh agent instance. Passing conversation history as `HumanMessage`/`AIMessage` objects into the `MessagesPlaceholder` was the fix, but the shape of the data has to be exactly right or the agent ignores it silently.
-- **Duplicate trip detection** — "France" vs "France in June 2026" vs "Paris" all require different handling. The deduplication logic went through several iterations before it handled all the edge cases correctly.
-- **SQLAlchemy 2.x JSON fields** — mutating a JSON column in place doesn't trigger a dirty check. You have to copy the dict, modify it, reassign, and call `flag_modified()` or the change never gets committed.
-- **Python version compatibility** — `psycopg2` and several AI packages don't have wheels for Python 3.13 yet. Pinning to 3.11 was the only reliable fix during deployment.
+The GitHub Actions pipeline runs `pytest` on every push to `main` before deploying to EC2. See `.github/workflows/` for the full pipeline definition.
 
 ---
 
-*Built by Daffa — Year 2 Software Engineering, Singapore Institute of Technology*
+## Project Structure
+
+```
+tripmind/
+├── .github/
+│   └── workflows/              # GitHub Actions CI/CD (test → deploy to EC2)
+├── backend/
+│   ├── alembic/                # Alembic migration scripts
+│   │   └── versions/
+│   ├── app/
+│   │   ├── agents/
+│   │   │   ├── base_agent.py   # TripMindAgent — LangChain AgentExecutor
+│   │   │   └── tools.py        # 6 tool functions (plan, get, update, itinerary, …)
+│   │   ├── routers/
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py         # POST /register /login /refresh, GET /me
+│   │   │   ├── activities.py   # CRUD for itinerary activities
+│   │   │   ├── chat.py         # POST /api/chat (AI agent entry point)
+│   │   │   ├── checklist.py    # CRUD for packing checklist
+│   │   │   ├── expenses.py     # CRUD for expense tracker
+│   │   │   ├── overview.py     # AI travel alerts + personalized recommendations
+│   │   │   ├── travel.py       # AI travel suggestions + save/delete
+│   │   │   ├── trips.py        # Trip CRUD + cover photo upload
+│   │   │   └── waypoints.py    # Multi-city waypoint management
+│   │   ├── services/
+│   │   │   └── trip_service.py # All DB operations — single service class
+│   │   ├── auth.py             # JWT helpers and FastAPI get_current_user dependency
+│   │   ├── config.py           # Settings from .env via pydantic-settings
+│   │   ├── database.py         # SQLAlchemy engine, SessionLocal, Base
+│   │   ├── limiter.py          # Shared slowapi Limiter (avoids circular imports)
+│   │   ├── main.py             # App factory, middleware, router mounts
+│   │   ├── models.py           # 7 SQLAlchemy ORM models
+│   │   └── schemas.py          # Pydantic v2 request/response schemas
+│   ├── uploads/                # Disk-stored trip cover photos (see KNOWN_ISSUES.md)
+│   ├── requirements.txt
+│   └── docker-compose.prod.yml
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── components/         # Shared UI components
+│       ├── context/            # UserContext (JWT auth state)
+│       ├── pages/              # Route-level page components
+│       │   └── TripDetailsPage/
+│       ├── services/
+│       │   └── api.ts          # Axios instance + every API call
+│       └── types/              # TypeScript interfaces mirroring schemas.py
+├── docs/
+│   ├── API.md                  # Full route reference (32 routes)
+│   ├── DECISIONS.md            # Architecture Decision Records (6 ADRs)
+│   └── ERD.md                  # Entity-Relationship Diagram (7 tables)
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── KNOWN_ISSUES.md
+└── TripmindKeyPair.pem         # EC2 key pair — see KNOWN_ISSUES.md
+```
