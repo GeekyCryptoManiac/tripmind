@@ -36,12 +36,6 @@ from .schemas import (
     UserCreate, UserResponse,
     # Waypoints
     WaypointCreate, WaypointUpdate, WaypointResponse,
-    # Activity
-    ActivityCreate, ActivityUpdate, ActivityResponse,
-    # Expense
-    ExpenseCreate, ExpenseUpdate, ExpenseResponse,
-    # Checklist
-    ChecklistItemCreate, ChecklistItemUpdate, ChecklistItemResponse,
     # Travel
     TravelSuggestRequest, TravelSuggestResponse,
     TravelSaveRequest, SavedTravelResponse,
@@ -53,6 +47,9 @@ from .schemas import (
 from .services.trip_service import TripService
 from .routers import auth as auth_router
 from .routers import trips as trips_router
+from .routers import activities as activities_router
+from .routers import expenses as expenses_router
+from .routers import checklist as checklist_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -82,6 +79,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(auth_router.router)
 app.include_router(trips_router.router)
 app.include_router(trips_router.users_router)
+app.include_router(activities_router.router)
+app.include_router(expenses_router.router)
+app.include_router(checklist_router.router)
 
 # Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
@@ -140,122 +140,6 @@ async def chat(
             action_taken="error",
             trip_data=None,
         )
-
-
-# ═════════════════════════════════════════════════════════════
-# Activities
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/trips/{trip_id}/activities", response_model=ActivityResponse, status_code=201)
-async def add_activity(
-    trip_id: int,
-    data: ActivityCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).add_activity(trip_id, current_user.id, data)
-
-
-@app.patch("/api/trips/{trip_id}/activities/{activity_id}", response_model=ActivityResponse)
-async def update_activity(
-    trip_id: int,
-    activity_id: int,
-    data: ActivityUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).update_activity(trip_id, activity_id, current_user.id, data)
-
-
-@app.delete("/api/trips/{trip_id}/activities/{activity_id}", status_code=204)
-async def delete_activity(
-    trip_id: int,
-    activity_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    TripService(db).delete_activity(trip_id, activity_id, current_user.id)
-
-
-@app.delete("/api/trips/{trip_id}/activities", status_code=200)
-async def clear_all_activities(
-    trip_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Delete all activities for a trip (used by Regenerate Itinerary)."""
-    deleted = TripService(db).delete_all_activities(trip_id, current_user.id)
-    return {"deleted": deleted}
-
-
-# ═════════════════════════════════════════════════════════════
-# Expenses
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/trips/{trip_id}/expenses", response_model=ExpenseResponse, status_code=201)
-async def add_expense(
-    trip_id: int,
-    data: ExpenseCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).add_expense(trip_id, current_user.id, data)
-
-
-@app.patch("/api/trips/{trip_id}/expenses/{expense_id}", response_model=ExpenseResponse)
-async def update_expense(
-    trip_id: int,
-    expense_id: int,
-    data: ExpenseUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).update_expense(trip_id, expense_id, current_user.id, data)
-
-
-@app.delete("/api/trips/{trip_id}/expenses/{expense_id}", status_code=204)
-async def delete_expense(
-    trip_id: int,
-    expense_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    TripService(db).delete_expense(trip_id, expense_id, current_user.id)
-
-
-# ═════════════════════════════════════════════════════════════
-# Checklist
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/trips/{trip_id}/checklist", response_model=ChecklistItemResponse, status_code=201)
-async def add_checklist_item(
-    trip_id: int,
-    data: ChecklistItemCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).add_checklist_item(trip_id, current_user.id, data)
-
-
-@app.patch("/api/trips/{trip_id}/checklist/{item_id}", response_model=ChecklistItemResponse)
-async def update_checklist_item(
-    trip_id: int,
-    item_id: int,
-    data: ChecklistItemUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).update_checklist_item(trip_id, item_id, current_user.id, data)
-
-
-@app.delete("/api/trips/{trip_id}/checklist/{item_id}", status_code=204)
-async def delete_checklist_item(
-    trip_id: int,
-    item_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    TripService(db).delete_checklist_item(trip_id, item_id, current_user.id)
 
 
 # ═════════════════════════════════════════════════════════════
