@@ -146,6 +146,15 @@ class TripService:
         self.db.refresh(trip)
         return trip
 
+    def set_cover_image(self, trip_id: int, user_id: int, url: str | None) -> Trip:
+        """Set or clear the cover image URL for a trip."""
+        trip = self.get_trip_or_404(trip_id, user_id)
+        trip.cover_image_url = url
+        self._touch(trip)
+        self.db.commit()
+        self.db.refresh(trip)
+        return trip
+
     def delete_trip(self, trip_id: int, user_id: int) -> None:
         trip = self.get_trip_or_404(trip_id, user_id)
         self.db.delete(trip)

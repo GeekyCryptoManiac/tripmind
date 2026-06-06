@@ -398,7 +398,7 @@ export default function TripDetailsPage() {
     <div className="min-h-screen bg-surface-bg">
 
       {/* Hero */}
-      <TripDetailsHero trip={trip} phase={phase} onBack={() => navigate('/trips')} />
+      <TripDetailsHero trip={trip} phase={phase} onBack={() => navigate('/trips')} onTripUpdate={setTrip} />
 
       {/* Progress Bar */}
       <TripDetailsProgress

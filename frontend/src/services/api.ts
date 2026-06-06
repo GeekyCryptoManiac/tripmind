@@ -199,6 +199,20 @@ export const apiService = {
     await api.delete(`/api/trips/${tripId}`);
   },
 
+  // ── Trip Photos ────────────────────────────────────────────
+
+  async uploadTripPhoto(tripId: number, file: File): Promise<Trip> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return (await api.post<Trip>(`/api/trips/${tripId}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })).data;
+  },
+
+  async deleteTripPhoto(tripId: number): Promise<Trip> {
+    return (await api.delete<Trip>(`/api/trips/${tripId}/photo`)).data;
+  },
+
   // ── Waypoints ──────────────────────────────────────────────
 
   async addWaypoint(tripId: number, data: WaypointCreateRequest): Promise<Waypoint> {
