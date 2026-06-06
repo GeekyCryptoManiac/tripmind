@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -34,8 +34,6 @@ from .models import User, Trip
 from .schemas import (
     # User
     UserCreate, UserResponse,
-    # Trip
-    TripCreate, TripUpdate, TripResponse, TripList,
     # Waypoints
     WaypointCreate, WaypointUpdate, WaypointResponse,
     # Activity
@@ -54,6 +52,7 @@ from .schemas import (
 )
 from .services.trip_service import TripService
 from .routers import auth as auth_router
+from .routers import trips as trips_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -81,6 +80,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(auth_router.router)
+app.include_router(trips_router.router)
+app.include_router(trips_router.users_router)
 
 # Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
@@ -139,123 +140,6 @@ async def chat(
             action_taken="error",
             trip_data=None,
         )
-
-
-# ═════════════════════════════════════════════════════════════
-# Trips
-# ═════════════════════════════════════════════════════════════
-
-@app.get("/api/users/{user_id}/trips", response_model=TripList)
-async def get_user_trips(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    svc   = TripService(db)
-    trips = svc.get_user_trips(current_user.id)
-    return TripList(trips=trips, total=len(trips))
-
-
-@app.post("/api/trips", response_model=TripResponse, status_code=201)
-async def create_trip(
-    data: TripCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).create_trip(current_user.id, data)
-
-
-@app.get("/api/trips/{trip_id}", response_model=TripResponse)
-async def get_trip(
-    trip_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).get_trip_or_404(trip_id, current_user.id)
-
-
-@app.put("/api/trips/{trip_id}", response_model=TripResponse)
-async def update_trip(
-    trip_id: int,
-    updates: TripUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return TripService(db).update_trip(trip_id, current_user.id, updates)
-
-
-@app.delete("/api/trips/{trip_id}", status_code=204)
-async def delete_trip(
-    trip_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    TripService(db).delete_trip(trip_id, current_user.id)
-
-
-# ═════════════════════════════════════════════════════════════
-# Trip Photos
-# ═════════════════════════════════════════════════════════════
-
-_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
-_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
-
-@app.post("/api/trips/{trip_id}/photo", response_model=TripResponse)
-async def upload_trip_photo(
-    trip_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Upload (or replace) a cover photo for a trip. Returns the updated trip."""
-    if file.content_type not in _ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are accepted.")
-
-    content = await file.read()
-    if len(content) > _MAX_IMAGE_BYTES:
-        raise HTTPException(status_code=413, detail="Image must be under 5 MB.")
-
-    service = TripService(db)
-    trip = service.get_trip_or_404(trip_id, current_user.id)
-
-    # Delete old file from disk if one exists
-    if trip.cover_image_url:
-        old_filename = Path(trip.cover_image_url).name
-        old_path = UPLOAD_DIR / old_filename
-        if old_path.exists():
-            old_path.unlink()
-
-    # Derive a safe extension
-    original_ext = (file.filename or "").rsplit(".", 1)[-1].lower()
-    ext = original_ext if original_ext in ("jpg", "jpeg", "png", "webp") else "jpg"
-    filename = f"trip_{trip_id}_{uuid.uuid4().hex}.{ext}"
-    (UPLOAD_DIR / filename).write_bytes(content)
-
-    updated = service.set_cover_image(trip_id, current_user.id, f"/uploads/{filename}")
-    return updated
-
-
-@app.delete("/api/trips/{trip_id}/photo", response_model=TripResponse)
-def delete_trip_photo(
-    trip_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Remove the cover photo for a trip. Returns the updated trip."""
-    service = TripService(db)
-    trip = service.get_trip_or_404(trip_id, current_user.id)
-
-    if trip.cover_image_url:
-        old_filename = Path(trip.cover_image_url).name
-        old_path = UPLOAD_DIR / old_filename
-        if old_path.exists():
-            old_path.unlink()
-
-    updated = service.set_cover_image(trip_id, current_user.id, None)
-    return updated
 
 
 # ═════════════════════════════════════════════════════════════
