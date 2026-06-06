@@ -2,42 +2,28 @@
 FastAPI Application — Main Entry Point
 =======================================
 
-Route handlers are intentionally thin — each one:
-  1. Extracts validated inputs (path params, body, current_user from JWT)
-  2. Calls TripService
-  3. Returns the result
-
-All business logic and DB operations live in TripService.
-All AI prompt logic lives in the helper functions below (travel suggest, overview).
+All route handlers live in app/routers/. This file is responsible only for:
+  - App factory and middleware
+  - Rate-limiter wiring
+  - Router mounts
+  - Static file serving
+  - Health / root endpoints
+  - Startup logging
 """
 
-import json
-import uuid
-import os
-from datetime import datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-# ── Upload directory (backend/uploads/) ───────────────────────
-UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-from .auth import get_current_user
 from .config import settings
 from .database import get_db
-from .models import User, Trip
-from .schemas import (
-    # User
-    UserCreate, UserResponse,
-    # Chat
-    ChatRequest, ChatResponse,
-)
-from .services.trip_service import TripService
+from .limiter import limiter
 from .routers import auth as auth_router
 from .routers import trips as trips_router
 from .routers import activities as activities_router
@@ -47,14 +33,14 @@ from .routers import waypoints as waypoints_router
 from .routers import travel as travel_router
 from .routers import overview as overview_router
 from .routers import chat as chat_router
-from .limiter import limiter
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
+
+# ── Upload directory (backend/uploads/) ───────────────────────
+UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── App setup ─────────────────────────────────────────────────
 
 app = FastAPI(
-    
     title="TripMind API",
     description="AI-powered travel planning assistant",
     version="2.0.0",
@@ -83,7 +69,6 @@ app.include_router(travel_router.router)
 app.include_router(overview_router.router)
 app.include_router(chat_router.router)
 
-# Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 
