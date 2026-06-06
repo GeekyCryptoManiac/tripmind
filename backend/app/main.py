@@ -27,13 +27,11 @@ from sqlalchemy.orm import Session
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-from .auth import create_access_token, create_refresh_token, get_current_user, hash_password, verify_password, verify_refresh_token
+from .auth import get_current_user
 from .config import settings
 from .database import get_db
 from .models import User, Trip
 from .schemas import (
-    # Auth
-    UserRegister, UserLogin, RefreshRequest, TokenResponse,
     # User
     UserCreate, UserResponse,
     # Trip
@@ -55,6 +53,7 @@ from .schemas import (
     OverviewAlertsResponse, OverviewRecommendationsResponse,
 )
 from .services.trip_service import TripService
+from .routers import auth as auth_router
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -81,6 +80,8 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+app.include_router(auth_router.router)
+
 # Serve uploaded trip photos at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
@@ -102,65 +103,6 @@ async def health_check(db: Session = Depends(get_db)):
     except Exception as e:
         db_status = f"error: {e}"
     return {"status": "healthy", "database": db_status}
-
-
-# ═════════════════════════════════════════════════════════════
-# Auth
-# ═════════════════════════════════════════════════════════════
-
-@app.post("/api/auth/register", response_model=TokenResponse, status_code=201)
-async def register(data: UserRegister, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == data.email).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    user = User(
-        email=data.email,
-        full_name=data.full_name,
-        password_hash=hash_password(data.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    return TokenResponse(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-        user=user,
-    )
-
-
-@app.post("/api/auth/login", response_model=TokenResponse)
-async def login(data: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
-    if not user or not user.password_hash:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    if not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    return TokenResponse(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-        user=user,
-    )
-
-
-@app.post("/api/auth/refresh", response_model=TokenResponse)
-async def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
-    user_id = verify_refresh_token(data.refresh_token)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    return TokenResponse(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-        user=user,
-    )
-
-
-@app.get("/api/auth/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
 
 
 # ═════════════════════════════════════════════════════════════
