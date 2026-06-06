@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Trip, User
 from ..services.trip_service import TripService
-from ..schemas import ActivityCreate, TripUpdate
+from ..schemas import ActivityCreate, TripCreate, TripUpdate
 
 
 # ═════════════════════════════════════════════════════════════
@@ -88,24 +88,19 @@ def plan_and_save_trip(
             "trip":        _format_trip_for_agent(trip),
         }
 
-    # ── Create ────────────────────────────────────────────────
-    trip = Trip(
-        user_id=user_id,
+    # ── Create via TripService — seeds origin + destination waypoints ─
+    svc       = TripService(db)
+    trip_data = TripCreate(
         destination=destination,
+        country_code=country_code if country_code and len(country_code) == 2 else None,
         start_date=start_date,
         end_date=end_date,
         duration_days=duration_days,
         budget=budget,
         travelers_count=travelers_count or 1,
-        status="planning",
         preferences=preferences or [],
     )
-    db.add(trip)
-    db.commit()
-    db.refresh(trip)
-
-    svc  = TripService(db)
-    trip = svc._get_trip(trip.id)
+    trip = svc.create_trip(user_id, trip_data)
 
     return {
         "status":          "created",
