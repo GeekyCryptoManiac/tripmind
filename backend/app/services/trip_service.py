@@ -155,6 +155,18 @@ class TripService:
         self.db.refresh(trip)
         return trip
 
+    def save_ai_alerts(self, trip_id: int, user_id: int, alerts: list) -> None:
+        trip = self.get_trip_or_404(trip_id, user_id)
+        trip.ai_alerts = alerts
+        self._touch(trip)
+        self.db.commit()
+
+    def save_ai_recommendations(self, trip_id: int, user_id: int, recommendations: list) -> None:
+        trip = self.get_trip_or_404(trip_id, user_id)
+        trip.ai_recommendations = recommendations
+        self._touch(trip)
+        self.db.commit()
+
     def delete_trip(self, trip_id: int, user_id: int) -> None:
         trip = self.get_trip_or_404(trip_id, user_id)
         self.db.delete(trip)
