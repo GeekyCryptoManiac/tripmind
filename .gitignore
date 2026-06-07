@@ -36,3 +36,10 @@ build/
 # Logs
 *.log
 TripmindKeyPair.pem
+
+# Internal docs — kept locally, never committed
+ARCHITECTURE.md
+CHANGELOG.md
+HANDOVER.md
+KNOWN_ISSUES.md
+docs/PATTERNS.md
