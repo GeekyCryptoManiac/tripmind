@@ -141,7 +141,7 @@ class TripMindAgent:
                 description=(
                     "Plan and save a new trip. Use when the user wants to plan a trip to a destination. "
                     "Extracts destination, dates, budget, and traveler count from the message. "
-                    "Always include the ISO 3166-1 alpha-3 country_code (e.g. JPN, FRA, IDN)."
+                    "Always include the ISO 3166-1 alpha-2 country_code (e.g. JP, FR, ID)."
                 ),
             ),
             StructuredTool.from_function(
@@ -200,7 +200,7 @@ CORE RULES:
 1. Only plan trips to real destinations. Reject fictional places (the Moon, Hogwarts, etc.)
 2. Budget is always in SGD unless the user explicitly states otherwise. Confirm if ambiguous.
 3. Do not call plan_trip again if a trip already exists — use update_trip instead.
-4. When calling plan_trip, always include country_code (ISO 3166-1 alpha-3, e.g. JPN, FRA, IDN).
+4. When calling plan_trip, always include country_code (ISO 3166-1 alpha-2, e.g. JP, FR, ID, TH, SG, AU, US, GB).
 5. Keep responses concise and friendly. Confirm what was saved after any write operation.
 6. For simple greetings or questions, answer directly — do not call a tool unnecessarily.
 
