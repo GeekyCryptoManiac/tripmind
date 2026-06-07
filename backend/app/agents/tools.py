@@ -23,6 +23,24 @@ from ..services.trip_service import TripService
 from ..schemas import ActivityCreate, TripCreate, TripUpdate
 
 
+# Alpha-3 (ISO 3166-1) → alpha-2 lookup for the 50 most common travel destinations.
+# Used by plan_and_save_trip() to normalise codes the LLM returns as alpha-3 to the
+# alpha-2 format required by the DB schema (country_code max_length=2).
+_ALPHA3_TO_ALPHA2: Dict[str, str] = {
+    "JPN": "JP", "FRA": "FR", "DEU": "DE", "ITA": "IT", "ESP": "ES",
+    "THA": "TH", "IDN": "ID", "PHL": "PH", "VNM": "VN", "IND": "IN",
+    "SGP": "SG", "MYS": "MY", "AUS": "AU", "NZL": "NZ", "USA": "US",
+    "CAN": "CA", "GBR": "GB", "IRL": "IE", "CHN": "CN", "KOR": "KR",
+    "TWN": "TW", "HKG": "HK", "BRA": "BR", "ARG": "AR", "MEX": "MX",
+    "PRT": "PT", "GRC": "GR", "NLD": "NL", "BEL": "BE", "CHE": "CH",
+    "AUT": "AT", "NOR": "NO", "SWE": "SE", "DNK": "DK", "FIN": "FI",
+    "POL": "PL", "CZE": "CZ", "HUN": "HU", "HRV": "HR", "TUR": "TR",
+    "RUS": "RU", "EGY": "EG", "ZAF": "ZA", "KEN": "KE", "MAR": "MA",
+    "ARE": "AE", "ISR": "IL", "JOR": "JO", "SAU": "SA", "PER": "PE",
+    "COL": "CO",
+}
+
+
 # ═════════════════════════════════════════════════════════════
 # Tool 1 — plan_and_save_trip
 # ═════════════════════════════════════════════════════════════
@@ -45,6 +63,10 @@ def plan_and_save_trip(
     Deduplication: if the user already has a trip to this destination
     created in the last 5 minutes, return that trip instead of creating
     a duplicate.
+
+    country_code normalisation: accepts both alpha-2 (JP) and alpha-3 (JPN).
+    Alpha-3 codes are converted via _ALPHA3_TO_ALPHA2 before being stored.
+    Unknown or invalid codes are stored as None rather than truncated.
     """
     # ── Validation ────────────────────────────────────────────
     FICTIONAL = {
@@ -88,11 +110,21 @@ def plan_and_save_trip(
             "trip":        _format_trip_for_agent(trip),
         }
 
+    # ── Normalise country_code: alpha-3 → alpha-2 ─────────────────────
+    # The LLM may return alpha-3 codes (e.g. "JPN"). The DB schema requires
+    # alpha-2 (max_length=2), so we convert or drop before constructing TripCreate.
+    raw = country_code
+    if country_code and len(country_code) == 3:
+        country_code = _ALPHA3_TO_ALPHA2.get(country_code.upper())
+    elif country_code and len(country_code) != 2:
+        country_code = None
+    print(f"[plan_and_save_trip] country_code normalised: {raw} → {country_code}")
+
     # ── Create via TripService — seeds origin + destination waypoints ─
     svc       = TripService(db)
     trip_data = TripCreate(
         destination=destination,
-        country_code=country_code if country_code and len(country_code) == 2 else None,
+        country_code=country_code,
         start_date=start_date,
         end_date=end_date,
         duration_days=duration_days,
