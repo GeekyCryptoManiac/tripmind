@@ -37,8 +37,7 @@ def test_delete_activity_returns_204(client, auth_headers, test_trip):
     assert resp.status_code == 204
 
 
-def test_bulk_delete_all_activities_returns_200_with_count(client, auth_headers, test_trip):
-    # Known issue: tracked in KNOWN_ISSUES.md — bulk DELETE returns 200 not 204
+def test_bulk_delete_all_activities_returns_204(client, auth_headers, test_trip):
     for i in range(3):
         client.post(
             f"/api/trips/{test_trip.id}/activities",
@@ -46,5 +45,4 @@ def test_bulk_delete_all_activities_returns_200_with_count(client, auth_headers,
             headers=auth_headers,
         )
     resp = client.delete(f"/api/trips/{test_trip.id}/activities", headers=auth_headers)
-    assert resp.status_code == 200  # Known issue: should be 204
-    assert resp.json()["deleted"] == 3
+    assert resp.status_code == 204

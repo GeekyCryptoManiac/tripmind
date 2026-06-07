@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -41,12 +41,12 @@ async def delete_activity(
     TripService(db).delete_activity(trip_id, activity_id, current_user.id)
 
 
-@router.delete("/{trip_id}/activities", status_code=200)
+@router.delete("/{trip_id}/activities", status_code=204)
 async def clear_all_activities(
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Delete all activities for a trip (used by Regenerate Itinerary)."""
-    deleted = TripService(db).delete_all_activities(trip_id, current_user.id)
-    return {"deleted": deleted}
+    TripService(db).delete_all_activities(trip_id, current_user.id)
+    return Response(status_code=204)
