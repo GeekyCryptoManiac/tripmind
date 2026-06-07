@@ -101,7 +101,7 @@ def plan_and_save_trip(
     )
     if existing:
         svc  = TripService(db)
-        trip = svc._get_trip(existing.id)
+        trip = svc.get_trip_or_404(existing.id, user_id)  # public method; ownership confirmed above
         return {
             "status":      "existing_trip",
             "trip_id":     trip.id,
