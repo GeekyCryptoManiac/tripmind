@@ -14,6 +14,10 @@ Tool execution note:
 
 from typing import Any, Dict, List, Optional
 
+from fastapi import HTTPException
+from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
+
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import AIMessage, HumanMessage
@@ -299,8 +303,8 @@ Use update_trip or generate_itinerary with trip_id={t.get("id")} for any modific
                     from ..services.trip_service import TripService
                     svc       = TripService(self.db)
                     trip_data = svc.get_trip_or_404(self.trip_id, self.user_id)
-                except Exception:
-                    pass
+                except (HTTPException, SQLAlchemyError) as e:
+                    print(f"[TripMindAgent] failed to reload trip {self.trip_id}: {e}")
 
             return {
                 "response":     output,
@@ -308,7 +312,16 @@ Use update_trip or generate_itinerary with trip_id={t.get("id")} for any modific
                 "trip_data":    trip_data,
             }
 
-        except Exception as e:
+        except OpenAIError as e:
+            import traceback
+            traceback.print_exc()
+            print(f"[TripMindAgent] OpenAI error: {type(e).__name__}: {e}")
+            return {
+                "response":     f"I encountered an OpenAI API issue: {e}",
+                "action_taken": "error",
+                "trip_data":    None,
+            }
+        except Exception as e:  # unexpected — re-raise after logging
             import traceback
             traceback.print_exc()
             print(f"[TripMindAgent] process_message error: {type(e).__name__}: {e}")

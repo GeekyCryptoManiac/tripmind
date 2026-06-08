@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from openai import OpenAIError
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -32,11 +33,17 @@ async def chat(
             action_taken=response.get("action_taken", "answered_question"),
             trip_data=response.get("trip_data"),
         )
-    except Exception as e:
+    except HTTPException:
+        raise
+    except OpenAIError as e:
         import traceback
         traceback.print_exc()
         return ChatResponse(
-            message=f"I encountered an error: {e}",
+            message=f"I encountered an OpenAI API issue: {e}",
             action_taken="error",
             trip_data=None,
         )
+    except Exception as e:  # unexpected — re-raise after logging
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Chat failed: {type(e).__name__}: {e}")

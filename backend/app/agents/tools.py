@@ -16,7 +16,11 @@ import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+from fastapi import HTTPException
 
 from ..models import Trip, User
 from ..services.trip_service import TripService
@@ -193,7 +197,7 @@ def get_trip_details(trip_id: int, user_id: int, db: Session) -> Dict[str, Any]:
     svc = TripService(db)
     try:
         trip = svc.get_trip_or_404(trip_id, user_id)
-    except Exception:
+    except HTTPException:
         return {"error": f"Trip {trip_id} not found"}
 
     return _format_trip_for_agent(trip)
@@ -231,7 +235,7 @@ def update_trip(
 
     try:
         trip = svc.update_trip(trip_id, user_id, updates)
-    except Exception as e:
+    except (HTTPException, SQLAlchemyError) as e:
         return {"error": str(e)}
 
     return {
@@ -299,7 +303,7 @@ def generate_itinerary(
 
         try:
             trip = svc.get_trip_or_404(trip_id, user_id)
-        except Exception:
+        except HTTPException:
             return {"error": f"Trip {trip_id} not found"}
 
         # ── Determine which days to generate ──────────────────
@@ -431,7 +435,7 @@ Rules:
                 try:
                     svc.add_activity(trip_id, user_id, activity_data)
                     total_saved += 1
-                except Exception as e:
+                except (HTTPException, SQLAlchemyError) as e:
                     print(f"[generate_itinerary] Failed to save activity on day {day_num}: {e}")
                     continue
 
@@ -458,7 +462,11 @@ Rules:
 
     except json.JSONDecodeError as e:
         return {"error": "Failed to parse itinerary from AI", "details": str(e)}
-    except Exception as e:
+    except OpenAIError as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": "OpenAI API error during itinerary generation", "details": str(e)}
+    except Exception as e:  # unexpected — re-raise after logging
         import traceback
         traceback.print_exc()
         return {"error": "Itinerary generation failed", "details": str(e)}
