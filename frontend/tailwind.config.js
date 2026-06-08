@@ -8,6 +8,13 @@ export default {
     extend: {
       // ── Brand palette — change these 6 values to retheme the entire app ──
       colors: {
+        // ── Cartographic editorial palette ──────────────────────
+        forest:      '#1C2B24',
+        parchment:   '#F7F4EE',
+        gold:        '#B59054',
+        terrain:     '#D9E8DF',
+        sage:        '#8FA898',
+        'card-border': '#DDD8CE',
         // Primary action colour (buttons, links, active states)
         brand: {
           50:  '#eef2ff',  // indigo-50
@@ -47,10 +54,13 @@ export default {
         },
       },
       fontFamily: {
-        // Display font for headings — loaded via index.html <link>
-        display: ['"DM Serif Display"', 'Georgia', 'serif'],
+        // Display font for headings (Playfair Display — editorial serif)
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
         // Body font — clean geometric sans
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        sans:    ['"DM Sans"', 'system-ui', 'sans-serif'],
+        body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
+        // Mono — coordinates, eyebrow labels, metadata
+        mono:    ['"DM Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         '2xl': '1rem',

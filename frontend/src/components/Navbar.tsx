@@ -68,7 +68,7 @@ const Navbar: FC = () => {
         'transition-all duration-300',
         isTransparent
           ? 'bg-transparent'
-          : 'bg-white/95 backdrop-blur-md border-b border-surface-muted shadow-card',
+          : 'bg-forest border-b border-forest/30',
       ].join(' ')}
     >
       <div className="max-w-7xl mx-auto px-6">
@@ -89,7 +89,7 @@ const Navbar: FC = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="font-display text-xl text-ink font-semibold">
+            <span className={`font-display text-xl font-semibold ${isTransparent ? 'text-ink' : 'text-[#E8DECE]'}`}>
               TripMind
             </span>
           </Link>
@@ -117,10 +117,10 @@ const Navbar: FC = () => {
                 <Link
                   key={path}
                   to={path}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-xl font-mono text-[11px] tracking-[0.1em] uppercase transition-all duration-200 ${
                     active
-                      ? 'bg-ink text-white'
-                      : 'text-ink-secondary hover:text-ink hover:bg-surface-muted'
+                      ? 'bg-forest/30 text-[#E8DECE]'
+                      : 'text-sage hover:text-[#E8DECE] hover:bg-forest/20'
                   }`}
                 >
                   {label}
@@ -135,7 +135,7 @@ const Navbar: FC = () => {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   isTransparent
                     ? 'bg-white text-ink hover:bg-white/90'
-                    : 'bg-ink text-white hover:bg-ink/80'
+                    : 'bg-gold text-forest hover:bg-gold/90'
                 }`}
               >
                 + New Trip
@@ -194,7 +194,7 @@ const Navbar: FC = () => {
             {isAuthenticated && (
               <button
                 onClick={logout}
-                className="ml-2 px-3 py-2 rounded-xl text-sm font-medium text-ink-secondary hover:text-ink hover:bg-surface-muted transition-colors"
+                className="ml-2 px-3 py-2 rounded-xl font-mono text-[11px] tracking-[0.1em] uppercase text-sage hover:text-[#E8DECE] hover:bg-forest/20 transition-colors"
               >
                 Log out
               </button>

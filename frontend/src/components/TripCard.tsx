@@ -161,30 +161,23 @@ async function fetchUnsplashPhoto(trip: Trip): Promise<UnsplashPhoto | null> {
   return requestPromise;
 }
 
-/** Status → ring colour around the card */
-const STATUS_RING: Record<string, string> = {
-  planning:  'ring-2 ring-amber-400',
-  booked:    'ring-2 ring-emerald-400',
-  completed: 'ring-2 ring-brand-500',
-};
-
-/** Status → gradient used when image fails to load */
+/** Status → gradient fallback when Unsplash image hasn't loaded */
 const STATUS_GRADIENT: Record<string, string> = {
-  planning:  'from-amber-400  to-orange-500',
-  booked:    'from-emerald-400 to-teal-500',
-  completed: 'from-brand-400  to-brand-600',
+  planning:  'from-sage    to-forest',
+  booked:    'from-gold    to-[#8C6C3A]',
+  completed: 'from-forest  to-[#0E1A13]',
 };
 
-/** Status badge config */
+/** Status badge config — cartographic editorial palette */
 const STATUS_BADGE: Record<string, { dot: string; badge: string; label: string }> = {
-  planning:  { dot: 'bg-amber-400',   badge: 'bg-amber-50  text-amber-700  ring-amber-200',   label: 'Planning'  },
-  booked:    { dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200', label: 'Booked'    },
-  completed: { dot: 'bg-brand-500',   badge: 'bg-brand-50  text-brand-700  ring-brand-200',   label: 'Completed' },
+  planning:  { dot: 'bg-sage',   badge: 'bg-terrain text-ink ring-card-border', label: 'Planning'  },
+  booked:    { dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border', label: 'Booked'    },
+  completed: { dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border', label: 'Completed' },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_BADGE[status] ?? {
-    dot: 'bg-gray-400', badge: 'bg-gray-50 text-gray-600 ring-gray-200', label: status,
+    dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border', label: status,
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
@@ -274,12 +267,12 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
 // ── Detail cell ───────────────────────────────────────────────
 function DetailCell({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-surface-bg rounded-xl p-3">
-      <div className="flex items-center gap-1.5 text-ink-tertiary mb-1">
+    <div className="bg-parchment rounded-xl p-3">
+      <div className="flex items-center gap-1.5 text-sage mb-1">
         {icon}
-        <span className="text-xs">{label}</span>
+        <span className="font-mono text-[10px] tracking-[0.05em] uppercase">{label}</span>
       </div>
-      <p className="text-sm font-medium text-ink truncate">{value}</p>
+      <p className="text-xs font-medium text-ink-secondary truncate">{value}</p>
     </div>
   );
 }
@@ -296,24 +289,37 @@ interface TripCardProps {
 // Particularly useful in TripsPage where modal state (modalData) would
 // otherwise cause all cards to re-render on open/close.
 const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps) {
-  // Use computed phase if provided, otherwise fallback to stored status
   const displayStatus = phase ?? trip.status;
-  const ring = STATUS_RING[displayStatus] ?? 'ring-2 ring-gray-300';
 
   return (
     <motion.div
       onClick={onClick}
       whileHover={onClick ? { y: -3 } : undefined}
       transition={{ duration: 0.18, ease: 'easeOut' }}
-      className={`bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-shadow overflow-hidden ${ring} ${
+      className={`bg-white rounded-[12px] overflow-hidden hover:shadow-card-hover transition-shadow ${
         onClick ? 'cursor-pointer' : ''
       } group`}
+      style={{ border: '0.5px solid #DDD8CE' }}
     >
-      {/* ── Photo panel ───────────────────────────────────── */}
+      {/* ── Photo panel (Unsplash + carto-grid fallback) ───── */}
       <ImagePanel trip={trip} displayStatus={displayStatus} />
 
-      {/* ── Details body ──────────────────────────────────── */}
+      {/* ── Card body ─────────────────────────────────────── */}
       <div className="p-5">
+        {/* Eyebrow: date + status */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-sage">
+            {trip.start_date ? formatDate(trip.start_date) : 'Date TBD'}
+          </p>
+          <StatusBadge status={displayStatus} />
+        </div>
+
+        {/* Trip name */}
+        <h3 className="font-display text-[16px] leading-snug text-forest mb-3">
+          {trip.destination}
+        </h3>
+
+        {/* Details grid */}
         <div className="grid grid-cols-2 gap-2.5">
           <DetailCell
             icon={
@@ -322,7 +328,7 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             }
-            label="Dates"
+            label="Depart"
             value={trip.start_date ? formatDate(trip.start_date) : 'Not set'}
           />
           <DetailCell
@@ -362,13 +368,13 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-3.5 border-t border-surface-muted flex items-center justify-between">
-          <span className="text-xs text-ink-tertiary">
-            {trip.notes ? 'Has notes' : 'No notes yet'}
+        <div className="mt-4 pt-3.5 border-t border-card-border flex items-center justify-between">
+          <span className="font-mono text-[10px] tracking-[0.05em] text-sage">
+            {trip.notes ? 'Has notes' : 'No notes'}
           </span>
           {onClick && (
-            <span className="text-xs font-semibold text-ink group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-              View details
+            <span className="font-mono text-[10px] tracking-[0.05em] uppercase text-forest group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
+              View
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
