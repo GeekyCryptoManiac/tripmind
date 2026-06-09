@@ -15,16 +15,16 @@ interface Props {
 function NodeDot({ filled }: { filled: boolean }) {
   return (
     <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 mt-1 ${
-      filled ? 'bg-brand-600 border-brand-600' : 'bg-white border-brand-400'
+      filled ? 'bg-forest border-forest' : 'bg-parchment border-gold'
     }`} />
   );
 }
 
 function Connector() {
-  return <div className="w-px bg-brand-200 mx-auto" style={{ height: 28 }} />;
+  return <div className="w-px bg-card-border mx-auto" style={{ height: 28 }} />;
 }
 
-const inputCls = 'w-full px-3 py-1.5 bg-surface-bg border border-surface-muted rounded-lg text-xs text-ink placeholder-ink-tertiary focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent transition';
+const inputCls = 'w-full px-3 py-1.5 bg-terrain/20 border border-card-border rounded-lg text-xs text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition';
 
 // ── Waypoint row ──────────────────────────────────────────────
 
@@ -102,16 +102,16 @@ function WaypointRow({
           <NodeDot filled={isFirst || isLast} />
         </div>
 
-        <div className="flex-1 bg-white rounded-2xl ring-1 ring-black/[0.06] shadow-sm overflow-hidden">
+        <div className="flex-1 bg-parchment rounded-2xl border border-card-border shadow-sm overflow-hidden">
           {/* Main row */}
           <div className="flex items-center justify-between px-4 py-3 gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-ink truncate">{waypoint.city}</p>
+              <p className="text-sm font-semibold text-forest truncate">{waypoint.city}</p>
               {waypoint.country && (
-                <p className="text-xs text-ink-tertiary mt-0.5">{waypoint.country}</p>
+                <p className="text-xs text-sage mt-0.5">{waypoint.country}</p>
               )}
               {(isFirst || isLast) && (
-                <p className="text-xs text-ink-tertiary mt-0.5">
+                <p className="text-xs text-sage mt-0.5">
                   {isFirst ? 'Departure' : 'Destination'}
                 </p>
               )}
@@ -135,8 +135,8 @@ function WaypointRow({
                 title="Edit city"
                 className={`p-1.5 rounded-lg transition-colors ${
                   panel === 'city'
-                    ? 'text-brand-600 bg-brand-50'
-                    : 'text-ink-tertiary hover:text-brand-600 hover:bg-brand-50'
+                    ? 'text-forest bg-terrain/40'
+                    : 'text-sage hover:text-forest hover:bg-terrain/40'
                 }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,8 +151,8 @@ function WaypointRow({
                 title="Edit dates"
                 className={`p-1.5 rounded-lg transition-colors ${
                   panel === 'dates'
-                    ? 'text-brand-600 bg-brand-50'
-                    : 'text-ink-tertiary hover:text-brand-600 hover:bg-brand-50'
+                    ? 'text-forest bg-terrain/40'
+                    : 'text-sage hover:text-forest hover:bg-terrain/40'
                 }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +168,7 @@ function WaypointRow({
                     onClick={onMoveUp}
                     disabled={!canMoveUp}
                     title="Move up"
-                    className="p-1.5 text-ink-tertiary hover:text-ink hover:bg-surface-muted rounded-lg transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                    className="p-1.5 text-sage hover:text-forest hover:bg-terrain/30 rounded-lg transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -178,7 +178,7 @@ function WaypointRow({
                     onClick={onMoveDown}
                     disabled={!canMoveDown}
                     title="Move down"
-                    className="p-1.5 text-ink-tertiary hover:text-ink hover:bg-surface-muted rounded-lg transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                    className="p-1.5 text-sage hover:text-forest hover:bg-terrain/30 rounded-lg transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -209,10 +209,10 @@ function WaypointRow({
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="overflow-hidden border-t border-surface-muted"
+                className="overflow-hidden border-t border-card-border"
               >
                 <div className="px-4 py-3 space-y-3">
-                  <label className="block text-xs text-ink-tertiary mb-1">Change city</label>
+                  <label className="block text-xs text-sage mb-1">Change city</label>
                   <CityAutocomplete
                     value={cityVal}
                     onChange={(c, e) => { setCityVal(c); setCityEntry(e); }}
@@ -235,14 +235,14 @@ function WaypointRow({
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setPanel('none')}
-                      className="px-3 py-1.5 text-xs text-ink-secondary hover:text-ink transition-colors"
+                      className="px-3 py-1.5 text-xs text-sage hover:text-forest transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveCity}
                       disabled={!cityVal.trim() || saving}
-                      className="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-medium bg-forest text-parchment rounded-lg hover:bg-forest/80 transition-colors disabled:opacity-50"
                     >
                       {saving ? 'Saving…' : 'Save city'}
                     </button>
@@ -258,12 +258,12 @@ function WaypointRow({
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="overflow-hidden border-t border-surface-muted"
+                className="overflow-hidden border-t border-card-border"
               >
                 <div className="px-4 py-3 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-ink-tertiary mb-1">Arrival date</label>
+                      <label className="block text-xs text-sage mb-1">Arrival date</label>
                       <input
                         type="date"
                         value={arrival}
@@ -274,7 +274,7 @@ function WaypointRow({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-ink-tertiary mb-1">Departure date</label>
+                      <label className="block text-xs text-sage mb-1">Departure date</label>
                       <input
                         type="date"
                         value={departure}
@@ -350,9 +350,9 @@ function AddStopForm({ onAdd, onCancel, tripStartDate, tripEndDate }: {
       className="flex items-start gap-3"
     >
       <div className="flex-shrink-0 mt-2" style={{ width: 14 }}>
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-brand-300" />
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-gold" />
       </div>
-      <div className="flex-1 bg-white rounded-2xl ring-1 ring-brand-200 shadow-sm p-4 space-y-3">
+      <div className="flex-1 bg-parchment rounded-2xl border border-gold shadow-sm p-4 space-y-3">
         <CityAutocomplete
           value={city}
           onChange={(c, e) => { setCity(c); setEntry(e); }}
@@ -362,7 +362,7 @@ function AddStopForm({ onAdd, onCancel, tripStartDate, tripEndDate }: {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-ink-tertiary mb-1">
+            <label className="block text-xs text-sage mb-1">
               Arrival date <span className="text-amber-500">*</span>
             </label>
             <input
@@ -375,7 +375,7 @@ function AddStopForm({ onAdd, onCancel, tripStartDate, tripEndDate }: {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-tertiary mb-1">
+            <label className="block text-xs text-sage mb-1">
               Departure date <span className="text-amber-500">*</span>
             </label>
             <input
@@ -522,8 +522,8 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-xl text-ink">Trip Route</h2>
-        <p className="text-sm text-ink-secondary mt-1">
+        <h2 className="font-display text-xl text-forest">Trip Route</h2>
+        <p className="text-sm text-sage mt-1">
           Edit any city, add stops between your origin and destination.
         </p>
       </div>
@@ -600,14 +600,14 @@ export default function WaypointEditor({ trip, onTripUpdate }: Props) {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           onClick={() => setShowAddForm(true)}
-                          className="flex items-center gap-3 w-full group"
+                          className="flex items-center gap-3 w-full group mt-1"
                         >
                           <div className="flex flex-col items-center flex-shrink-0" style={{ width: 14 }}>
-                            <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-surface-muted group-hover:border-brand-400 transition-colors flex items-center justify-center">
-                              <span className="text-[8px] leading-none text-ink-tertiary group-hover:text-brand-500">+</span>
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-card-border group-hover:border-forest transition-colors flex items-center justify-center">
+                              <span className="text-[8px] leading-none text-sage group-hover:text-forest">+</span>
                             </div>
                           </div>
-                          <span className="text-sm text-ink-tertiary group-hover:text-brand-600 transition-colors py-1">
+                          <span className="text-sm text-sage group-hover:text-forest transition-colors py-1">
                             Add stop
                           </span>
                         </motion.button>

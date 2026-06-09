@@ -23,15 +23,18 @@ interface TripDetailsHeroProps {
 }
 
 // Status badge config
-const STATUS_CONFIG = {
-  planning:  { label: 'Planning',  dot: 'bg-amber-400',  badge: 'bg-amber-50  text-amber-700  ring-amber-200'  },
-  booked:    { label: 'Booked',    dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  completed: { label: 'Completed', dot: 'bg-brand-500',   badge: 'bg-brand-50  text-brand-700  ring-brand-200'  },
-} as const;
+const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  planning:  { label: 'Planning',  dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
+  'pre-trip': { label: 'Pre-Trip', dot: 'bg-gold',  badge: 'bg-terrain text-ink ring-card-border' },
+  booked:    { label: 'Booked',   dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
+  active:    { label: 'Active',   dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
+  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
+  cancelled: { label: 'Cancelled', dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
+};
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? {
-    label: status, dot: 'bg-gray-400', badge: 'bg-gray-50 text-gray-600 ring-gray-200',
+  const cfg = STATUS_CONFIG[status] ?? {
+    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
@@ -135,19 +138,10 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
-        // Gradient placeholder
+        // Cartographic placeholder
         <>
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(135deg, #f3f0ff 0%, #fef3c7 50%, #F7F5F2 100%)' }}
-          />
-          <div
-            className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
-            style={{
-              background: 'radial-gradient(circle, rgba(232,228,248,0.6) 0%, transparent 70%)',
-              filter: 'blur(60px)',
-            }}
-          />
+          <div className="absolute inset-0 bg-forest" />
+          <div className="absolute inset-0 carto-grid opacity-30 pointer-events-none" />
         </>
       )}
 
@@ -178,15 +172,15 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
       {/* ── Upload CTA (shown only when no photo yet) ─────── */}
       {!photoUrl && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 ring-1 ring-white/50">
-            <div className="text-ink-tertiary">
+          <div className="w-16 h-16 rounded-full bg-forest/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 ring-1 ring-[#E8DECE]/20">
+            <div className="text-sage">
               <CameraIcon />
             </div>
           </div>
-          <p className="text-ink-secondary text-sm font-medium">Add Your Trip Photos</p>
+          <p className="text-[#E8DECE]/70 text-sm font-medium">Add Your Trip Photos</p>
           <label
             htmlFor={`photo-upload-${trip.id}`}
-            className={`mt-3 px-4 py-2 bg-white/60 backdrop-blur-sm text-ink text-xs font-semibold rounded-xl ring-1 ring-black/5 hover:bg-white/80 transition-colors shadow-sm cursor-pointer ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
+            className={`mt-3 px-4 py-2 bg-forest/40 backdrop-blur-sm text-[#E8DECE] text-xs font-semibold rounded-xl ring-1 ring-[#E8DECE]/20 hover:bg-forest/60 transition-colors shadow-sm cursor-pointer ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {isUploading ? 'Uploading…' : '+ Upload Photo'}
           </label>
@@ -212,16 +206,16 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
         <div className="max-w-7xl mx-auto flex items-end justify-between">
           <div>
             {routeLabel && (
-              <p className={`text-sm font-medium drop-shadow-sm mb-1 ${photoUrl ? 'text-white/80' : 'text-ink-secondary/80'}`}>
+              <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage drop-shadow-sm mb-1">
                 {routeLabel}
               </p>
             )}
-            <h1 className={`font-display text-4xl drop-shadow-sm ${photoUrl ? 'text-white' : 'text-ink'}`}>
+            <h1 className="font-display text-[2rem] drop-shadow-sm text-[#E8DECE]">
               {trip.destination}
             </h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <StatusBadge status={phase} />
-              <span className={`text-sm font-medium drop-shadow-sm ${photoUrl ? 'text-white/80' : 'text-ink-secondary'}`}>
+              <span className="text-sm font-medium drop-shadow-sm text-[#E8DECE]/70">
                 {formatDateShort(trip.start_date)}
                 {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}
                 {endYear && `, ${endYear}`}
@@ -230,7 +224,7 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
           </div>
           <button
             onClick={onBack}
-            className="pointer-events-auto text-ink-secondary text-sm font-medium hover:text-ink transition-colors flex items-center gap-1 bg-white/40 backdrop-blur-sm px-3 py-1.5 rounded-xl ring-1 ring-black/5"
+            className="pointer-events-auto font-mono text-[10px] tracking-[0.1em] uppercase text-sage hover:text-[#E8DECE] transition-colors flex items-center gap-1 bg-forest/40 backdrop-blur-sm px-3 py-1.5 rounded-xl ring-1 ring-[#E8DECE]/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

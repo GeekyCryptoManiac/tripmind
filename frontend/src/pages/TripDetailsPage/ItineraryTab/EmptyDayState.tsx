@@ -56,12 +56,12 @@ export default function EmptyDayState({
   const isPartial = day > daysGenerated && daysGenerated > 0;
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-8">
+    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-8">
       <div className="text-center py-6">
         {/* Icon */}
         <div
           className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-            isPartial ? 'bg-amber-100 text-amber-600' : 'bg-brand-100 text-brand-600'
+            isPartial ? 'bg-amber-100 text-amber-600' : 'bg-terrain text-forest'
           }`}
         >
           {isPartial ? <AlertIcon /> : <CalendarIcon />}
@@ -92,7 +92,7 @@ export default function EmptyDayState({
           {isPartial ? (
             <button
               onClick={onManualAdd}
-              className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors"
             >
               <PlusIcon />
               Add Days Manually
@@ -101,14 +101,14 @@ export default function EmptyDayState({
             <>
               <button
                 onClick={onGenerate}
-                className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors"
               >
                 <SparklesIcon />
                 Generate with AI
               </button>
               <button
                 onClick={onManualAdd}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white text-ink rounded-xl text-sm font-semibold ring-1 ring-surface-muted hover:bg-surface-bg transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-parchment text-forest rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors"
               >
                 <PlusIcon />
                 Manual Add

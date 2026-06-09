@@ -277,7 +277,7 @@ const handleDeleteActivity = async (activityId: number) => {
             onClick={handleRegenerate}
             disabled={isGenerating || isRegenerating}
             title="Clear all activities and regenerate the itinerary"
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ink-secondary bg-white ring-1 ring-black/[0.06] rounded-xl hover:bg-surface-bg hover:text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-sage bg-parchment border border-card-border rounded-xl hover:bg-terrain/20 hover:text-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isRegenerating ? (
               <div className="w-3.5 h-3.5 border-2 border-ink-tertiary border-t-ink rounded-full animate-spin" />
@@ -294,12 +294,12 @@ const handleDeleteActivity = async (activityId: number) => {
 
       {/* ── Generating state ──────────────────────────────── */}
       {isGenerating && (
-        <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-12 text-center">
-          <div className="w-12 h-12 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-ink mb-2">
+        <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-12 text-center">
+          <div className="w-12 h-12 border-2 border-terrain border-t-forest rounded-full animate-spin mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-forest mb-2">
             Generating your itinerary...
           </h3>
-          <p className="text-ink-secondary text-sm">
+          <p className="text-sage text-sm">
             Crafting the perfect {trip.duration_days}-day plan for {trip.destination}.
             This may take 20–40 seconds.
           </p>
@@ -396,11 +396,11 @@ const handleDeleteActivity = async (activityId: number) => {
       )}
 
       {/* ── Notes ─────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-ink">Trip Notes</h4>
+          <h4 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Trip Notes</h4>
           {saveStatus === 'saving' && (
-            <span className="text-xs text-ink-tertiary animate-pulse">Saving...</span>
+            <span className="text-xs text-sage animate-pulse">Saving...</span>
           )}
           {saveStatus === 'saved' && (
             <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>
@@ -413,7 +413,7 @@ const handleDeleteActivity = async (activityId: number) => {
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Add notes, reminders, or ideas for your trip..."
-          className="w-full bg-surface-bg border border-surface-muted rounded-xl p-3 text-sm text-ink placeholder-ink-tertiary focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent focus:bg-white resize-none transition-colors"
+          className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent focus:bg-parchment resize-none transition-colors"
           rows={4}
         />
       </div>

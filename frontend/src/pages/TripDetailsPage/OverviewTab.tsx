@@ -52,7 +52,7 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          className="w-2 h-2 rounded-full bg-ink-tertiary"
+          className="w-2 h-2 rounded-full bg-sage"
           animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
           transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
         />
@@ -120,7 +120,7 @@ const RefreshIcon = () => (
 
 // ── Alert severity config ─────────────────────────────────────
 const SEVERITY_STYLES: Record<AlertSeverity, { bg: string; border: string; icon: string; badge: string }> = {
-  info:     { bg: 'bg-brand-50',   border: 'border-brand-200',   icon: 'text-brand-500',   badge: 'bg-brand-100 text-brand-700'   },
+  info:     { bg: 'bg-terrain/30', border: 'border-card-border', icon: 'text-forest',      badge: 'bg-terrain text-[#3B6150]'    },
   warning:  { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-500',   badge: 'bg-amber-100 text-amber-700'   },
   critical: { bg: 'bg-rose-50',    border: 'border-rose-200',    icon: 'text-rose-500',     badge: 'bg-rose-100 text-rose-700'    },
 };
@@ -136,10 +136,10 @@ const CATEGORY_LABELS: Record<AlertCategory, string> = {
 
 // ── Recommendation category config ───────────────────────────
 const REC_STYLES: Record<RecommendationCategory, { bg: string; border: string; badge: string; label: string }> = {
-  must_see:   { bg: 'bg-brand-50',   border: 'border-brand-200',   badge: 'bg-brand-100 text-brand-700',    label: 'Must See'    },
-  food:       { bg: 'bg-amber-50',   border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-700',    label: 'Food & Drink'},
-  hidden_gem: { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700',label: 'Hidden Gem'  },
-  practical:  { bg: 'bg-surface-muted', border: 'border-surface-muted', badge: 'bg-white text-ink-secondary', label: 'Practical' },
+  must_see:   { bg: 'bg-terrain/30', border: 'border-card-border', badge: 'bg-terrain text-[#3B6150]',    label: 'Must See'    },
+  food:       { bg: 'bg-amber-50',   border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-700',  label: 'Food & Drink'},
+  hidden_gem: { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700', label: 'Hidden Gem' },
+  practical:  { bg: 'bg-terrain/20', border: 'border-card-border', badge: 'bg-terrain text-[#3B6150]',    label: 'Practical'  },
 };
 
 // ── Alert severity icon ───────────────────────────────────────
@@ -206,17 +206,17 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-amber-600"><AlertIcon /></div>
-          <h3 className="text-base font-semibold text-ink">Travel Alerts & News</h3>
+          <div className="text-gold"><AlertIcon /></div>
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Alerts & News</h3>
         </div>
         <button
           onClick={() => fetchAlerts(true)}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ink-secondary hover:text-ink hover:bg-surface-bg rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-forest hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
         >
           <motion.span animate={loading ? { rotate: 360 } : { rotate: 0 }} transition={{ duration: 0.8, repeat: loading ? Infinity : 0, ease: 'linear' }}>
             <RefreshIcon />
@@ -309,17 +309,17 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-brand-600"><SparklesIcon /></div>
-          <h3 className="text-base font-semibold text-ink">AI Recommendations</h3>
+          <div className="text-forest"><SparklesIcon /></div>
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">AI Recommendations</h3>
         </div>
         <button
           onClick={() => fetchRecs(true)}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ink-secondary hover:text-ink hover:bg-surface-bg rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-forest hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
         >
           <motion.span animate={loading ? { rotate: 360 } : { rotate: 0 }} transition={{ duration: 0.8, repeat: loading ? Infinity : 0, ease: 'linear' }}>
             <RefreshIcon />
@@ -390,8 +390,8 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
       )}
 
       {/* About This Trip */}
-      <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
-        <h3 className="text-base font-semibold text-ink mb-2">About This Trip</h3>
+      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-2">About This Trip</h3>
         <p className="text-ink-secondary text-sm leading-relaxed">
           {`Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${
             trip.destination
@@ -400,8 +400,8 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
       </div>
 
       {/* Key Details */}
-      <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
-        <h3 className="text-base font-semibold text-ink mb-4">Key Details</h3>
+      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4">Key Details</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: 'Destination', value: trip.destination, Icon: GlobeIcon },
@@ -409,34 +409,34 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
             { label: 'Budget', value: trip.budget ? `$${trip.budget.toLocaleString()}` : 'Not set', Icon: CurrencyIcon },
             { label: 'Travelers', value: `${trip.travelers_count}`, Icon: UsersIcon },
           ].map(({ label, value, Icon }) => (
-            <div key={label} className="bg-surface-bg rounded-xl p-4">
-              <div className="flex items-center gap-1.5 text-ink-tertiary mb-1">
+            <div key={label} className="bg-terrain/30 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 text-sage mb-1">
                 <Icon />
-                <p className="text-xs uppercase tracking-wide">{label}</p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em]">{label}</p>
               </div>
-              <p className="text-sm font-semibold text-ink">{value}</p>
+              <p className="text-sm font-semibold text-forest">{value}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Travel Dates */}
-      <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-ink-tertiary"><CalendarIcon /></div>
-          <h3 className="text-base font-semibold text-ink">Travel Dates</h3>
+          <div className="text-sage"><CalendarIcon /></div>
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Dates</h3>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <div className="flex-1 bg-surface-bg rounded-xl p-3 text-center">
-            <p className="text-xs text-ink-tertiary uppercase mb-1">Departure</p>
-            <p className="font-semibold text-ink">{formatDate(trip.start_date)}</p>
+          <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
+            <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Departure</p>
+            <p className="font-semibold text-forest">{formatDate(trip.start_date)}</p>
           </div>
-          <svg className="w-5 h-5 text-ink-tertiary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-sage flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
-          <div className="flex-1 bg-surface-bg rounded-xl p-3 text-center">
-            <p className="text-xs text-ink-tertiary uppercase mb-1">Return</p>
-            <p className="font-semibold text-ink">{formatDate(trip.end_date)}</p>
+          <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
+            <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Return</p>
+            <p className="font-semibold text-forest">{formatDate(trip.end_date)}</p>
           </div>
         </div>
       </div>

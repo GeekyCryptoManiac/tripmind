@@ -205,20 +205,20 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
   };
 
   const inputClass =
-    'w-full border border-surface-muted rounded-xl px-3 py-2.5 text-sm bg-surface-bg text-ink ' +
-    'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white';
+    'w-full border border-card-border rounded-xl px-3 py-2.5 text-sm bg-terrain/20 text-ink ' +
+    'focus:outline-none focus:ring-2 focus:ring-forest focus:bg-parchment placeholder-sage';
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6 space-y-5">
+    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-ink-tertiary">
+          <div className="text-sage">
             <ReceiptIcon />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-ink">Expense Tracker</h3>
-            <p className="text-xs text-ink-tertiary mt-0.5">
+            <h3 className="text-base font-semibold text-forest">Expense Tracker</h3>
+            <p className="text-xs text-sage mt-0.5">
               {expenses.length === 0
                 ? 'No expenses logged yet'
                 : `${expenses.length} expense${expenses.length !== 1 ? 's' : ''} logged`}
@@ -226,12 +226,12 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {saveStatus === 'saving' && <span className="text-xs text-ink-tertiary animate-pulse">Saving…</span>}
+          {saveStatus === 'saving' && <span className="text-xs text-sage animate-pulse">Saving…</span>}
           {saveStatus === 'saved'  && <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>}
           {saveStatus === 'error'  && <span className="text-xs text-amber-600">Failed to save</span>}
           <button
             onClick={() => setFormOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-xl transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest hover:bg-forest/80 text-parchment text-sm font-medium rounded-xl transition-colors"
           >
             {formOpen ? <XIcon /> : <PlusIcon />}
             {formOpen ? 'Cancel' : 'Add'}
@@ -243,21 +243,21 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
       {budget > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1.5 text-sm">
-            <span className="text-ink-secondary font-medium">
+            <span className="text-sage font-medium">
               Spent:{' '}
-              <span className={overBudget ? 'text-amber-600' : 'text-ink'}>
+              <span className={overBudget ? 'text-amber-600' : 'text-forest'}>
                 ${totalSpentUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {expenses.some((e) => e.currency !== 'USD') && (
-                <span className="text-xs text-ink-tertiary ml-1">(USD equiv.)</span>
+                <span className="text-xs text-sage ml-1">(USD equiv.)</span>
               )}
             </span>
-            <span className="text-ink-tertiary">Budget: ${budget.toLocaleString()}</span>
+            <span className="text-sage">Budget: ${budget.toLocaleString()}</span>
           </div>
-          <div className="w-full bg-surface-muted rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-[#DDD8CE] rounded-full h-2.5 overflow-hidden">
             <motion.div
               className={`h-2.5 rounded-full transition-colors ${
-                overBudget ? 'bg-amber-500' : spentPct >= 80 ? 'bg-amber-400' : 'bg-brand-500'
+                overBudget ? 'bg-amber-500' : spentPct >= 80 ? 'bg-amber-400' : 'bg-gold'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${spentPct}%` }}
@@ -265,13 +265,13 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
             />
           </div>
           <div className="flex items-center justify-between mt-1.5">
-            <span className={`text-xs font-medium ${overBudget ? 'text-amber-600' : 'text-ink-tertiary'}`}>
+            <span className={`text-xs font-medium ${overBudget ? 'text-amber-600' : 'text-sage'}`}>
               {overBudget
                 ? `⚠ Over budget by $${(totalSpentUSD - budget).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : `${spentPct}% used`}
             </span>
             {!overBudget && budget > 0 && (
-              <span className="text-xs text-ink-tertiary">
+              <span className="text-xs text-sage">
                 ${(budget - totalSpentUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining
               </span>
             )}
@@ -281,14 +281,14 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
       {/* No budget — show total */}
       {budget === 0 && expenses.length > 0 && (
-        <div className="bg-surface-bg rounded-xl px-4 py-3 flex items-center justify-between">
-          <span className="text-sm text-ink-secondary">
+        <div className="bg-terrain/30 rounded-xl px-4 py-3 flex items-center justify-between">
+          <span className="text-sm text-sage">
             Total spent
             {expenses.some((e) => e.currency !== 'USD') && (
-              <span className="text-xs text-ink-tertiary ml-1">(USD equiv.)</span>
+              <span className="text-xs text-sage ml-1">(USD equiv.)</span>
             )}
           </span>
-          <span className="text-base font-bold text-ink">
+          <span className="text-base font-bold text-forest">
             ${totalSpentUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
@@ -304,12 +304,12 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border border-brand-200 bg-brand-50 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-brand-700 uppercase tracking-wide">New Expense</p>
+            <div className="border border-card-border bg-terrain/20 rounded-xl p-4 space-y-3">
+              <p className="font-mono text-[11px] uppercase text-sage tracking-[0.1em]">New Expense</p>
 
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs font-medium text-ink-tertiary mb-1 block">Amount *</label>
+                  <label className="text-xs font-medium text-sage mb-1 block">Amount *</label>
                   <input
                     type="number"
                     min={0}
@@ -322,7 +322,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                   />
                 </div>
                 <div className="w-24">
-                  <label className="text-xs font-medium text-ink-tertiary mb-1 block">Currency</label>
+                  <label className="text-xs font-medium text-sage mb-1 block">Currency</label>
                   <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputClass}>
                     {CURRENCIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -332,7 +332,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
               </div>
 
               <div>
-                <label className="text-xs font-medium text-ink-tertiary mb-1 block">Description *</label>
+                <label className="text-xs font-medium text-sage mb-1 block">Description *</label>
                 <input
                   type="text"
                   value={description}
@@ -345,7 +345,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs font-medium text-ink-tertiary mb-1 block">Category</label>
+                  <label className="text-xs font-medium text-sage mb-1 block">Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
@@ -357,7 +357,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs font-medium text-ink-tertiary mb-1 block">Date</label>
+                  <label className="text-xs font-medium text-sage mb-1 block">Date</label>
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
                 </div>
               </div>
@@ -365,7 +365,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
               <button
                 onClick={handleAdd}
                 disabled={saveStatus === 'saving' || !amount || parseFloat(amount) <= 0 || !description.trim()}
-                className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-300 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-2.5 bg-forest hover:bg-forest/80 disabled:bg-forest/40 text-parchment text-sm font-semibold rounded-xl transition-colors"
               >
                 {saveStatus === 'saving' ? 'Adding…' : 'Add Expense'}
               </button>
@@ -377,7 +377,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
       {/* Category breakdown */}
       {categoryTotals.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-ink-tertiary uppercase tracking-wide mb-2">By Category</p>
+          <p className="font-mono text-[11px] uppercase text-sage tracking-[0.1em] mb-2">By Category</p>
           <div className="flex flex-wrap gap-2">
             {categoryTotals.map((cat) => (
               <div key={cat.value} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${cat.badgeBg}`}>
@@ -397,7 +397,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
       {/* Expense list */}
       {expenses.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-ink-tertiary uppercase tracking-wide mb-2">Recent Expenses</p>
+          <p className="font-mono text-[11px] uppercase text-sage tracking-[0.1em] mb-2">Recent Expenses</p>
           <ul className="space-y-2">
             <AnimatePresence initial={false}>
               {expenses.map((expense) => {
@@ -412,19 +412,19 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                     exit={{ opacity: 0, x: 10, height: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-bg hover:bg-surface-muted rounded-xl group transition-colors">
-                      <div className="text-ink-tertiary flex-shrink-0">
+                    <div className="flex items-center gap-3 px-3 py-2.5 bg-terrain/20 hover:bg-terrain/30 rounded-xl group transition-colors">
+                      <div className="text-sage flex-shrink-0">
                         <Icon />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink truncate">{expense.description}</p>
+                        <p className="text-sm font-medium text-forest truncate">{expense.description}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cat.badgeBg} ${cat.badgeText}`}>
                             {cat.label}
                           </span>
                           {expense.date && (
-                            <span className="text-[11px] text-ink-tertiary">
+                            <span className="text-[11px] text-sage">
                               {new Date(expense.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                             </span>
                           )}
@@ -432,7 +432,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                       </div>
 
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-ink">
+                        <p className="text-sm font-bold text-forest">
                           {expense.currency}{' '}
                           {Number(expense.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
@@ -440,7 +440,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
                       <button
                         onClick={() => handleDelete(expense.id)}
-                        className="flex-shrink-0 text-ink-tertiary hover:text-amber-600 transition-colors opacity-0 group-hover:opacity-100 ml-1"
+                        className="flex-shrink-0 text-sage hover:text-amber-600 transition-colors opacity-0 group-hover:opacity-100 ml-1"
                         title="Delete expense"
                       >
                         <XIcon />
@@ -457,13 +457,13 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
       {/* Empty state */}
       {expenses.length === 0 && !formOpen && (
         <div className="text-center py-6">
-          <div className="w-16 h-16 rounded-full bg-surface-bg flex items-center justify-center mx-auto mb-3">
-            <div className="text-ink-tertiary">
+          <div className="w-16 h-16 rounded-full bg-terrain/30 flex items-center justify-center mx-auto mb-3">
+            <div className="text-sage">
               <ReceiptIcon className="w-8 h-8" />
             </div>
           </div>
-          <p className="text-sm font-medium text-ink-secondary">No expenses logged yet</p>
-          <p className="text-xs text-ink-tertiary mt-1">
+          <p className="text-sm font-medium text-sage">No expenses logged yet</p>
+          <p className="text-xs text-sage mt-1">
             Tap <strong>+ Add</strong> to record your first expense
           </p>
         </div>
