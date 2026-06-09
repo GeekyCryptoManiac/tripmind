@@ -2,21 +2,17 @@
  * AuthPage — Login + Register
  *
  * Single page with a toggle between Login and Register.
- * Matches the app's warm editorial design system:
- *   - DM Serif Display heading
- *   - surface-bg background with white card
- *   - brand indigo primary button
- *   - ring-1 ring-black/[0.03] shadow-sm card style
+ * Cartographic Editorial design system applied.
+ * Authenticated users are redirected to /trips immediately.
  *
  * On success, calls UserContext.login() and navigates to /trips.
  */
 
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { apiService } from '../services/api';
-import logoAsset from '../assets/tripMind_logo.png';
 
 // ── SVG icons ─────────────────────────────────────────────────
 const EyeIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -75,9 +71,9 @@ function InputField({
 }: InputFieldProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-ink mb-1.5">{label}</label>
+      <label className="block font-mono text-[9px] uppercase tracking-[0.1em] text-sage mb-[5px]">{label}</label>
       <div className="relative">
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none">
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sage pointer-events-none">
           {icon}
         </div>
         <input
@@ -87,7 +83,7 @@ function InputField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           disabled={disabled}
-          className="w-full pl-11 pr-11 py-3 bg-surface-bg border border-surface-muted rounded-xl text-sm text-ink placeholder-ink-tertiary focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent focus:bg-white disabled:opacity-60 transition-colors"
+          className="w-full pl-11 pr-11 py-3 bg-parchment border border-[#DDD8CE] rounded-[8px] text-sm text-[#3D3628] placeholder-sage focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent focus:bg-white disabled:opacity-60 transition-colors"
         />
         {rightSlot && (
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -105,7 +101,7 @@ type Mode = 'login' | 'register';
 
 const AuthPage: FC = () => {
   const navigate = useNavigate();
-  const { login } = useUser();
+  const { login, userId } = useUser();
 
   const [mode, setMode] = useState<Mode>('login');
 
@@ -118,6 +114,10 @@ const AuthPage: FC = () => {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
+
+  if (userId) {
+    return <Navigate to="/trips" replace />;
+  }
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -162,7 +162,6 @@ const AuthPage: FC = () => {
       // Navigate to trips page
       navigate('/trips', { replace: true });
     } catch (err: unknown) {
-      // Try to extract a useful error message from the API response
       const axiosError = err as { response?: { data?: { detail?: string } } };
       const detail = axiosError?.response?.data?.detail;
 
@@ -179,25 +178,29 @@ const AuthPage: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-bg flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-parchment flex flex-col items-center justify-center px-4 py-12 relative">
+      <div className="absolute inset-0 carto-grid pointer-events-none" />
 
-      {/* Logo */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-11 h-11 rounded-xl overflow-hidden">
-          <img src={logoAsset} alt="TripMind" className="w-full h-full object-cover" />
+      {/* Logo block */}
+      <div className="flex items-center gap-3 mb-8 relative">
+        <div className="w-10 h-10 bg-forest rounded-[8px] flex items-center justify-center">
+          <div
+            className="w-3 h-3 bg-gold rounded-full"
+            style={{ boxShadow: '0 0 0 3px rgba(181,144,84,0.3)' }}
+          />
         </div>
-        <span className="font-display text-2xl text-ink font-semibold">TripMind</span>
+        <span className="font-display text-[20px] text-forest">TripMind</span>
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl ring-1 ring-black/[0.05] shadow-modal w-full max-w-md p-8">
+      <div className="bg-white border border-[#DDD8CE] rounded-[16px] w-full max-w-md p-8 relative">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-display text-3xl text-ink mb-2">
+          <h1 className="font-display text-[24px] text-forest mb-2">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
-          <p className="text-sm text-ink-secondary">
+          <p className="font-sans text-[12px] text-[#7A8580]">
             {mode === 'login'
               ? 'Sign in to continue planning your trips'
               : 'Start planning your next adventure'}
@@ -205,15 +208,15 @@ const AuthPage: FC = () => {
         </div>
 
         {/* Mode toggle */}
-        <div className="flex bg-surface-bg rounded-xl p-1 mb-7 ring-1 ring-surface-muted">
+        <div className="flex bg-parchment border border-[#DDD8CE] rounded-[8px] p-1 mb-7">
           {(['login', 'register'] as const).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              className={`flex-1 py-2 rounded-[6px] font-mono text-[10px] uppercase tracking-[0.08em] transition-all duration-200 ${
                 mode === m
-                  ? 'bg-white text-ink shadow-card ring-1 ring-black/[0.05]'
-                  : 'text-ink-secondary hover:text-ink'
+                  ? 'bg-forest text-[#E8DECE]'
+                  : 'text-sage hover:text-[#3D3628]'
               }`}
             >
               {m === 'login' ? 'Log in' : 'Register'}
@@ -264,7 +267,7 @@ const AuthPage: FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="text-ink-tertiary hover:text-ink transition-colors"
+                className="text-sage hover:text-[#3D3628] transition-colors"
                 tabIndex={-1}
               >
                 {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
@@ -274,8 +277,8 @@ const AuthPage: FC = () => {
 
           {/* Error */}
           {error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
-              <p className="text-sm text-rose-700">{error}</p>
+            <div className="bg-[#FEF3C7] border border-[#D97706] rounded-[8px] px-4 py-3">
+              <p className="text-sm text-[#7A6540]">{error}</p>
             </div>
           )}
 
@@ -283,11 +286,11 @@ const AuthPage: FC = () => {
           <button
             type="submit"
             disabled={isLoading || !email || !password}
-            className="w-full py-3 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:bg-brand-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3 bg-forest text-[#E8DECE] rounded-[8px] font-mono text-[10px] uppercase tracking-[0.1em] hover:bg-forest/80 disabled:bg-[#DDD8CE] disabled:text-sage disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mt-2"
           >
             {isLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-[#E8DECE]/30 border-t-[#E8DECE] rounded-full animate-spin" />
                 {mode === 'login' ? 'Signing in...' : 'Creating account...'}
               </>
             ) : (
@@ -297,21 +300,21 @@ const AuthPage: FC = () => {
         </form>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-ink-tertiary mt-6">
+        <p className="text-center text-sage text-[11px] mt-6">
           {mode === 'login'
             ? "Don't have an account? "
             : 'Already have an account? '}
           <button
             onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-            className="text-brand-600 hover:text-brand-700 font-medium transition-colors"
+            className="text-gold hover:text-forest font-medium transition-colors"
           >
             {mode === 'login' ? 'Register' : 'Log in'}
           </button>
         </p>
       </div>
 
-      {/* Decorative tagline */}
-      <p className="text-xs text-ink-tertiary mt-6">
+      {/* Tagline */}
+      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-sage mt-6 relative">
         Your next adventure is one conversation away.
       </p>
     </div>
