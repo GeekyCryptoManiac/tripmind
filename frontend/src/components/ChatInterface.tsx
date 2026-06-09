@@ -240,7 +240,7 @@ export default function ChatInterface({
   const showEmptyState = messages.length === 1 && !isLoading;
 
   return (
-    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-gradient-to-br from-chat-bg to-purple-100`}>
+    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-parchment`}>
       
       {/* ── Messages ───────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -249,13 +249,13 @@ export default function ChatInterface({
           {/* Empty state — centered welcome (full-page only) */}
           {showEmptyState && !embedded && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-              <div className="w-16 h-16 rounded-full bg-chat-avatar flex items-center justify-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-terrain border border-card-border flex items-center justify-center mb-6">
                 <img src={logoAsset} alt="TripMind AI" className="w-15 h-15 object-contain" />
               </div>
               <h1 className="text-4xl font-semibold text-ink mb-3">
-                How can we <span className="text-purple-600">assist</span> you today?
+                How can we <span className="text-forest">assist</span> you today?
               </h1>
-              <p className="text-ink-secondary max-w-md leading-relaxed">
+              <p className="text-sage max-w-md leading-relaxed">
                 {chatType === 'trip' && tripContext
                   ? `Get personalized help for your ${tripContext.destination} trip. Ask about itineraries, budgets, bookings, or anything else.`
                   : "Tell me where you'd like to go. I'll build your itinerary, manage your budget, and keep every detail organized."}
@@ -272,8 +272,8 @@ export default function ChatInterface({
               {/* Avatar */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${
                 msg.role === 'user'
-                  ? 'bg-purple-200 text-purple-800'
-                  : 'bg-chat-avatar text-white'
+                  ? 'bg-forest text-parchment'
+                  : 'bg-terrain border border-card-border'
               }`}>
                 {msg.role === 'user' ? 'U' : <img 
                   src={logoAsset} 
@@ -286,15 +286,15 @@ export default function ChatInterface({
               <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[70%]`}>
                 <div className={`rounded-2xl px-5 py-3 ${
                   msg.role === 'user'
-                    ? 'bg-chat-user text-ink'
-                    : 'bg-chat-ai text-ink shadow-sm ring-1 ring-black/5'
+                    ? 'bg-forest text-parchment'
+                    : 'bg-terrain/30 border border-card-border text-ink'
                 }`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {renderMessageContent(msg.content)}
                   </p>
                 </div>
                 {/* Timestamp */}
-                <p className="text-xs text-ink-tertiary mt-1.5 px-2">
+                <p className="font-mono text-[9px] text-sage mt-1.5 px-2">
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
                 {/* Suggestion chips — shown below the first assistant message only */}
@@ -305,7 +305,7 @@ export default function ChatInterface({
                         key={prompt}
                         onClick={() => handleSendText(prompt)}
                         disabled={isLoading}
-                        className="text-xs px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 hover:border-purple-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-full bg-terrain/30 text-[#3B6150] border border-card-border hover:bg-terrain hover:border-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {prompt}
                       </button>
@@ -319,18 +319,14 @@ export default function ChatInterface({
           {/* Typing indicator */}
           {isLoading && (
             <div className="flex gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-chat-avatar flex items-center justify-center flex-shrink-0">
-                <span className="text-sm"><img 
-                  src={logoAsset} 
-                  alt="TripMind AI" 
-                  className="w-15 h-15 object-contain" // Slightly smaller than the container for "breathing room"
-                /></span>
+              <div className="w-10 h-10 rounded-full bg-terrain border border-card-border flex items-center justify-center flex-shrink-0">
+                <img src={logoAsset} alt="TripMind AI" className="w-15 h-15 object-contain" />
               </div>
-              <div className="bg-chat-ai rounded-2xl px-5 py-3 shadow-sm ring-1 ring-black/5">
+              <div className="bg-terrain/30 border border-card-border rounded-2xl px-5 py-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-ink-tertiary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-2 h-2 bg-sage rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-sage rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-sage rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
               </div>
             </div>
@@ -348,17 +344,17 @@ export default function ChatInterface({
       </div>
 
       {/* ── Input bar (fixed bottom) ───────────────────────── */}
-      <div className="border-t border-purple-200 bg-white/80 backdrop-blur-md p-4">
+      <div className="border-t border-card-border bg-parchment/90 backdrop-blur-md p-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {/* Left icon button */}
-          <button className="w-12 h-12 rounded-full bg-ink flex items-center justify-center flex-shrink-0 text-white hover:bg-ink/80 transition-colors">
+          <button className="w-12 h-12 rounded-full bg-forest flex items-center justify-center flex-shrink-0 text-parchment hover:bg-forest/80 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </button>
 
           {/* Input */}
-          <div className="flex-1 bg-chat-input rounded-full px-5 py-3 flex items-center gap-3 ring-1 ring-purple-200">
+          <div className="flex-1 bg-terrain/20 rounded-full px-5 py-3 flex items-center gap-3 border border-card-border">
             <textarea
               ref={inputRef}
               value={input}
@@ -369,7 +365,7 @@ export default function ChatInterface({
                   ? `Ask about your ${tripContext.destination} trip...`
                   : 'Type your prompt here'
               }
-              className="flex-1 resize-none bg-transparent text-sm text-ink placeholder-ink-tertiary focus:outline-none"
+              className="flex-1 resize-none bg-transparent text-sm text-ink placeholder-sage focus:outline-none"
               rows={1}
               disabled={isLoading}
             />
@@ -387,7 +383,7 @@ export default function ChatInterface({
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="w-12 h-12 rounded-full bg-chat-send flex items-center justify-center flex-shrink-0 text-ink hover:bg-purple-400 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="w-12 h-12 rounded-full bg-forest flex items-center justify-center flex-shrink-0 text-parchment hover:bg-forest/80 disabled:bg-forest/40 disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

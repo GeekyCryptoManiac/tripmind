@@ -55,15 +55,8 @@ function AnimatedRoutes() {
           {/* Public route — login/register */}
           <Route path="/auth" element={<AuthRoute />} />
 
-          {/* Protected routes — require auth */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Public route — homepage handles its own auth redirect */}
+          <Route path="/" element={<HomePage />} />
           <Route
             path="/trips"
             element={
@@ -103,7 +96,7 @@ function AppShell() {
   const isAuthPage = location.pathname === '/auth';
 
   return (
-    <div className="min-h-screen bg-surface-bg">
+    <div className="min-h-screen bg-parchment">
       {!isAuthPage && <Navbar />}
       <AnimatedRoutes />
     </div>

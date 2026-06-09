@@ -68,16 +68,19 @@ const ClipboardIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-// Status badge config (matching TripCard)
-const STATUS_CONFIG = {
-  planning:  { label: 'Planning',  dot: 'bg-amber-400',  badge: 'bg-amber-50  text-amber-700  ring-amber-200'  },
-  booked:    { label: 'Booked',    dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  completed: { label: 'Completed', dot: 'bg-brand-500',   badge: 'bg-brand-50  text-brand-700  ring-brand-200'  },
-} as const;
+// Status badge config (cartographic)
+const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  planning:  { label: 'Planning',  dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
+  'pre-trip': { label: 'Pre-Trip', dot: 'bg-gold',  badge: 'bg-terrain text-ink ring-card-border' },
+  booked:    { label: 'Booked',   dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
+  active:    { label: 'Active',   dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
+  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
+  cancelled: { label: 'Cancelled', dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
+};
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? {
-    label: status, dot: 'bg-gray-400', badge: 'bg-gray-50 text-gray-600 ring-gray-200',
+  const cfg = STATUS_CONFIG[status] ?? {
+    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
@@ -91,7 +94,7 @@ export default function TripSummaryCard({
   trip,
   phase,
   progressPct,
-  progressColor,
+  progressColor: _progressColor,
   onChatClick,
   onItineraryClick,
 }: TripSummaryCardProps) {
@@ -112,8 +115,8 @@ export default function TripSummaryCard({
 
   return (
     <div className="lg:w-80 xl:w-96 shrink-0">
-      <div className="lg:sticky lg:top-4 bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
-        <h3 className="text-base font-semibold text-ink mb-4 pb-3 border-b border-surface-muted">
+      <div className="lg:sticky lg:top-4 bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4 pb-3 border-b border-card-border">
           Trip Summary
         </h3>
 
@@ -126,16 +129,16 @@ export default function TripSummaryCard({
         <div className="space-y-4">
           {/* Dates */}
           <div className="flex items-start gap-3">
-            <div className="text-ink-tertiary flex-shrink-0">
+            <div className="text-sage flex-shrink-0">
               <CalendarIcon />
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">
+              <p className="text-sm font-medium text-forest">
                 {formatDateShort(trip.start_date)}
                 {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}
                 {endYear && `, ${endYear}`}
               </p>
-              <p className="text-xs text-ink-tertiary">
+              <p className="text-xs text-sage">
                 {trip.duration_days ? `${trip.duration_days} days` : 'Duration not set'}
               </p>
             </div>
@@ -143,27 +146,27 @@ export default function TripSummaryCard({
 
           {/* Budget */}
           <div className="flex items-start gap-3">
-            <div className="text-ink-tertiary flex-shrink-0">
+            <div className="text-sage flex-shrink-0">
               <CurrencyIcon />
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">
+              <p className="text-sm font-medium text-forest">
                 {trip.budget ? `$${trip.budget.toLocaleString()}` : 'No budget set'}
               </p>
-              <p className="text-xs text-ink-tertiary">Total budget</p>
+              <p className="text-xs text-sage">Total budget</p>
             </div>
           </div>
 
           {/* Travelers */}
           <div className="flex items-start gap-3">
-            <div className="text-ink-tertiary flex-shrink-0">
+            <div className="text-sage flex-shrink-0">
               <UsersIcon />
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">
+              <p className="text-sm font-medium text-forest">
                 {trip.travelers_count} {trip.travelers_count === 1 ? 'traveler' : 'travelers'}
               </p>
-              <p className="text-xs text-ink-tertiary">
+              <p className="text-xs text-sage">
                 {trip.budget && trip.travelers_count
                   ? `$${Math.round(trip.budget / trip.travelers_count).toLocaleString()} per person`
                   : 'Budget per person'}
@@ -173,42 +176,42 @@ export default function TripSummaryCard({
 
           {/* Destination / Route */}
           <div className="flex items-start gap-3">
-            <div className="text-ink-tertiary flex-shrink-0">
+            <div className="text-sage flex-shrink-0">
               <GlobeIcon />
             </div>
             <div>
-              <p className="text-sm font-medium text-ink">{routeLabel ?? trip.destination}</p>
-              <p className="text-xs text-ink-tertiary">{routeLabel ? 'Route' : 'Destination'}</p>
+              <p className="text-sm font-medium text-forest">{routeLabel ?? trip.destination}</p>
+              <p className="text-xs text-sage">{routeLabel ? 'Route' : 'Destination'}</p>
             </div>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="mt-5 pt-5 border-t border-surface-muted">
+        <div className="mt-5 pt-5 border-t border-card-border">
           <div className="flex justify-between items-center mb-2">
-            <p className="text-xs font-medium text-ink-tertiary">Trip Completion</p>
-            <p className="text-xs font-bold text-ink">{progressPct}%</p>
+            <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-sage">Trip Completion</p>
+            <p className="font-mono text-[9px] text-forest">{progressPct}%</p>
           </div>
-          <div className="h-2 bg-surface-muted rounded-full overflow-hidden">
+          <div className="h-[3px] bg-[#DDD8CE] rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%`, background: progressColor }}
+              className="h-full bg-gold rounded-full transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
             />
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="mt-5 pt-5 border-t border-surface-muted flex flex-col gap-2">
+        <div className="mt-5 pt-5 border-t border-card-border flex flex-col gap-2">
           <button
             onClick={onChatClick}
-            className="w-full px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors flex items-center justify-center gap-2"
           >
             <ChatIcon />
             Chat About This Trip
           </button>
           <button
             onClick={onItineraryClick}
-            className="w-full px-4 py-2.5 bg-white text-ink rounded-xl text-sm font-semibold ring-1 ring-surface-muted hover:bg-surface-bg transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 bg-parchment text-forest rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors flex items-center justify-center gap-2"
           >
             <ClipboardIcon />
             Plan Itinerary

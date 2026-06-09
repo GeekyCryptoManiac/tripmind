@@ -39,14 +39,14 @@ function formatDate(dateString: string | null): string {
 
 // Status config — tweak colours here if needed
 const STATUS_CONFIG = {
-  planning:  { label: 'Planning',  dot: 'bg-amber-400',  badge: 'bg-amber-50  text-amber-700  ring-amber-200'  },
-  booked:    { label: 'Booked',    dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  completed: { label: 'Completed', dot: 'bg-brand-500',   badge: 'bg-brand-50  text-brand-700  ring-brand-200'  },
+  planning:  { label: 'Planning',  dot: 'bg-sage',   badge: 'bg-terrain text-ink ring-card-border'  },
+  booked:    { label: 'Booked',    dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
+  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border'  },
 } as const;
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? {
-    label: status, dot: 'bg-gray-400', badge: 'bg-gray-50 text-gray-600 ring-gray-200',
+    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
@@ -75,7 +75,7 @@ const CardSkeleton: FC = () => (
 );
 
 const PageSkeleton: FC = () => (
-  <div className="min-h-screen bg-surface-bg">
+  <div className="min-h-screen bg-parchment">
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Header skeleton */}
       <div className="flex items-end justify-between mb-10">
@@ -122,7 +122,7 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
     transition={{ duration: 0.15 }}
     onClick={onClose}
   >
-    <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
+    <div className="absolute inset-0 bg-forest/50 backdrop-blur-sm" />
     <motion.div
       className="relative z-10 bg-white rounded-3xl shadow-modal max-w-md w-full overflow-hidden"
       initial={{ scale: 0.94, y: 20, opacity: 0 }}
@@ -155,10 +155,10 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
             <button
               key={trip.id}
               onClick={() => onSelect(trip)}
-              className="w-full text-left bg-surface-bg hover:bg-brand-50 border border-surface-muted hover:border-brand-200 rounded-2xl p-4 transition-all group"
+              className="w-full text-left bg-surface-bg hover:bg-terrain border border-surface-muted hover:border-sage rounded-2xl p-4 transition-all group"
             >
               <div className="flex items-center justify-between mb-1.5">
-                <p className="font-semibold text-ink group-hover:text-brand-700 transition-colors">
+                <p className="font-semibold text-ink group-hover:text-forest transition-colors">
                   {trip.destination}
                 </p>
                 <StatusBadge status={phase} />
@@ -186,15 +186,15 @@ const EmptyState: FC<{ onPlan: () => void }> = ({ onPlan }) => (
   >
     {/* Illustrated placeholder */}
     <div className="relative mb-8">
-      <div className="w-28 h-28 rounded-full bg-brand-50 flex items-center justify-center">
-        <svg className="w-14 h-14 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="w-28 h-28 rounded-full bg-terrain flex items-center justify-center">
+        <svg className="w-14 h-14 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
       {/* Floating dots for decoration */}
-      <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-amber-300 opacity-70" />
-      <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-emerald-300 opacity-70" />
+      <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gold opacity-70" />
+      <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-sage opacity-70" />
     </div>
 
     <h2 className="font-display text-2xl text-ink mb-2">No trips yet</h2>
@@ -203,7 +203,7 @@ const EmptyState: FC<{ onPlan: () => void }> = ({ onPlan }) => (
     </p>
     <button
       onClick={onPlan}
-      className="inline-flex items-center gap-2 bg-ink text-white px-6 py-3 rounded-2xl font-medium hover:bg-ink/80 transition-colors"
+      className="inline-flex items-center gap-2 bg-forest text-parchment px-6 py-3 rounded-2xl font-medium hover:bg-forest/80 transition-colors"
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -217,7 +217,7 @@ const EmptyState: FC<{ onPlan: () => void }> = ({ onPlan }) => (
 const StatChip: FC<{ label: string; count: number; color: string }> = ({ label, count, color }) => (
   <div className="bg-white rounded-2xl p-5 shadow-card flex items-center justify-between">
     <div>
-      <p className="text-xs text-ink-tertiary uppercase tracking-wide mb-1">{label}</p>
+      <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-1">{label}</p>
       <p className={`text-3xl font-display ${color}`}>{count}</p>
     </div>
   </div>
@@ -275,7 +275,7 @@ const TripsPage: FC = () => {
   // ── Error ───────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-surface-bg flex items-center justify-center">
+      <div className="min-h-screen bg-parchment flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-sm text-center">
           <div className="flex justify-center mb-3">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +297,7 @@ const TripsPage: FC = () => {
 
   // ── Main render ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-surface-bg">
+    <div className="min-h-screen bg-parchment">
       <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* ── Page header ─────────────────────────────────── */}
@@ -308,10 +308,10 @@ const TripsPage: FC = () => {
           className="flex items-end justify-between mb-8"
         >
           <div>
-            <p className="text-xs font-medium text-ink-tertiary uppercase tracking-widest mb-1">
+            <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-1">
               Your travel journal
             </p>
-            <h1 className="font-display text-4xl text-ink">My Trips</h1>
+            <h1 className="font-display text-4xl text-forest">My Trips</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -324,7 +324,7 @@ const TripsPage: FC = () => {
                     onClick={() => setViewMode(mode)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       viewMode === mode
-                        ? 'bg-ink text-white shadow-sm'
+                        ? 'bg-forest text-parchment shadow-sm'
                         : 'text-ink-secondary hover:text-ink'
                     }`}
                   >
@@ -352,7 +352,7 @@ const TripsPage: FC = () => {
 
             <button
               onClick={() => setShowNewTrip(true)}
-              className="inline-flex items-center gap-2 bg-ink text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 bg-forest text-parchment px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -370,13 +370,13 @@ const TripsPage: FC = () => {
             transition={{ duration: 0.3, delay: 0.08 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"
           >
-            <div className="bg-ink rounded-2xl p-5 shadow-card">
-              <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Total</p>
-              <p className="text-3xl font-display text-white">{trips.length}</p>
+            <div className="bg-forest rounded-2xl p-5 shadow-card">
+              <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-parchment/50 mb-1">Total</p>
+              <p className="text-3xl font-display text-parchment">{trips.length}</p>
             </div>
-            <StatChip label="Planning"  count={tripCounts.planning}  color="text-amber-500" />
-            <StatChip label="Booked"    count={tripCounts.booked}    color="text-emerald-600" />
-            <StatChip label="Completed" count={tripCounts.completed} color="text-brand-600" />
+            <StatChip label="Planning"  count={tripCounts.planning}  color="text-sage" />
+            <StatChip label="Booked"    count={tripCounts.booked}    color="text-gold" />
+            <StatChip label="Completed" count={tripCounts.completed} color="text-forest" />
           </motion.div>
         )}
 
@@ -396,10 +396,10 @@ const TripsPage: FC = () => {
 
               {/* ── Overview card ───────────────────────────── */}
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
-                <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-1">
+                <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-1">
                   Your Travel Journal
                 </p>
-                <p className="text-5xl font-display text-ink mb-4">{trips.length}</p>
+                <p className="text-5xl font-display text-forest mb-4">{trips.length}</p>
                 <p className="text-xs text-ink-secondary">
                   {trips.length === 1 ? 'trip' : 'trips'} planned
                 </p>
@@ -407,14 +407,14 @@ const TripsPage: FC = () => {
 
               {/* ── Status breakdown ────────────────────────── */}
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
-                <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-4">
+                <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-4">
                   Trip Status
                 </p>
                 <div className="space-y-3">
                   {[
-                    { status: 'planning',  count: tripCounts.planning,  color: 'bg-amber-400',   label: 'Planning'  },
-                    { status: 'booked',    count: tripCounts.booked,    color: 'bg-emerald-400', label: 'Booked'    },
-                    { status: 'completed', count: tripCounts.completed, color: 'bg-brand-500',   label: 'Completed' },
+                    { status: 'planning',  count: tripCounts.planning,  color: 'bg-sage',   label: 'Planning'  },
+                    { status: 'booked',    count: tripCounts.booked,    color: 'bg-gold',   label: 'Booked'    },
+                    { status: 'completed', count: tripCounts.completed, color: 'bg-forest', label: 'Completed' },
                   ].map(({ status, count, color, label }) => {
                     const percentage = trips.length > 0
                       ? Math.round((count / trips.length) * 100)
@@ -443,7 +443,7 @@ const TripsPage: FC = () => {
 
               {/* ── Legend ──────────────────────────────────── */}
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
-                <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-4">Legend</p>
+                <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-4">Legend</p>
                 <MapLegend
                   planningCount={tripCounts.planning}
                   bookedCount={tripCounts.booked}
@@ -453,7 +453,7 @@ const TripsPage: FC = () => {
 
               {/* ── Recent trips ────────────────────────────── */}
               <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-card p-6 ring-1 ring-black/5">
-                <p className="text-xs font-medium text-ink-tertiary uppercase tracking-wide mb-4">Recent</p>
+                <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-4">Recent</p>
                 <div className="space-y-3">
                   {trips.slice(0, 4).map((trip) => {
                     // Phase already computed in tripPhases — reuse it
@@ -466,15 +466,15 @@ const TripsPage: FC = () => {
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            phase === 'planning'  ? 'bg-amber-400'   :
-                            phase === 'completed' ? 'bg-brand-500'   :
-                                                    'bg-emerald-400'
+                            phase === 'planning'  ? 'bg-sage'   :
+                            phase === 'completed' ? 'bg-forest' :
+                                                    'bg-gold'
                           }`} />
-                          <span className="text-sm text-ink font-medium truncate group-hover:text-brand-600 transition-colors">
+                          <span className="text-sm text-ink font-medium truncate group-hover:text-forest transition-colors">
                             {trip.destination}
                           </span>
                         </div>
-                        <svg className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-brand-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-forest flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
@@ -489,7 +489,7 @@ const TripsPage: FC = () => {
 
             {/* Map — full bleed on the right */}
             <div className="lg:col-span-3">
-              <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+              <div className="rounded-2xl overflow-hidden border border-card-border">
                 <WorldMap trips={trips} onCountryClick={handleCountryClick} />
               </div>
             </div>

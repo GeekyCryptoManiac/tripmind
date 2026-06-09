@@ -68,12 +68,12 @@ export default function ActivityTimeline({
 };
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6">
+    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
 
       {/* Day header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex-shrink-0 w-12 h-12 bg-forest rounded-full flex items-center justify-center text-parchment font-bold text-lg">
             {day.day}
           </div>
           <div>
@@ -82,7 +82,7 @@ export default function ActivityTimeline({
                 {day.title || `Day ${day.day}`}
               </h3>
               {cityName && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-100">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-terrain text-forest border border-card-border">
                   {cityName}
                 </span>
               )}
@@ -98,7 +98,7 @@ export default function ActivityTimeline({
       {day.activities.length > 0 ? (
         <div className="relative pl-20">
           {/* Vertical line */}
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-brand-200" />
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-card-border" />
 
           {/* Activity cards */}
           <motion.div
@@ -128,9 +128,9 @@ export default function ActivityTimeline({
             <div className="mt-6">
               <button
                 onClick={() => onAddActivity(day.day)}
-                className="flex items-center gap-2 text-sm font-medium text-ink-tertiary hover:text-brand-600 transition-colors group"
+                className="flex items-center gap-2 text-sm font-medium text-sage hover:text-forest transition-colors group"
               >
-                <div className="w-8 h-8 rounded-full border-2 border-dashed border-surface-muted group-hover:border-brand-400 flex items-center justify-center transition-colors">
+                <div className="w-8 h-8 rounded-full border-2 border-dashed border-card-border group-hover:border-forest flex items-center justify-center transition-colors">
                   <PlusIcon className="w-3.5 h-3.5" />
                 </div>
                 Add activity
@@ -141,8 +141,8 @@ export default function ActivityTimeline({
       ) : (
         /* Empty day — inline empty state with add button */
         <div className="text-center py-8">
-          <div className="w-16 h-16 rounded-full bg-surface-bg flex items-center justify-center mx-auto mb-3">
-            <svg className="w-8 h-8 text-ink-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 rounded-full bg-terrain/30 flex items-center justify-center mx-auto mb-3">
+            <svg className="w-8 h-8 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -151,7 +151,7 @@ export default function ActivityTimeline({
           {onAddActivity && (
             <button
               onClick={() => onAddActivity(day.day)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-forest text-parchment text-sm font-semibold rounded-xl hover:bg-forest/80 transition-colors"
             >
               <PlusIcon />
               Add activity

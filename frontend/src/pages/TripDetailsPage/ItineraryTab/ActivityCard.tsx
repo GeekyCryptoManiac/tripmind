@@ -86,10 +86,10 @@ const ACTIVITY_ICONS: Record<Activity['type'], React.ComponentType<{ className?:
 
 // Booking badge styles
 const BOOKING_STYLES = {
-  mock:         { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Mock Booking'  },
-  booked:       { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '✓ Confirmed'   },
-  pending:      { bg: 'bg-gray-100',    text: 'text-gray-600',    label: 'Pending'       },
-  ai_suggested: { bg: 'bg-brand-50',    text: 'text-brand-700',   label: '✦ AI Suggested' },
+  mock:         { bg: 'bg-terrain',    text: 'text-[#3B6150]',  label: 'Mock Booking'  },
+  booked:       { bg: 'bg-[#EEF6F1]', text: 'text-[#3B6150]',  label: '✓ Confirmed'   },
+  pending:      { bg: 'bg-terrain/40', text: 'text-sage',       label: 'Pending'       },
+  ai_suggested: { bg: 'bg-terrain',   text: 'text-[#3B6150]',  label: '✦ AI Suggested' },
 };
 
 export default function ActivityCard({ activity, booking, onDelete }: ActivityCardProps) {
@@ -120,15 +120,15 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative bg-white rounded-xl ring-1 ring-black/[0.03] p-4 hover:shadow-md transition-shadow"
+      className="relative bg-parchment border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow"
     >
       {/* Time badge */}
-      <div className="absolute -left-16 top-4 text-sm font-medium text-ink-tertiary">
+      <div className="absolute -left-16 top-4 text-sm font-medium text-sage">
         {activity.time}
       </div>
 
       {/* Icon circle */}
-      <div className="absolute -left-5 top-3 w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center text-white shadow-md z-10">
+      <div className="absolute -left-5 top-3 w-10 h-10 bg-forest rounded-full flex items-center justify-center text-parchment shadow-md z-10">
         <Icon className="w-5 h-5" />
       </div>
 
@@ -137,9 +137,9 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
-            <h4 className="text-base font-semibold text-ink mb-1">{activity.title}</h4>
+            <h4 className="text-base font-semibold text-forest mb-1">{activity.title}</h4>
             {activity.location && (
-              <p className="text-sm text-ink-secondary flex items-center gap-1">
+              <p className="text-sm text-sage flex items-center gap-1">
                 <MapPinIcon />
                 {activity.location}
               </p>
@@ -155,11 +155,11 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="ml-3 p-1.5 text-ink-tertiary hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:cursor-not-allowed"
+                className="ml-3 p-1.5 text-sage hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:cursor-not-allowed"
                 title="Delete activity"
               >
                 {isDeleting ? (
-                  <div className="w-4 h-4 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-sage/30 border-t-sage rounded-full animate-spin" />
                 ) : (
                   <TrashIcon />
                 )}
@@ -171,7 +171,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
         {/* Description */}
         {activity.description && (
           <div className="mb-3">
-            <p className="text-sm text-ink-secondary leading-relaxed">
+            <p className="text-sm text-sage leading-relaxed">
               {isExpanded || !shouldShowExpand
                 ? activity.description
                 : `${activity.description.slice(0, 100)}...`}
@@ -179,7 +179,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
             {shouldShowExpand && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-sm text-brand-600 hover:text-brand-700 font-medium mt-1"
+                className="text-sm text-forest hover:text-forest/80 font-medium mt-1"
               >
                 {isExpanded ? 'See less ▲' : 'See more ▼'}
               </button>
@@ -194,15 +194,15 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
               {BOOKING_STYLES[booking.status].label}
             </span>
             {booking.name && (
-              <span className="text-xs text-ink-tertiary">• {booking.name}</span>
+              <span className="text-xs text-sage">• {booking.name}</span>
             )}
           </div>
         )}
 
         {/* Notes */}
         {activity.notes && (
-          <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-xs text-amber-800 flex items-start gap-1.5">
+          <div className="mt-3 p-2.5 bg-terrain/30 border border-card-border rounded-xl">
+            <p className="text-xs text-[#3B6150] flex items-start gap-1.5">
               <LightbulbIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span><span className="font-semibold">Note:</span> {activity.notes}</span>
             </p>

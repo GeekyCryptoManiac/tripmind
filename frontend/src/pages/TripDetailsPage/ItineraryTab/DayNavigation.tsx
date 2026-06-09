@@ -77,10 +77,10 @@ export default function DayNavigation({
           pt-2
           ${
             isSelected
-              ? 'bg-brand-400 text-white scale-105 shadow-md'
+              ? 'bg-forest text-parchment scale-105 shadow-md'
               : isToday
-              ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 ring-2 ring-emerald-400 ring-offset-1'
-              : 'bg-surface-bg text-ink-secondary hover:bg-surface-muted'
+              ? 'bg-terrain text-forest hover:bg-terrain/70 ring-2 ring-gold ring-offset-1'
+              : 'bg-parchment text-sage hover:bg-terrain/30'
           }
         `}
       >
@@ -96,13 +96,13 @@ export default function DayNavigation({
               ${
                 hasItinerary
                   ? isSelected
-                    ? 'bg-white'
+                    ? 'bg-parchment'
                     : isToday
-                    ? 'bg-emerald-500'
-                    : 'bg-brand-400'
+                    ? 'bg-gold'
+                    : 'bg-forest'
                   : isSelected
-                  ? 'bg-white/30 ring-1 ring-white'
-                  : 'bg-surface-muted ring-1 ring-ink-tertiary'
+                  ? 'bg-parchment/30 ring-1 ring-parchment'
+                  : 'bg-card-border ring-1 ring-sage'
               }
             `}
           />
@@ -113,12 +113,12 @@ export default function DayNavigation({
           <span
             className={`
               absolute bottom-1
-              text-[10px] font-bold tracking-wider leading-none
+              font-mono text-[8px] tracking-[0.12em] leading-none
               px-1.5 py-0.5 rounded-full
               ${
                 isSelected
-                  ? 'bg-white/20 text-white'
-                  : 'bg-emerald-500 text-white'
+                  ? 'bg-parchment/20 text-parchment'
+                  : 'bg-gold text-forest'
               }
             `}
           >
@@ -130,7 +130,7 @@ export default function DayNavigation({
   };
 
   return (
-    <div className="bg-white border-b border-surface-muted sticky top-0 z-10">
+    <div className="bg-parchment border-b border-card-border sticky top-0 z-10">
       <div
         ref={scrollContainerRef}
         className="flex items-start gap-3 px-4 py-3 overflow-x-auto"
@@ -140,7 +140,7 @@ export default function DayNavigation({
           ? cityGroups.map((group, gi) => (
               <div key={gi} className="flex flex-col gap-1 flex-shrink-0">
                 {/* Faint city label above this group */}
-                <span className="text-[10px] font-semibold text-ink-tertiary tracking-wide text-center truncate max-w-[8rem] px-1">
+                <span className="font-mono text-[9px] text-sage tracking-[0.1em] uppercase text-center truncate max-w-[8rem] px-1">
                   {group.city || ' '}
                 </span>
                 {/* Day buttons row */}

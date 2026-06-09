@@ -33,7 +33,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
   const countryData = groupTripsByCountry(trips);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className="rounded-lg p-4 bg-terrain">
       <div className="relative w-full" style={{ height: '600px' }}>
         <ComposableMap
           projection="geoMercator"
@@ -99,30 +99,30 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
 
         {/* Tooltip */}
         {hoverInfo && (
-          <div className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
-            <p className="text-sm font-semibold text-gray-900">{hoverInfo.geoName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+          <div className="absolute top-4 left-4 bg-parchment border border-card-border rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
+            <p className="font-display text-sm text-forest">{hoverInfo.geoName}</p>
+            <p className="font-mono text-[10px] text-sage mt-0.5">
               {hoverInfo.data.tripCount}{' '}
               {hoverInfo.data.tripCount === 1 ? 'trip' : 'trips'}
             </p>
 
             {hoverInfo.data.tripCount === 1 && (
-              <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-gray-100">
+              <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-card-border">
                 <div
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: getCountryColor(hoverInfo.data.status) }}
                 />
-                <span className="text-xs text-gray-700">
+                <span className="text-xs text-ink">
                   {hoverInfo.data.trips[0].destination}
                 </span>
-                <span className="text-xs text-gray-400 capitalize">
+                <span className="text-xs text-sage capitalize">
                   ({hoverInfo.data.trips[0].status})
                 </span>
               </div>
             )}
 
             {hoverInfo.data.tripCount > 1 && (
-              <div className="mt-2.5 pt-2.5 border-t border-gray-100 space-y-1.5">
+              <div className="mt-2.5 pt-2.5 border-t border-card-border space-y-1.5">
                 {hoverInfo.data.trips.map((trip) => (
                   <div key={trip.id} className="flex items-center gap-2">
                     <div
@@ -133,8 +133,8 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
                         ),
                       }}
                     />
-                    <span className="text-xs text-gray-700">{trip.destination}</span>
-                    <span className="text-xs text-gray-400 capitalize">
+                    <span className="text-xs text-ink">{trip.destination}</span>
+                    <span className="text-xs text-sage capitalize">
                       ({trip.status})
                     </span>
                   </div>
@@ -142,7 +142,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
               </div>
             )}
 
-            <p className="text-xs text-blue-600 mt-2.5">
+            <p className="font-mono text-[10px] text-gold mt-2.5">
               {hoverInfo.data.tripCount === 1
                 ? 'Click to view trip →'
                 : 'Click to select a trip →'}
@@ -150,8 +150,8 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
           </div>
         )}
 
-        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded px-3 py-2">
-          <p className="text-xs text-gray-600">🖱️ Scroll to zoom • Drag to pan</p>
+        <div className="absolute bottom-4 right-4 bg-parchment/90 backdrop-blur-sm border border-card-border rounded px-3 py-2">
+          <p className="font-mono text-[10px] text-sage">Scroll to zoom · Drag to pan</p>
         </div>
       </div>
     </div>

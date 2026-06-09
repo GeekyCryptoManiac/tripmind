@@ -166,24 +166,24 @@ function DeleteTripModal({
 // ── Trip Details Skeleton ─────────────────────────────────────
 function TripDetailsSkeleton() {
   return (
-    <div className="min-h-screen bg-surface-bg">
+    <div className="min-h-screen bg-parchment">
       <div className="relative w-full animate-pulse" style={{ minHeight: '260px' }}>
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
-        <div className="absolute bottom-5 right-6 h-8 w-16 bg-white/60 rounded-xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#EEE8DA] to-[#DDD8CE]" />
+        <div className="absolute bottom-5 right-6 h-8 w-16 bg-parchment/60 rounded-xl" />
         <div className="absolute bottom-5 left-6 space-y-2">
-          <div className="h-10 w-56 bg-white/50 rounded-xl" />
+          <div className="h-10 w-56 bg-parchment/50 rounded-xl" />
           <div className="flex items-center gap-3">
-            <div className="h-6 w-20 bg-white/50 rounded-full" />
-            <div className="h-4 w-36 bg-white/40 rounded" />
+            <div className="h-6 w-20 bg-parchment/50 rounded-full" />
+            <div className="h-4 w-36 bg-parchment/40 rounded" />
           </div>
         </div>
       </div>
-      <div className="h-2 bg-gray-200 w-full" />
-      <div className="bg-white border-b border-surface-muted shadow-sm">
+      <div className="h-[3px] bg-[#DDD8CE] w-full" />
+      <div className="bg-parchment border-b border-card-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center gap-1 py-0.5">
             {[100, 84, 72, 64].map((w, i) => (
-              <div key={i} className="h-11 rounded animate-pulse bg-gray-100" style={{ width: `${w}px` }} />
+              <div key={i} className="h-11 rounded animate-pulse bg-[#EEE8DA]" style={{ width: `${w}px` }} />
             ))}
           </div>
         </div>
@@ -191,44 +191,44 @@ function TripDetailsSkeleton() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1 space-y-4">
-            <div className="bg-white rounded-2xl p-6 ring-1 ring-black/[0.03] shadow-sm animate-pulse">
-              <div className="h-5 w-32 bg-gray-200 rounded mb-4" />
+            <div className="bg-parchment rounded-2xl p-6 border border-card-border shadow-sm animate-pulse">
+              <div className="h-5 w-32 bg-[#DDD8CE] rounded mb-4" />
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-surface-bg rounded-xl p-3">
-                    <div className="h-3 w-16 bg-gray-200 rounded mb-2" />
-                    <div className="h-4 w-24 bg-gray-300 rounded" />
+                  <div key={i} className="bg-terrain/30 rounded-xl p-3">
+                    <div className="h-3 w-16 bg-[#DDD8CE] rounded mb-2" />
+                    <div className="h-4 w-24 bg-[#DDD8CE] rounded" />
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-6 ring-1 ring-black/[0.03] shadow-sm animate-pulse">
-              <div className="h-5 w-24 bg-gray-200 rounded mb-4" />
+            <div className="bg-parchment rounded-2xl p-6 border border-card-border shadow-sm animate-pulse">
+              <div className="h-5 w-24 bg-[#DDD8CE] rounded mb-4" />
               <div className="space-y-2.5">
-                <div className="h-4 w-full bg-gray-100 rounded" />
-                <div className="h-4 w-5/6 bg-gray-100 rounded" />
-                <div className="h-4 w-4/6 bg-gray-100 rounded" />
+                <div className="h-4 w-full bg-[#EEE8DA] rounded" />
+                <div className="h-4 w-5/6 bg-[#EEE8DA] rounded" />
+                <div className="h-4 w-4/6 bg-[#EEE8DA] rounded" />
               </div>
             </div>
           </div>
           <div className="lg:w-80 xl:w-96 shrink-0">
-            <div className="bg-white rounded-2xl ring-1 ring-black/[0.03] shadow-sm p-6 animate-pulse">
-              <div className="h-5 w-28 bg-gray-200 rounded mb-4" />
-              <div className="h-6 w-20 bg-gray-100 rounded-full mb-5" />
+            <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6 animate-pulse">
+              <div className="h-5 w-28 bg-[#DDD8CE] rounded mb-4" />
+              <div className="h-6 w-20 bg-[#EEE8DA] rounded-full mb-5" />
               <div className="space-y-4">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded bg-gray-100 flex-shrink-0" />
+                    <div className="w-5 h-5 rounded bg-[#EEE8DA] flex-shrink-0" />
                     <div className="space-y-1.5">
-                      <div className="h-4 w-32 bg-gray-200 rounded" />
-                      <div className="h-3 w-20 bg-gray-100 rounded" />
+                      <div className="h-4 w-32 bg-[#DDD8CE] rounded" />
+                      <div className="h-3 w-20 bg-[#EEE8DA] rounded" />
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-5 pt-5 border-t border-surface-muted flex flex-col gap-2">
-                <div className="h-10 w-full bg-gray-200 rounded-xl" />
-                <div className="h-10 w-full bg-gray-100 rounded-xl" />
+              <div className="mt-5 pt-5 border-t border-card-border flex flex-col gap-2">
+                <div className="h-10 w-full bg-[#DDD8CE] rounded-xl" />
+                <div className="h-10 w-full bg-[#EEE8DA] rounded-xl" />
               </div>
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function TripDetailsPage() {
   const progressTasks = trip ? getProgressTasks(trip) : [];
   const completedCount = progressTasks.filter((t) => t.completed).length;
   const progressPct = trip ? Math.round((completedCount / progressTasks.length) * 100) : 0;
-  const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? '#7c3aed' : '#f59e0b';
+  const progressColor = '#B59054';
 
   const tripContext: TripChatContext | undefined = trip
     ? {
@@ -383,7 +383,7 @@ export default function TripDetailsPage() {
             </svg>
           </div>
           <p className="text-amber-800 font-medium mb-2">{error || 'Trip not found'}</p>
-          <button onClick={() => navigate('/trips')} className="text-brand-600 hover:text-brand-700 text-sm font-medium">
+          <button onClick={() => navigate('/trips')} className="text-forest hover:text-forest/80 text-sm font-medium">
             ← Back to Trips
           </button>
         </div>
@@ -395,7 +395,7 @@ export default function TripDetailsPage() {
   // RENDER
   // ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-surface-bg">
+    <div className="min-h-screen bg-parchment">
 
       {/* Hero */}
       <TripDetailsHero trip={trip} phase={phase} onBack={() => navigate('/trips')} onTripUpdate={setTrip} />
@@ -420,7 +420,7 @@ export default function TripDetailsPage() {
       />
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-surface-muted sticky top-0 z-10 shadow-sm">
+      <div className="bg-parchment border-b border-card-border sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between">
 
@@ -436,10 +436,10 @@ export default function TripDetailsPage() {
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.08em] border-b-2 transition-colors ${
                     activeTab === key
-                      ? 'border-brand-600 text-brand-600'
-                      : 'border-transparent text-ink-secondary hover:text-ink hover:bg-surface-bg'
+                      ? 'border-forest text-forest'
+                      : 'border-transparent text-sage hover:text-forest hover:bg-terrain/20'
                   }`}
                 >
                   <Icon />
@@ -452,7 +452,7 @@ export default function TripDetailsPage() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2 text-ink-tertiary hover:text-ink hover:bg-surface-bg rounded-lg transition-colors"
+                className="p-2 text-sage hover:text-forest hover:bg-terrain/20 rounded-lg transition-colors"
               >
                 <DotsIcon />
               </button>
@@ -460,13 +460,13 @@ export default function TripDetailsPage() {
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden z-20">
                   <button
                     onClick={() => { setEditModalOpen(true); setMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
+                    className="w-full text-left px-4 py-2.5 text-sm text-forest hover:bg-terrain/20 transition-colors flex items-center gap-2"
                   >
                     <EditIcon />Edit Trip
                   </button>
                   <button
                     onClick={() => { exportTripPDF(trip); setMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-surface-bg transition-colors flex items-center gap-2"
+                    className="w-full text-left px-4 py-2.5 text-sm text-forest hover:bg-terrain/20 transition-colors flex items-center gap-2"
                   >
                     <DocumentIcon />Export PDF
                   </button>

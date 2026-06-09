@@ -232,30 +232,31 @@ export function groupTripsByCountry(trips: Trip[]): Map<string, CountryData> {
 
 /**
  * Get fill color for a country based on trip status.
+ * Cartographic editorial palette — forest/gold/sage on terrain land.
  */
 export function getCountryColor(status: TripStatus | null): string {
-  if (!status) return '#E5E7EB';
+  if (!status) return '#C8D8C2';  // unvisited land
   switch (status) {
-    case 'ongoing':   return '#7C3AED';
-    case 'booked':    return '#F59E0B';
-    case 'planning':  return '#EF4444';
-    case 'completed': return '#10B981';
-    case 'cancelled': return '#9CA3AF';
-    default:          return '#E5E7EB';
+    case 'ongoing':   return '#1C2B24';  // forest — most active
+    case 'booked':    return '#B59054';  // gold — confirmed
+    case 'planning':  return '#8FA898';  // sage — in progress
+    case 'completed': return '#1C2B24';  // forest — visited
+    case 'cancelled': return '#C8D8C2';  // same as unvisited
+    default:          return '#C8D8C2';
   }
 }
 
 /**
- * Get hover color (slightly lighter).
+ * Get hover color (slightly lighter variant).
  */
 export function getCountryHoverColor(status: TripStatus | null): string {
-  if (!status) return '#D1D5DB';
+  if (!status) return '#B8C8B2';
   switch (status) {
-    case 'ongoing':   return '#8B5CF6';
-    case 'booked':    return '#FBBF24';
-    case 'planning':  return '#F87171';
-    case 'completed': return '#34D399';
-    case 'cancelled': return '#D1D5DB';
-    default:          return '#D1D5DB';
+    case 'ongoing':   return '#2D4438';
+    case 'booked':    return '#C8A864';
+    case 'planning':  return '#A8C0B0';
+    case 'completed': return '#2D4438';
+    case 'cancelled': return '#B8C8B2';
+    default:          return '#B8C8B2';
   }
 }

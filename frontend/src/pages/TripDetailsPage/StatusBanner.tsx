@@ -60,36 +60,36 @@ type PhaseConfig = {
 
 const PHASE_CONFIG: Record<Exclude<TripPhase, 'planning'>, PhaseConfig> = {
   'pre-trip': {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200/50',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-700',
+    bg: 'bg-[#EEF6F1]',
+    border: 'border-[#C8D8C2]/50',
+    badgeBg: 'bg-terrain',
+    badgeText: 'text-[#3B6150] font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'PRE-TRIP',
-    titleColor: 'text-amber-800',
-    subtitleColor: 'text-amber-700',
-    iconColor: 'text-amber-600',
+    titleColor: 'text-[#3B6150]',
+    subtitleColor: 'text-[#3B6150]/80',
+    iconColor: 'text-gold',
     icon: ClockIcon,
   },
   active: {
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200/50',
-    badgeBg: 'bg-emerald-100',
-    badgeText: 'text-emerald-700',
+    bg: 'bg-[#EEF6F1]',
+    border: 'border-[#C8D8C2]/50',
+    badgeBg: 'bg-forest',
+    badgeText: 'text-[#E8DECE] font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'LIVE',
-    titleColor: 'text-emerald-800',
-    subtitleColor: 'text-emerald-700',
-    iconColor: 'text-emerald-600',
+    titleColor: 'text-forest',
+    subtitleColor: 'text-forest/70',
+    iconColor: 'text-forest',
     icon: AirplaneIcon,
   },
   completed: {
-    bg: 'bg-brand-50',
-    border: 'border-brand-200/50',
-    badgeBg: 'bg-brand-100',
-    badgeText: 'text-brand-700',
+    bg: 'bg-[#EEF6F1]',
+    border: 'border-[#C8D8C2]/50',
+    badgeBg: 'bg-terrain',
+    badgeText: 'text-[#3B6150] font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'COMPLETED',
-    titleColor: 'text-brand-800',
-    subtitleColor: 'text-brand-700',
-    iconColor: 'text-brand-600',
+    titleColor: 'text-[#3B6150]',
+    subtitleColor: 'text-[#3B6150]/80',
+    iconColor: 'text-sage',
     icon: CheckCircleIcon,
   },
 };
@@ -155,10 +155,10 @@ export default function StatusBanner({
           {/* Right indicator */}
           {phase === 'pre-trip' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="text-2xl font-bold text-amber-700 leading-none">
+              <div className="text-2xl font-bold text-forest leading-none">
                 {daysUntil}
               </div>
-              <div className="text-xs text-amber-600 mt-0.5">
+              <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-[#3B6150] mt-0.5">
                 days to go
               </div>
             </div>
@@ -166,12 +166,12 @@ export default function StatusBanner({
 
           {phase === 'active' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="text-xs text-emerald-700 font-medium mb-1">
+              <div className="font-mono text-[9px] tracking-[0.1em] text-[#3B6150] mb-1">
                 {progressPct}% through
               </div>
-              <div className="w-28 bg-emerald-200 rounded-full h-1.5 overflow-hidden">
+              <div className="w-28 bg-[#DDD8CE] rounded-full h-[3px] overflow-hidden">
                 <motion.div
-                  className="bg-emerald-500 h-1.5 rounded-full"
+                  className="bg-gold h-[3px] rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPct}%` }}
                   transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
