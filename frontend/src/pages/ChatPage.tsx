@@ -1,8 +1,17 @@
+import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import ChatInterface from '../components/ChatInterface';
+import type { Trip } from '../types';
+import { apiService } from '../services/api';
 
 export default function ChatPage() {
   const { userId, isLoading } = useUser();
+  const [trips, setTrips] = useState<Trip[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    apiService.getUserTrips(userId).then(setTrips).catch(() => {});
+  }, [userId]);
 
   // Show loading state
   if (isLoading) {
@@ -28,6 +37,5 @@ export default function ChatPage() {
     );
   }
 
-  // Render chat interface with userId from context
-  return <ChatInterface userId={userId} />;
+  return <ChatInterface userId={userId} trips={trips} />;
 }
