@@ -12,6 +12,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getChatService } from '../services/chatService';
 import type { ChatType, TripChatContext } from '../types/chat';
+import type { Trip } from '../types';
 import TripCard from './TripCard';
 import logoAsset from '../assets/tripMind_logo.png'; 
 
@@ -45,6 +46,7 @@ interface ChatInterfaceProps {
   tripId?: number;
   tripContext?: TripChatContext;
   embedded?: boolean;
+  trips?: Trip[];
 }
 
 // ── Markdown renderer ─────────────────────────────────────────
@@ -67,12 +69,110 @@ function renderMessageContent(text: string) {
   });
 }
 
+function daysFromToday(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function relativeDayLabel(daysUntil: number): string {
+  if (daysUntil === 0) return 'today';
+  if (daysUntil === 1) return 'tomorrow';
+  return `in ${daysUntil} days`;
+}
+
+const FALLBACK_CHIPS: Array<{ label: string; prompt: string }> = [
+  { label: '🗺️ Plan a new trip', prompt: "I want to plan a trip. Can you help me get started?" },
+  { label: '📋 Show my trips',   prompt: "Show me all my trips" },
+  { label: '🌏 Visa info',       prompt: "What visa do Singaporeans need to visit Japan?" },
+  { label: '✈️ Flight tips',     prompt: "What are some tips for finding cheap flights from Singapore?" },
+];
+
+function detectTripGaps(trips: Trip[]): Array<{ label: string; prompt: string }> {
+  const chips: Array<{ label: string; prompt: string }> = [];
+  const activeTrips = trips.filter(t => t.status === 'planning' || t.status === 'booked');
+  const p1TripIds = new Set<number>();
+
+  // Priority 1 — Upcoming trip with empty itinerary (within 30 days)
+  for (const trip of activeTrips) {
+    if (chips.length >= 5) break;
+    if (!trip.start_date) continue;
+    const daysUntil = daysFromToday(trip.start_date);
+    if (daysUntil >= 0 && daysUntil <= 30 && trip.activities.length === 0) {
+      chips.push({
+        label: `🗓️ ${trip.destination} ${relativeDayLabel(daysUntil)} — no itinerary yet`,
+        prompt: `Generate the itinerary for my ${trip.destination} trip`,
+      });
+      p1TripIds.add(trip.id);
+    }
+  }
+
+  // Priority 2 — Upcoming trip with no hotel saved (within 30 days)
+  for (const trip of activeTrips) {
+    if (chips.length >= 5) break;
+    if (!trip.start_date) continue;
+    const daysUntil = daysFromToday(trip.start_date);
+    if (daysUntil >= 0 && daysUntil <= 30 && trip.saved_travel.filter(s => s.type === 'hotel').length === 0) {
+      chips.push({
+        label: `🏨 ${trip.destination} ${relativeDayLabel(daysUntil)} — no hotel saved`,
+        prompt: `Suggest hotels for my ${trip.destination} trip`,
+      });
+    }
+  }
+
+  // Priority 3 — Any active trip with no budget (first match only)
+  if (chips.length < 5) {
+    const noBudget = activeTrips.find(t => t.budget === null);
+    if (noBudget) {
+      chips.push({
+        label: `💰 ${noBudget.destination} has no budget set`,
+        prompt: `Help me set a budget for my ${noBudget.destination} trip`,
+      });
+    }
+  }
+
+  // Priority 4 — Any active trip with empty itinerary not already covered by P1 (first match only)
+  if (chips.length < 5) {
+    const emptyItin = activeTrips.find(t => t.activities.length === 0 && !p1TripIds.has(t.id));
+    if (emptyItin) {
+      chips.push({
+        label: `📋 ${emptyItin.destination} itinerary is empty`,
+        prompt: `Generate the itinerary for my ${emptyItin.destination} trip`,
+      });
+    }
+  }
+
+  // Priority 5 — Trip stale in planning for >30 days (first match only)
+  if (chips.length < 5) {
+    const stale = activeTrips.find(t => t.status === 'planning' && -daysFromToday(t.created_at) > 30);
+    if (stale) {
+      chips.push({
+        label: `⏳ ${stale.destination} still in planning — need help?`,
+        prompt: `Help me move forward with planning my ${stale.destination} trip`,
+      });
+    }
+  }
+
+  // Fallback — pad with static chips when fewer than 2 dynamic chips found
+  if (chips.length < 2) {
+    for (const fb of FALLBACK_CHIPS) {
+      if (chips.length >= 5) break;
+      chips.push(fb);
+    }
+  }
+
+  return chips;
+}
+
 export default function ChatInterface({
   userId,
   chatType = 'general',
   tripId,
   tripContext,
   embedded = false,
+  trips = [],
 }: ChatInterfaceProps) {
   // ── Initial greeting ────────────────────────────────────────
   const getInitialMessage = (): ChatMessage => {
@@ -101,7 +201,7 @@ export default function ChatInterface({
     }
     return {
       role: 'assistant',
-      content: "Hi! I'm your AI travel assistant. Tell me where you'd like to go and I'll help you plan the perfect trip!",
+      content: "Hi! I'm TripMind, your AI travel assistant. 🌍\n\nI can help you **plan trips**, **build day-by-day itineraries**, **manage budgets**, and answer any **travel questions** you have. Where would you like to go?",
       timestamp: new Date().toISOString(),
     };
   };
@@ -258,8 +358,22 @@ export default function ChatInterface({
               <p className="text-sage max-w-md leading-relaxed">
                 {chatType === 'trip' && tripContext
                   ? `Get personalized help for your ${tripContext.destination} trip. Ask about itineraries, budgets, bookings, or anything else.`
-                  : "Tell me where you'd like to go. I'll build your itinerary, manage your budget, and keep every detail organized."}
+                  : "Plan trips, build itineraries, manage budgets — just ask."}
               </p>
+              {chatType === 'general' && (
+                <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-lg">
+                  {detectTripGaps(trips).map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => handleSendText(chip.prompt)}
+                      disabled={isLoading}
+                      className="text-sm px-4 py-2 rounded-full bg-terrain/30 text-forest border border-card-border hover:bg-terrain hover:border-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -363,7 +477,7 @@ export default function ChatInterface({
               placeholder={
                 chatType === 'trip' && tripContext
                   ? `Ask about your ${tripContext.destination} trip...`
-                  : 'Type your prompt here'
+                  : 'Ask me anything — plan a trip, build an itinerary, get travel tips...'
               }
               className="flex-1 resize-none bg-transparent text-sm text-ink placeholder-sage focus:outline-none"
               rows={1}

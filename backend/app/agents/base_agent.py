@@ -27,10 +27,15 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from .tools import (
+    add_checklist_item,
+    add_expense,
     answer_travel_question,
+    complete_checklist_item,
     generate_itinerary,
     get_trip_details,
     get_user_trips,
+    list_checklist,
+    list_expenses,
     plan_and_save_trip,
     update_trip,
 )
@@ -138,6 +143,52 @@ class TripMindAgent:
         ) -> str:
             return answer_travel_question(question, destination)
 
+        def _add_expense(
+            trip_id: int,
+            amount: float,
+            description: Optional[str] = None,
+            category: Optional[str] = None,
+            currency: str = "SGD",
+            date: Optional[str] = None,
+        ) -> dict:
+            return add_expense(
+                trip_id=trip_id,
+                amount=amount,
+                db=self.db,
+                user_id=self.user_id,
+                description=description,
+                category=category,
+                currency=currency,
+                date=date,
+            )
+
+        def _list_expenses(trip_id: int) -> dict:
+            return list_expenses(trip_id=trip_id, db=self.db, user_id=self.user_id)
+
+        def _add_checklist_item(
+            trip_id: int,
+            text: str,
+            sort_order: int = 0,
+        ) -> dict:
+            return add_checklist_item(
+                trip_id=trip_id,
+                text=text,
+                db=self.db,
+                user_id=self.user_id,
+                sort_order=sort_order,
+            )
+
+        def _complete_checklist_item(trip_id: int, item_id: int) -> dict:
+            return complete_checklist_item(
+                trip_id=trip_id,
+                item_id=item_id,
+                db=self.db,
+                user_id=self.user_id,
+            )
+
+        def _list_checklist(trip_id: int) -> dict:
+            return list_checklist(trip_id=trip_id, db=self.db, user_id=self.user_id)
+
         return [
             StructuredTool.from_function(
                 func=_plan_trip,
@@ -185,6 +236,51 @@ class TripMindAgent:
                     "Do NOT use this to create or modify trips."
                 ),
             ),
+            StructuredTool.from_function(
+                func=_add_expense,
+                name="add_expense",
+                description=(
+                    "Add a new expense to a trip's budget tracker. Use when the user mentions spending money "
+                    "on something for a trip — e.g. 'I spent $50 on dinner' or 'add a $200 hotel deposit to "
+                    "my Tokyo trip'. Amount must be a positive number."
+                ),
+            ),
+            StructuredTool.from_function(
+                func=_list_expenses,
+                name="list_expenses",
+                description=(
+                    "List all expenses logged for a trip, including total spent and remaining budget. "
+                    "Use when the user asks about their spending, budget status, or "
+                    "'how much have I spent on X trip'."
+                ),
+            ),
+            StructuredTool.from_function(
+                func=_add_checklist_item,
+                name="add_checklist_item",
+                description=(
+                    "Add an item to a trip's packing/preparation checklist. Use when the user wants to add "
+                    "something to their to-do or packing list — e.g. 'add sunscreen to my Bali checklist' "
+                    "or 'remind me to book travel insurance'."
+                ),
+            ),
+            StructuredTool.from_function(
+                func=_complete_checklist_item,
+                name="complete_checklist_item",
+                description=(
+                    "Mark a checklist item as completed/done. Requires the item_id — use list_checklist "
+                    "first if you don't know the ID. Use when the user says they've done something, "
+                    "e.g. 'I already booked my flight' or 'mark passport as done'."
+                ),
+            ),
+            StructuredTool.from_function(
+                func=_list_checklist,
+                name="list_checklist",
+                description=(
+                    "List all checklist/packing items for a trip and their completion status. "
+                    "Use when the user asks 'what's on my checklist', "
+                    "'what do I still need to do/pack', or similar."
+                ),
+            ),
         ]
 
     # ── System prompt ─────────────────────────────────────────
@@ -199,6 +295,11 @@ YOUR TOOLS:
 - update_trip: Modify an existing trip
 - generate_itinerary: Generate a day-by-day activity plan for a trip
 - general_travel_advice: Answer travel questions from your own knowledge
+- add_expense: Log a spending entry against a trip's budget
+- list_expenses: Show all logged expenses and remaining budget for a trip
+- add_checklist_item: Add a packing or to-do item to a trip's checklist
+- complete_checklist_item: Mark a checklist item as done (requires item_id from list_checklist)
+- list_checklist: Show all checklist/packing items and their completion status
 
 CORE RULES:
 1. Only plan trips to real destinations. Reject fictional places (the Moon, Hogwarts, etc.)
@@ -217,7 +318,12 @@ CONVERSATION INTENT:
 - "hi", "hello", "what can you do?" → respond conversationally, no tool call
 - "where are my trips?" → call get_user_trips
 - "plan a trip to Tokyo" → call plan_trip
-- "generate the itinerary" → call generate_itinerary with the current trip_id"""
+- "generate the itinerary" → call generate_itinerary with the current trip_id
+- "I spent $X on Y" or "log an expense" → call add_expense with the relevant trip_id
+- "how much have I spent?" or "show my expenses" → call list_expenses
+- "add X to my packing list" or "add X to checklist" → call add_checklist_item
+- "I've done X" or "mark X as done" → call complete_checklist_item (call list_checklist first if item_id is unknown)
+- "what's on my checklist?" or "what do I still need?" → call list_checklist"""
 
         if self.trip_context and "error" not in self.trip_context:
             t         = self.trip_context
