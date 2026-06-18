@@ -39,7 +39,15 @@ TripmindKeyPair.pem
 
 # Internal docs — kept locally, never committed
 ARCHITECTURE.md
+ARCHITECTURE_OVERVIEW.md
 CHANGELOG.md
 HANDOVER.md
+INTERVIEW_PREP*.md
 KNOWN_ISSUES.md
+docs/API.md
+docs/CHAT_CAPABILITIES.md
+docs/DECISIONS.md
 docs/PATTERNS.md
+
+# Uploads directory
+backend/uploads/

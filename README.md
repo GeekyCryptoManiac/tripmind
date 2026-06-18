@@ -112,8 +112,14 @@ docker-compose -f docker-compose.prod.yml up --build
 ```bash
 cd backend
 source venv/bin/activate
-pytest -v
+
+# Install test dependencies (first time only)
+pip install -r requirements-test.txt
+
+pytest tests/ -v
 ```
+
+The test suite uses SQLite in-memory — no local PostgreSQL instance required. 127 tests across unit, integration, and API layers.
 
 The GitHub Actions pipeline runs `pytest` on every push to `main` before deploying to EC2. See `.github/workflows/` for the full pipeline definition.
 
@@ -144,6 +150,7 @@ tripmind/
 │   │   │   ├── trips.py        # Trip CRUD + cover photo upload
 │   │   │   └── waypoints.py    # Multi-city waypoint management
 │   │   ├── services/
+│   │   │   ├── ai_service.py   # Prompt-construction helpers (no DB, no LLM calls)
 │   │   │   └── trip_service.py # All DB operations — single service class
 │   │   ├── auth.py             # JWT helpers and FastAPI get_current_user dependency
 │   │   ├── config.py           # Settings from .env via pydantic-settings
@@ -152,8 +159,14 @@ tripmind/
 │   │   ├── main.py             # App factory, middleware, router mounts
 │   │   ├── models.py           # 7 SQLAlchemy ORM models
 │   │   └── schemas.py          # Pydantic v2 request/response schemas
-│   ├── uploads/                # Disk-stored trip cover photos (see KNOWN_ISSUES.md)
+│   ├── tests/
+│   │   ├── conftest.py         # SQLite in-memory fixtures (StaticPool, JSONB patch)
+│   │   ├── unit/               # JWT, schema validation, tool logic
+│   │   ├── integration/        # TripService, ActivityService, WaypointService
+│   │   └── api/                # Auth, trip, activity, chat route tests
+│   ├── uploads/                # Disk-stored trip cover photos (see ADR-006 in docs/DECISIONS.md)
 │   ├── requirements.txt
+│   ├── requirements-test.txt
 │   └── docker-compose.prod.yml
 ├── frontend/
 │   ├── public/
@@ -165,12 +178,8 @@ tripmind/
 │       ├── services/
 │       │   └── api.ts          # Axios instance + every API call
 │       └── types/              # TypeScript interfaces mirroring schemas.py
-├── docs/
-│   ├── API.md                  # Full route reference (32 routes)
-│   ├── DECISIONS.md            # Architecture Decision Records (6 ADRs)
-│   └── ERD.md                  # Entity-Relationship Diagram (7 tables)
-├── ARCHITECTURE.md
-├── CHANGELOG.md
-├── KNOWN_ISSUES.md
-└── TripmindKeyPair.pem         # EC2 key pair — see KNOWN_ISSUES.md
+└── docs/
+    ├── API.md                  # Full route reference (32 routes)
+    ├── DECISIONS.md            # Architecture Decision Records (6 ADRs)
+    └── ERD.md                  # Entity-Relationship Diagram (7 tables)
 ```

@@ -14,6 +14,7 @@ Key design decisions:
 
 import json
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from openai import OpenAIError
@@ -24,7 +25,14 @@ from fastapi import HTTPException
 
 from ..models import Trip, User
 from ..services.trip_service import TripService
-from ..schemas import ActivityCreate, TripCreate, TripUpdate
+from ..schemas import (
+    ActivityCreate,
+    ChecklistItemCreate,
+    ChecklistItemUpdate,
+    ExpenseCreate,
+    TripCreate,
+    TripUpdate,
+)
 
 
 # Alpha-3 (ISO 3166-1) → alpha-2 lookup for the 50 most common travel destinations.
@@ -473,6 +481,168 @@ Rules:
     finally:
         # Always close the thread-local session regardless of outcome
         thread_db.close()
+
+
+# ═════════════════════════════════════════════════════════════
+# Tool 7 — add_expense
+# ═════════════════════════════════════════════════════════════
+
+def add_expense(
+    trip_id: int,
+    amount: float,
+    db: Session,
+    user_id: int,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+    currency: str = "SGD",
+    date: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Add a new expense entry to a trip."""
+    svc  = TripService(db)
+    data = ExpenseCreate(
+        amount=Decimal(str(amount)),
+        description=description,
+        category=category,
+        currency=currency,
+        date=date,
+    )
+    try:
+        expense = svc.add_expense(trip_id, user_id, data)
+    except (HTTPException, SQLAlchemyError) as e:
+        return {"error": str(e)}
+
+    return {
+        "status":      "added",
+        "expense_id":  expense.id,
+        "amount":      float(expense.amount),
+        "category":    expense.category,
+        "description": expense.description,
+        "message":     f"Added expense: {description or category or 'expense'} — {currency} {amount}",
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# Tool 8 — list_expenses
+# ═════════════════════════════════════════════════════════════
+
+def list_expenses(trip_id: int, db: Session, user_id: int) -> Dict[str, Any]:
+    """Return all expenses for a trip with a budget summary."""
+    svc = TripService(db)
+    try:
+        trip = svc.get_trip_or_404(trip_id, user_id)
+    except HTTPException:
+        return {"error": f"Trip {trip_id} not found"}
+
+    expenses    = sorted(trip.expenses, key=lambda e: e.created_at)
+    total_spent = float(sum(e.amount for e in expenses))
+    budget      = float(trip.budget) if trip.budget is not None else None
+    remaining   = round(budget - total_spent, 2) if budget is not None else None
+
+    return {
+        "status":           "ok",
+        "trip_id":          trip_id,
+        "expense_count":    len(expenses),
+        "total_spent":      round(total_spent, 2),
+        "budget":           budget,
+        "remaining_budget": remaining,
+        "expenses": [
+            {
+                "id":          e.id,
+                "category":    e.category,
+                "description": e.description,
+                "amount":      float(e.amount),
+                "currency":    e.currency,
+                "date":        e.date,
+            }
+            for e in expenses
+        ],
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# Tool 9 — add_checklist_item
+# ═════════════════════════════════════════════════════════════
+
+def add_checklist_item(
+    trip_id: int,
+    text: str,
+    db: Session,
+    user_id: int,
+    sort_order: int = 0,
+) -> Dict[str, Any]:
+    """Add a packing/to-do item to a trip's checklist."""
+    svc  = TripService(db)
+    data = ChecklistItemCreate(text=text, sort_order=sort_order)
+    try:
+        item = svc.add_checklist_item(trip_id, user_id, data)
+    except (HTTPException, SQLAlchemyError) as e:
+        return {"error": str(e)}
+
+    return {
+        "status":  "added",
+        "item_id": item.id,
+        "text":    item.text,
+        "message": f"Added '{text}' to your checklist",
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# Tool 10 — complete_checklist_item
+# ═════════════════════════════════════════════════════════════
+
+def complete_checklist_item(
+    trip_id: int,
+    item_id: int,
+    db: Session,
+    user_id: int,
+) -> Dict[str, Any]:
+    """Mark a checklist item as done."""
+    svc = TripService(db)
+    try:
+        item = svc.update_checklist_item(
+            trip_id, item_id, user_id, ChecklistItemUpdate(is_checked=True)
+        )
+    except (HTTPException, SQLAlchemyError) as e:
+        return {"error": str(e)}
+
+    return {
+        "status":  "completed",
+        "item_id": item.id,
+        "text":    item.text,
+        "message": f"Marked '{item.text}' as done",
+    }
+
+
+# ═════════════════════════════════════════════════════════════
+# Tool 11 — list_checklist
+# ═════════════════════════════════════════════════════════════
+
+def list_checklist(trip_id: int, db: Session, user_id: int) -> Dict[str, Any]:
+    """Return all checklist items for a trip with completion counts."""
+    svc = TripService(db)
+    try:
+        trip = svc.get_trip_or_404(trip_id, user_id)
+    except HTTPException:
+        return {"error": f"Trip {trip_id} not found"}
+
+    items           = sorted(trip.checklist_items, key=lambda i: i.sort_order)
+    completed_count = sum(1 for i in items if i.is_checked)
+
+    return {
+        "status":          "ok",
+        "trip_id":         trip_id,
+        "total_count":     len(items),
+        "completed_count": completed_count,
+        "items": [
+            {
+                "id":         i.id,
+                "text":       i.text,
+                "is_checked": i.is_checked,
+                "sort_order": i.sort_order,
+            }
+            for i in items
+        ],
+    }
 
 
 # ═════════════════════════════════════════════════════════════
