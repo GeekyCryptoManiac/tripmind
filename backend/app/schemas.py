@@ -98,19 +98,38 @@ class ActivityUpdate(BaseModel):
     sort_order:  Optional[int]          = None
 
 
-class ActivityResponse(BaseModel):
+class ActivityMediaResponse(BaseModel):
     id:          int
+    activity_id: int
     trip_id:     int
-    day:         int
-    time:        Optional[str]     = None
-    type:        str
-    title:       str
-    location:    Optional[str]     = None
-    description: Optional[str]    = None
-    notes:       Optional[str]     = None
-    booking_ref: Optional[str]    = None
+    media_type:  str
+    storage_url: str
+    filename:    Optional[str] = None
+    caption:     Optional[str] = None
     sort_order:  int
     created_at:  datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ActivityResponse(BaseModel):
+    id:             int
+    trip_id:        int
+    day:            int
+    time:           Optional[str]      = None
+    type:           str
+    title:          str
+    location:       Optional[str]      = None
+    description:    Optional[str]      = None
+    notes:          Optional[str]      = None
+    ai_tip:         Optional[str]      = None
+    booking_ref:    Optional[str]      = None
+    booking_url:    Optional[str]      = None
+    checked_in_at:  Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
+    sort_order:     int
+    created_at:     datetime
+    media:          List[Dict[str, Any]] = []
 
     model_config = {"from_attributes": True}
 

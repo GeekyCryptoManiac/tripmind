@@ -194,12 +194,23 @@ class TripActivity(Base):
     title       = Column(String(200), nullable=False)
     location    = Column(String(200), nullable=True)
     description = Column(Text, nullable=True)
-    notes       = Column(Text, nullable=True)
-    booking_ref = Column(String(100), nullable=True)
-    sort_order  = Column(Integer, default=0, nullable=False)
-    created_at  = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    notes          = Column(Text, nullable=True)
+    ai_tip         = Column(Text, nullable=True)
+    booking_ref    = Column(String(100), nullable=True)
+    booking_url    = Column(String(500), nullable=True)
+    checked_in_at  = Column(DateTime(timezone=True), nullable=True)
+    checked_out_at = Column(DateTime(timezone=True), nullable=True)
+    sort_order     = Column(Integer, default=0, nullable=False)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     trip = relationship("Trip", back_populates="activities")
+    media = relationship(
+        "TripActivityMedia",
+        back_populates="activity",
+        cascade="all, delete-orphan",
+        order_by="TripActivityMedia.sort_order",
+        lazy="select",
+    )
 
     def __repr__(self):
         return f"<TripActivity id={self.id} day={self.day} title={self.title!r}>"
@@ -340,3 +351,41 @@ class TripWaypoint(Base):
 
     def __repr__(self):
         return f"<TripWaypoint id={self.id} city={self.city!r} order={self.order_index}>"
+
+
+# ═════════════════════════════════════════════════════════════
+# TripActivityMedia
+# ═════════════════════════════════════════════════════════════
+
+class TripActivityMedia(Base):
+    """Photo or document attached to an itinerary activity."""
+    __tablename__ = "trip_activity_media"
+    __table_args__ = (
+        CheckConstraint(
+            "media_type IN ('photo', 'document')",
+            name="ck_trip_activity_media_type",
+        ),
+        Index("ix_trip_activity_media_activity", "activity_id"),
+        Index("ix_trip_activity_media_trip",     "trip_id"),
+    )
+
+    id          = Column(Integer, primary_key=True, index=True)
+    activity_id = Column(
+        Integer, ForeignKey("trip_activities.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    trip_id     = Column(
+        Integer, ForeignKey("trips.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    media_type  = Column(String(20),   nullable=False)
+    storage_url = Column(String(1000), nullable=False)
+    filename    = Column(String(255),  nullable=True)
+    caption     = Column(String(500),  nullable=True)
+    sort_order  = Column(Integer, default=0, nullable=False)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    activity = relationship("TripActivity", back_populates="media")
+
+    def __repr__(self):
+        return f"<TripActivityMedia id={self.id} type={self.media_type!r} activity={self.activity_id}>"
