@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Activity } from '../../../types';
 
@@ -97,20 +98,27 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
   const [isHovered, setIsHovered]     = useState(false);
   const [isDeleting, setIsDeleting]   = useState(false);
 
+  const navigate = useNavigate();
+  const { tripId } = useParams<{ tripId: string }>();
+
   const Icon = ACTIVITY_ICONS[activity.type];
   const shouldShowExpand = activity.description && activity.description.length > 100;
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!onDelete || isDeleting) return;
     setIsDeleting(true);
     try {
       await onDelete(activity.id);
-      // Parent (ItineraryTab) receives the updated trip from the API
-      // and replaces its local state — this component unmounts naturally.
     } catch (err) {
       console.error('[ActivityCard] Delete failed:', err);
       setIsDeleting(false);
     }
+  };
+
+  const handleNavigate = () => {
+    if (!tripId || isDeleting) return;
+    navigate(`/trips/${tripId}/activities/${activity.id}`);
   };
 
   return (
@@ -120,7 +128,8 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative bg-parchment border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow"
+      onClick={handleNavigate}
+      className="relative bg-parchment border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
     >
       {/* Time badge */}
       <div className="absolute -left-16 top-4 text-sm font-medium text-sage">
@@ -153,7 +162,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                onClick={handleDelete}
+                onClick={(e) => handleDelete(e)}
                 disabled={isDeleting}
                 className="ml-3 p-1.5 text-sage hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:cursor-not-allowed"
                 title="Delete activity"
@@ -178,7 +187,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
             </p>
             {shouldShowExpand && (
               <button
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
                 className="text-sm text-forest hover:text-forest/80 font-medium mt-1"
               >
                 {isExpanded ? 'See less ▲' : 'See more ▼'}

@@ -24,8 +24,10 @@ import type {
   WaypointCreateRequest,
   WaypointUpdateRequest,
   Activity,
+  ActivityMedia,
   ActivityCreateRequest,
   ActivityUpdateRequest,
+  ActivityMediaCreateRequest,
   Expense,
   ExpenseCreateRequest,
   ExpenseUpdateRequest,
@@ -251,6 +253,49 @@ export const apiService = {
 
   async clearAllActivities(tripId: number): Promise<{ deleted: number }> {
     return (await api.delete<{ deleted: number }>(`/api/trips/${tripId}/activities`)).data;
+  },
+
+  async getActivityDetail(tripId: number, activityId: number): Promise<Activity> {
+    return (await api.get<Activity>(`/api/trips/${tripId}/activities/${activityId}`)).data;
+  },
+
+  async patchActivity(
+    tripId: number,
+    activityId: number,
+    data: ActivityUpdateRequest,
+  ): Promise<Activity> {
+    return (
+      await api.patch<Activity>(`/api/trips/${tripId}/activities/${activityId}`, data)
+    ).data;
+  },
+
+  async checkInActivity(tripId: number, activityId: number): Promise<Activity> {
+    return (
+      await api.post<Activity>(`/api/trips/${tripId}/activities/${activityId}/checkin`)
+    ).data;
+  },
+
+  async addActivityMedia(
+    tripId: number,
+    activityId: number,
+    data: ActivityMediaCreateRequest,
+  ): Promise<ActivityMedia> {
+    return (
+      await api.post<ActivityMedia>(
+        `/api/trips/${tripId}/activities/${activityId}/media`,
+        data,
+      )
+    ).data;
+  },
+
+  async deleteActivityMedia(
+    tripId: number,
+    activityId: number,
+    mediaId: number,
+  ): Promise<void> {
+    await api.delete(
+      `/api/trips/${tripId}/activities/${activityId}/media/${mediaId}`,
+    );
   },
 
   // ── Expenses ───────────────────────────────────────────────

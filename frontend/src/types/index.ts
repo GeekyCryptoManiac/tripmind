@@ -56,42 +56,71 @@ export interface UserCreate {
 
 export type ActivityType = 'activity' | 'dining' | 'flight' | 'hotel' | 'transport';
 
-export interface Activity {
-  id:          number;           // integer PK — was a uuid string
+export interface ActivityMedia {
+  id:          number;
+  activity_id: number;
   trip_id:     number;
-  day:         number;           // 1-based day number
-  time:        string | null;    // "HH:MM" — null for all-day items
-  type:        ActivityType;
-  title:       string;
-  location:    string | null;
-  description: string | null;
-  notes:       string | null;
-  booking_ref: string | null;
+  media_type:  'photo' | 'document';
+  storage_url: string;
+  filename:    string | null;
+  caption:     string | null;
   sort_order:  number;
   created_at:  string;
 }
 
-export interface ActivityCreateRequest {
-  day:         number;
-  time?:       string;
-  type:        ActivityType;
-  title:       string;
-  location?:   string;
-  description?: string;
-  notes?:      string;
-  booking_ref?: string;
-  sort_order?: number;
+export interface Activity {
+  id:             number;           // integer PK — was a uuid string
+  trip_id:        number;
+  day:            number;           // 1-based day number
+  time:           string | null;    // "HH:MM" — null for all-day items
+  type:           ActivityType;
+  title:          string;
+  location:       string | null;
+  description:    string | null;
+  notes:          string | null;
+  ai_tip:         string | null;
+  booking_ref:    string | null;
+  booking_url:    string | null;
+  checked_in_at:  string | null;    // ISO datetime
+  checked_out_at: string | null;
+  sort_order:     number;
+  created_at:     string;
+  media:          ActivityMedia[];
 }
 
-export interface ActivityUpdateRequest {
+export interface ActivityCreateRequest {
+  day:          number;
   time?:        string;
-  type?:        ActivityType;
-  title?:       string;
+  type:         ActivityType;
+  title:        string;
   location?:    string;
   description?: string;
   notes?:       string;
   booking_ref?: string;
   sort_order?:  number;
+}
+
+export interface ActivityUpdateRequest {
+  time?:           string;
+  type?:           ActivityType;
+  title?:          string;
+  location?:       string;
+  description?:    string;
+  notes?:          string;
+  ai_tip?:         string;
+  booking_ref?:    string;
+  booking_url?:    string;
+  checked_in_at?:  string;
+  checked_out_at?: string;
+  sort_order?:     number;
+}
+
+export interface ActivityMediaCreateRequest {
+  media_type:  'photo' | 'document';
+  storage_url: string;
+  filename?:   string;
+  caption?:    string;
+  sort_order?: number;
 }
 
 // ── Itinerary view helper — activities grouped by day ─────────
