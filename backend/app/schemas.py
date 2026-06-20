@@ -88,14 +88,26 @@ class ActivityCreate(BaseModel):
 
 class ActivityUpdate(BaseModel):
     """Partial update — all fields optional."""
-    time:        Optional[str]          = None
-    type:        Optional[ActivityType] = None
-    title:       Optional[str]          = Field(None, max_length=200)
-    location:    Optional[str]          = Field(None, max_length=200)
-    description: Optional[str]          = Field(None, max_length=2000)
-    notes:       Optional[str]          = Field(None, max_length=500)
-    booking_ref: Optional[str]          = Field(None, max_length=100)
-    sort_order:  Optional[int]          = None
+    time:           Optional[str]          = None
+    type:           Optional[ActivityType] = None
+    title:          Optional[str]          = Field(None, max_length=200)
+    location:       Optional[str]          = Field(None, max_length=200)
+    description:    Optional[str]          = Field(None, max_length=2000)
+    notes:          Optional[str]          = Field(None, max_length=500)
+    ai_tip:         Optional[str]          = None
+    booking_ref:    Optional[str]          = Field(None, max_length=100)
+    booking_url:    Optional[str]          = Field(None, max_length=500)
+    checked_in_at:  Optional[datetime]     = None
+    checked_out_at: Optional[datetime]     = None
+    sort_order:     Optional[int]          = None
+
+
+class ActivityMediaCreate(BaseModel):
+    media_type:  Literal["photo", "document"]
+    storage_url: str            = Field(..., max_length=1000)
+    filename:    Optional[str]  = Field(None, max_length=255)
+    caption:     Optional[str]  = Field(None, max_length=500)
+    sort_order:  int            = 0
 
 
 class ActivityMediaResponse(BaseModel):
@@ -129,7 +141,7 @@ class ActivityResponse(BaseModel):
     checked_out_at: Optional[datetime] = None
     sort_order:     int
     created_at:     datetime
-    media:          List[Dict[str, Any]] = []
+    media:          List[ActivityMediaResponse] = []
 
     model_config = {"from_attributes": True}
 
