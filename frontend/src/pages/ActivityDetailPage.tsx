@@ -176,6 +176,26 @@ function Skeleton() {
 // Shared sections
 // ─────────────────────────────────────────────────────────────
 
+function DescriptionBlock({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 200;
+  return (
+    <div>
+      <p className={`text-sm text-ink leading-relaxed ${!expanded && long ? 'line-clamp-3' : ''}`}>
+        {text}
+      </p>
+      {long && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-forest font-medium mt-1 hover:underline"
+        >
+          {expanded ? 'See less' : 'See more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function NotesSection({
   localNotes,
   saveStatus,
@@ -206,52 +226,6 @@ function NotesSection({
         rows={4}
         className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent focus:bg-parchment resize-none transition-colors"
       />
-    </section>
-  );
-}
-
-function ItineraryDescriptionSection({ activity }: { activity: Activity }) {
-  if (!activity.description && !activity.notes && !activity.ai_tip) return null;
-  return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-3">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">From your itinerary</h3>
-      {activity.description && (
-        <p className="text-sm text-ink leading-relaxed">{activity.description}</p>
-      )}
-      {activity.notes && (
-        <div className="border-l-4 border-amber-400 pl-3 bg-amber-50/60 py-2 rounded-r-lg">
-          <p className="text-sm text-amber-900 leading-relaxed">{activity.notes}</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function ContextRow({ activity }: { activity: Activity }) {
-  const mapsUrl = activity.location
-    ? `https://maps.google.com/?q=${encodeURIComponent(activity.location)}`
-    : null;
-
-  return (
-    <section className="flex flex-wrap gap-2">
-      {/* Static weather placeholder */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-parchment border border-card-border rounded-full text-sm text-sage">
-        <span>☀️</span>
-        <span>Weather: checking…</span>
-      </div>
-
-      {mapsUrl && (
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-forest text-parchment rounded-full text-sm font-medium hover:bg-forest/80 transition-colors"
-        >
-          <MapPinIcon />
-          Open in Maps
-          <ExternalLinkIcon />
-        </a>
-      )}
     </section>
   );
 }
@@ -412,10 +386,13 @@ function PhotosSection({
 
 function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
   const typeLabel = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
+  const mapsUrl = activity.location
+    ? `https://maps.google.com/?q=${encodeURIComponent(activity.location)}`
+    : null;
 
   return (
-    <div className="space-y-2">
-      {/* Visited badge */}
+    <div className="bg-parchment border border-card-border rounded-2xl p-5 space-y-3">
+      {/* Visited badge + date */}
       <div className="flex items-center gap-2">
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-terrain text-[#3B6150] text-xs font-semibold rounded-full border border-card-border">
           <CheckCircleIcon />
@@ -427,7 +404,7 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
       {/* Serif title */}
       <h1 className="font-display text-3xl text-ink leading-tight">{activity.title}</h1>
 
-      {/* Meta row */}
+      {/* Type + time */}
       <div className="flex flex-wrap items-center gap-2 text-sm text-sage">
         {activity.time && (
           <span className="flex items-center gap-1">
@@ -438,13 +415,39 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
         <span className="px-2 py-0.5 bg-terrain rounded-full text-xs text-forest font-medium border border-card-border">
           {typeLabel}
         </span>
-        {activity.location && (
-          <span className="flex items-center gap-1">
+      </div>
+
+      {/* Location (tappable) + weather pill */}
+      {activity.location && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={mapsUrl!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-sm text-forest hover:underline"
+          >
             <MapPinIcon />
             {activity.location}
+          </a>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain/40 border border-card-border rounded-full text-xs text-sage">
+            ☀️ -- °C
           </span>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Inline description + ai_tip */}
+      {(activity.description || activity.ai_tip) && (
+        <>
+          <div className="border-t border-card-border" />
+          {activity.description && <DescriptionBlock text={activity.description} />}
+          {activity.ai_tip && (
+            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+              <LightbulbIcon />
+              <p className="text-sm text-amber-900 leading-relaxed">{activity.ai_tip}</p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -469,6 +472,9 @@ function BeforeHeader({
   const typeLabel = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
   const isToday = temporalState === 'today';
   const alreadyCheckedIn = Boolean(activity.checked_in_at);
+  const mapsUrl = activity.location
+    ? `https://maps.google.com/?q=${encodeURIComponent(activity.location)}`
+    : null;
 
   return (
     <div className="bg-parchment border border-card-border rounded-2xl p-5 space-y-4">
@@ -493,11 +499,22 @@ function BeforeHeader({
               </span>
             )}
           </div>
+          {/* Location (tappable) + weather pill */}
           {activity.location && (
-            <p className="flex items-center gap-1 text-sm text-sage mt-1">
-              <MapPinIcon />
-              {activity.location}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              <a
+                href={mapsUrl!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-sm text-forest hover:underline"
+              >
+                <MapPinIcon />
+                {activity.location}
+              </a>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain/40 border border-card-border rounded-full text-xs text-sage">
+                ☀️ -- °C
+              </span>
+            </div>
           )}
         </div>
       </div>
@@ -528,6 +545,20 @@ function BeforeHeader({
             </>
           )}
         </button>
+      )}
+
+      {/* Inline description + ai_tip */}
+      {(activity.description || activity.ai_tip) && (
+        <>
+          <div className="border-t border-card-border" />
+          {activity.description && <DescriptionBlock text={activity.description} />}
+          {activity.ai_tip && (
+            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+              <LightbulbIcon />
+              <p className="text-sm text-amber-900 leading-relaxed">{activity.ai_tip}</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -724,7 +755,7 @@ export default function ActivityDetailPage() {
   const isAfterState  = temporalState === 'after';
 
   return (
-    <div className="min-h-screen bg-parchment pb-16">
+    <div className="min-h-screen pb-16" style={{ backgroundColor: '#E2DED7' }}>
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
         {/* ── Back button ───────────────────────────────── */}
@@ -755,10 +786,6 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ItineraryDescriptionSection activity={activity} />
-
-            <ContextRow activity={activity} />
-
             <BookingSection
               activity={activity}
               copiedRef={copiedRef}
@@ -778,14 +805,6 @@ export default function ActivityDetailPage() {
               onCheckin={handleCheckin}
             />
 
-            {/* AI tip strip */}
-            {activity.ai_tip && (
-              <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-4 py-2 bg-amber-50/70 rounded-r-xl">
-                <LightbulbIcon />
-                <p className="text-sm text-amber-900 leading-relaxed">{activity.ai_tip}</p>
-              </div>
-            )}
-
             <PhotosSection activity={activity} emptyDashed />
 
             <NotesSection
@@ -793,10 +812,6 @@ export default function ActivityDetailPage() {
               saveStatus={saveStatus}
               onChange={setLocalNotes}
             />
-
-            <ItineraryDescriptionSection activity={activity} />
-
-            <ContextRow activity={activity} />
 
             <BookingSection
               activity={activity}
