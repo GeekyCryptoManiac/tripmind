@@ -230,68 +230,115 @@ function NotesSection({
   );
 }
 
-function BookingSection({
-  activity,
-  copiedRef,
-  onCopyRef,
-}: {
-  activity: Activity;
-  copiedRef: boolean;
-  onCopyRef: () => void;
-}) {
-  const docs = (activity.media ?? []).filter((m) => m.media_type === 'document');
+function fileExt(filename: string | null): string {
+  if (!filename) return 'FILE';
+  const ext = filename.split('.').pop()?.toUpperCase();
+  return ext && ext.length <= 5 ? ext : 'FILE';
+}
 
-  if (!activity.booking_ref && !activity.booking_url && docs.length === 0) return null;
+function bookingHostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+function BookingSection({ activity }: { activity: Activity }) {
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const docs = (activity.media ?? []).filter((m: ActivityMedia) => m.media_type === 'document');
+  const hasContent = Boolean(activity.booking_ref || activity.booking_url || docs.length > 0);
+
+  const handleCopy = () => {
+    if (!activity.booking_ref) return;
+    navigator.clipboard.writeText(activity.booking_ref).then(() => {
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1800);
+    });
+  };
 
   return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-3">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Booking & tickets</h3>
+    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-4">
+      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Booking & Tickets</h3>
 
-      {activity.booking_ref && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-sage font-mono">Ref:</span>
-          <span className="font-mono text-sm text-ink font-medium">{activity.booking_ref}</span>
-          <button
-            onClick={onCopyRef}
-            className="p-1 text-sage hover:text-forest transition-colors"
-            title="Copy reference"
-          >
-            {copiedRef ? (
-              <CheckCircleIcon />
-            ) : (
-              <ClipboardIcon />
-            )}
-          </button>
-          {copiedRef && <span className="text-xs text-emerald-600">Copied!</span>}
-        </div>
-      )}
+      {!hasContent ? (
+        <button className="w-full flex items-center justify-center gap-2 py-5 border-2 border-dashed border-card-border rounded-xl text-sm text-sage hover:text-forest hover:border-forest transition-colors">
+          <PlusIcon />
+          Add booking details
+        </button>
+      ) : (
+        <div className="space-y-4">
+          {/* Booking reference */}
+          {activity.booking_ref && (
+            <div className="space-y-1.5">
+              <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-sage">Reference</p>
+              <div className="flex items-stretch gap-2">
+                <code className="flex-1 bg-terrain/30 border border-card-border rounded-xl px-3 py-2.5 font-mono text-sm text-ink font-semibold tracking-widest min-w-0 break-all">
+                  {activity.booking_ref}
+                </code>
+                <button
+                  onClick={handleCopy}
+                  className={`flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold flex-shrink-0 transition-colors border ${
+                    copied
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-terrain/40 border-card-border text-sage hover:text-forest hover:bg-terrain'
+                  }`}
+                >
+                  {copied ? (
+                    '✓ Copied'
+                  ) : (
+                    <><ClipboardIcon /> Copy</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
-      {activity.booking_url && (
-        <a
-          href={activity.booking_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm text-forest hover:text-forest/80 font-medium transition-colors"
-        >
-          <ExternalLinkIcon />
-          Confirmation link
-        </a>
-      )}
-
-      {docs.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {docs.map((doc) => (
+          {/* Booking URL */}
+          {activity.booking_url && (
             <a
-              key={doc.id}
-              href={doc.storage_url}
+              href={activity.booking_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-terrain/40 border border-card-border rounded-lg text-xs text-forest hover:bg-terrain transition-colors"
+              className="flex items-center gap-3 p-3 bg-terrain/20 border border-card-border rounded-xl hover:bg-terrain/40 transition-colors"
             >
-              <DocumentIcon />
-              {doc.filename ?? 'Document'}
+              <div className="w-8 h-8 bg-forest/10 rounded-lg flex items-center justify-center flex-shrink-0 text-forest font-bold text-sm select-none">
+                {bookingHostname(activity.booking_url)[0]?.toUpperCase() ?? '↗'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink">Confirmation link</p>
+                <p className="text-xs text-sage truncate">{bookingHostname(activity.booking_url)}</p>
+              </div>
+              <ExternalLinkIcon />
             </a>
-          ))}
+          )}
+
+          {/* Documents row — always shown when hasContent, + Add doc chip always last */}
+          <div className="space-y-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-sage">Documents</p>
+            <div className="flex flex-wrap gap-2">
+              {docs.map((doc: ActivityMedia) => (
+                <a
+                  key={doc.id}
+                  href={doc.storage_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-terrain/30 border border-card-border rounded-lg text-xs text-forest hover:bg-terrain transition-colors max-w-[180px]"
+                >
+                  <DocumentIcon />
+                  <span className="truncate">{doc.filename ?? 'Document'}</span>
+                  <span className="font-mono text-sage text-[10px] flex-shrink-0">{fileExt(doc.filename)}</span>
+                </a>
+              ))}
+              <button className="flex items-center gap-1 px-3 py-1.5 border-2 border-dashed border-card-border rounded-lg text-xs text-sage hover:text-forest hover:border-forest transition-colors">
+                <PlusIcon />
+                Add doc
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>
@@ -436,10 +483,16 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
       )}
 
       {/* Inline description + ai_tip */}
-      {(activity.description || activity.ai_tip) && (
+      {(activity.description || activity.notes || activity.ai_tip) && (
         <>
           <div className="border-t border-card-border" />
           {activity.description && <DescriptionBlock text={activity.description} />}
+          {activity.notes && (
+            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+              <LightbulbIcon />
+              <p className="text-sm text-amber-900 leading-relaxed">{activity.notes}</p>
+            </div>
+          )}
           {activity.ai_tip && (
             <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
               <LightbulbIcon />
@@ -548,10 +601,16 @@ function BeforeHeader({
       )}
 
       {/* Inline description + ai_tip */}
-      {(activity.description || activity.ai_tip) && (
+      {(activity.description || activity.notes || activity.ai_tip) && (
         <>
           <div className="border-t border-card-border" />
           {activity.description && <DescriptionBlock text={activity.description} />}
+          {activity.notes && (
+            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+              <LightbulbIcon />
+              <p className="text-sm text-amber-900 leading-relaxed">{activity.notes}</p>
+            </div>
+          )}
           {activity.ai_tip && (
             <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
               <LightbulbIcon />
@@ -637,7 +696,6 @@ export default function ActivityDetailPage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [localNotes, setLocalNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [copiedRef, setCopiedRef] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initializedNotesRef = useRef<string | null>(null);
@@ -658,8 +716,8 @@ export default function ActivityDetailPage() {
         ]);
         setActivity(actData);
         setTrip(tripData);
-        initializedNotesRef.current = actData.notes ?? '';
-        setLocalNotes(actData.notes ?? '');
+        initializedNotesRef.current = actData.user_notes ?? '';
+        setLocalNotes(actData.user_notes ?? '');
       } catch {
         setError('Could not load this activity. It may have been deleted or moved.');
       } finally {
@@ -679,7 +737,7 @@ export default function ActivityDetailPage() {
     debounceRef.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        await apiService.patchActivity(numTripId, numActId, { notes: localNotes });
+        await apiService.patchActivity(numTripId, numActId, { user_notes: localNotes });
         initializedNotesRef.current = localNotes;
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
@@ -703,15 +761,6 @@ export default function ActivityDetailPage() {
     } finally {
       setIsCheckingIn(false);
     }
-  };
-
-  // ── Copy booking ref ──────────────────────────────────────
-  const handleCopyRef = () => {
-    if (!activity?.booking_ref) return;
-    navigator.clipboard.writeText(activity.booking_ref).then(() => {
-      setCopiedRef(true);
-      setTimeout(() => setCopiedRef(false), 2000);
-    });
   };
 
   // ── Derived ───────────────────────────────────────────────
@@ -786,13 +835,9 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <BookingSection
-              activity={activity}
-              copiedRef={copiedRef}
-              onCopyRef={handleCopyRef}
-            />
-
             <ExpensesSection />
+
+            <BookingSection activity={activity} />
           </>
         ) : (
           /* ── BEFORE / ON THE DAY ─────────────────────── */
@@ -813,13 +858,9 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <BookingSection
-              activity={activity}
-              copiedRef={copiedRef}
-              onCopyRef={handleCopyRef}
-            />
-
             <ExpensesSection />
+
+            <BookingSection activity={activity} />
           </>
         )}
 

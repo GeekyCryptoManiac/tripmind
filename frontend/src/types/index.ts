@@ -77,7 +77,8 @@ export interface Activity {
   title:          string;
   location:       string | null;
   description:    string | null;
-  notes:          string | null;
+  notes:          string | null;    // AI itinerary recommendation
+  user_notes:     string | null;    // traveller diary entry
   ai_tip:         string | null;
   booking_ref:    string | null;
   booking_url:    string | null;
@@ -106,7 +107,8 @@ export interface ActivityUpdateRequest {
   title?:          string;
   location?:       string;
   description?:    string;
-  notes?:          string;
+  notes?:          string;       // AI itinerary note (agent use)
+  user_notes?:     string;       // traveller diary entry
   ai_tip?:         string;
   booking_ref?:    string;
   booking_url?:    string;

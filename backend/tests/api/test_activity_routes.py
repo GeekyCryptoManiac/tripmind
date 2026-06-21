@@ -104,7 +104,7 @@ def test_patch_diary_fields(client, auth_headers, test_trip):
     resp = client.patch(
         f"/api/trips/{test_trip.id}/activities/{act['id']}",
         json={
-            "notes": "Bring cash",
+            "user_notes": "Bring cash",
             "ai_tip": "Visit early to avoid crowds",
             "booking_ref": "ABC123",
             "booking_url": "https://example.com/book",
@@ -113,7 +113,7 @@ def test_patch_diary_fields(client, auth_headers, test_trip):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["notes"] == "Bring cash"
+    assert data["user_notes"] == "Bring cash"
     assert data["ai_tip"] == "Visit early to avoid crowds"
     assert data["booking_ref"] == "ABC123"
     assert data["booking_url"] == "https://example.com/book"

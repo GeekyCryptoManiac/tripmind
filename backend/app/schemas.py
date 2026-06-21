@@ -93,7 +93,8 @@ class ActivityUpdate(BaseModel):
     title:          Optional[str]          = Field(None, max_length=200)
     location:       Optional[str]          = Field(None, max_length=200)
     description:    Optional[str]          = Field(None, max_length=2000)
-    notes:          Optional[str]          = Field(None, max_length=500)
+    notes:          Optional[str]          = Field(None, max_length=500)   # AI itinerary note
+    user_notes:     Optional[str]          = None                          # traveller diary entry
     ai_tip:         Optional[str]          = None
     booking_ref:    Optional[str]          = Field(None, max_length=100)
     booking_url:    Optional[str]          = Field(None, max_length=500)
@@ -133,7 +134,8 @@ class ActivityResponse(BaseModel):
     title:          str
     location:       Optional[str]      = None
     description:    Optional[str]      = None
-    notes:          Optional[str]      = None
+    notes:          Optional[str]      = None    # AI itinerary recommendation
+    user_notes:     Optional[str]      = None    # traveller diary entry
     ai_tip:         Optional[str]      = None
     booking_ref:    Optional[str]      = None
     booking_url:    Optional[str]      = None

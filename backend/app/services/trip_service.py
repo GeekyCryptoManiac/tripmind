@@ -232,7 +232,7 @@ class TripService:
 
         for field in [
             "time", "type", "title", "location", "description",
-            "notes", "ai_tip", "booking_ref", "booking_url",
+            "notes", "user_notes", "ai_tip", "booking_ref", "booking_url",
             "checked_in_at", "checked_out_at", "sort_order",
         ]:
             value = getattr(data, field)

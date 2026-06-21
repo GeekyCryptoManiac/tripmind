@@ -194,7 +194,8 @@ class TripActivity(Base):
     title       = Column(String(200), nullable=False)
     location    = Column(String(200), nullable=True)
     description = Column(Text, nullable=True)
-    notes          = Column(Text, nullable=True)
+    notes          = Column(Text, nullable=True)   # AI itinerary recommendation
+    user_notes     = Column(Text, nullable=True)   # traveller's personal diary entry
     ai_tip         = Column(Text, nullable=True)
     booking_ref    = Column(String(100), nullable=True)
     booking_url    = Column(String(500), nullable=True)
