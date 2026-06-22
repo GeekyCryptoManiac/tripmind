@@ -19,6 +19,7 @@ import HomePage from './pages/HomePage';
 import TripsPage from './pages/TripsPage';
 import ChatPage from './pages/ChatPage';
 import TripDetailsPage from './pages/TripDetailsPage';
+import ActivityDetailPage from './pages/ActivityDetailPage';
 
 // ── Auth guard for the /auth page itself ──────────────────────
 // If the user is already authenticated and visits /auth,
@@ -70,6 +71,14 @@ function AnimatedRoutes() {
             element={
               <ProtectedRoute>
                 <TripDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId/activities/:activityId"
+            element={
+              <ProtectedRoute>
+                <ActivityDetailPage />
               </ProtectedRoute>
             }
           />

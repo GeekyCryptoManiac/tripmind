@@ -24,8 +24,10 @@ import type {
   WaypointCreateRequest,
   WaypointUpdateRequest,
   Activity,
+  ActivityMedia,
   ActivityCreateRequest,
   ActivityUpdateRequest,
+  ActivityMediaCreateRequest,
   Expense,
   ExpenseCreateRequest,
   ExpenseUpdateRequest,
@@ -251,6 +253,87 @@ export const apiService = {
 
   async clearAllActivities(tripId: number): Promise<{ deleted: number }> {
     return (await api.delete<{ deleted: number }>(`/api/trips/${tripId}/activities`)).data;
+  },
+
+  async getActivityDetail(tripId: number, activityId: number): Promise<Activity> {
+    return (await api.get<Activity>(`/api/trips/${tripId}/activities/${activityId}`)).data;
+  },
+
+  async patchActivity(
+    tripId: number,
+    activityId: number,
+    data: ActivityUpdateRequest,
+  ): Promise<Activity> {
+    return (
+      await api.patch<Activity>(`/api/trips/${tripId}/activities/${activityId}`, data)
+    ).data;
+  },
+
+  async checkInActivity(tripId: number, activityId: number): Promise<Activity> {
+    return (
+      await api.post<Activity>(`/api/trips/${tripId}/activities/${activityId}/checkin`)
+    ).data;
+  },
+
+  async getMediaUploadUrl(
+    tripId: number,
+    activityId: number,
+    filename: string,
+    contentType: string,
+  ): Promise<{ upload_url: string; s3_key: string }> {
+    return (
+      await api.get<{ upload_url: string; s3_key: string }>(
+        `/api/trips/${tripId}/activities/${activityId}/media/upload-url`,
+        { params: { filename, content_type: contentType } },
+      )
+    ).data;
+  },
+
+  async uploadFileToS3(presignedUrl: string, file: File): Promise<void> {
+    const resp = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!resp.ok) throw new Error(`S3 upload failed: ${resp.status}`);
+  },
+
+  async createMediaRecord(
+    tripId: number,
+    activityId: number,
+    s3Key: string,
+    filename: string,
+    mediaType: 'photo' | 'document',
+  ): Promise<ActivityMedia> {
+    return (
+      await api.post<ActivityMedia>(
+        `/api/trips/${tripId}/activities/${activityId}/media`,
+        { media_type: mediaType, s3_key: s3Key, filename },
+      )
+    ).data;
+  },
+
+  async addActivityMedia(
+    tripId: number,
+    activityId: number,
+    data: ActivityMediaCreateRequest,
+  ): Promise<ActivityMedia> {
+    return (
+      await api.post<ActivityMedia>(
+        `/api/trips/${tripId}/activities/${activityId}/media`,
+        data,
+      )
+    ).data;
+  },
+
+  async deleteActivityMedia(
+    tripId: number,
+    activityId: number,
+    mediaId: number,
+  ): Promise<void> {
+    await api.delete(
+      `/api/trips/${tripId}/activities/${activityId}/media/${mediaId}`,
+    );
   },
 
   // ── Expenses ───────────────────────────────────────────────

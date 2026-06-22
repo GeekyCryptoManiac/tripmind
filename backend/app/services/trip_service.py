@@ -23,11 +23,11 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
-from ..models import Trip, TripActivity, TripExpense, TripChecklistItem, TripSavedTravel, TripWaypoint
+from ..models import Trip, TripActivity, TripActivityMedia, TripExpense, TripChecklistItem, TripSavedTravel, TripWaypoint
 from ..schemas import (
     TripCreate, TripUpdate,
     WaypointCreate, WaypointUpdate,
-    ActivityCreate, ActivityUpdate,
+    ActivityCreate, ActivityUpdate, ActivityMediaCreate,
     ExpenseCreate, ExpenseUpdate,
     ChecklistItemCreate, ChecklistItemUpdate,
     TravelSaveRequest,
@@ -209,11 +209,53 @@ class TripService:
         self.db.refresh(activity)
         return activity
 
+    def get_activity_or_404(self, trip_id: int, activity_id: int, user_id: int) -> TripActivity:
+        """
+        Fetch a single activity with its media eagerly loaded, verifying trip ownership.
+        Raises 403 if the trip belongs to another user, 404 if trip or activity not found.
+        """
+        self.get_trip_or_404(trip_id, user_id)
+        activity = (
+            self.db.query(TripActivity)
+            .options(joinedload(TripActivity.media))
+            .filter(TripActivity.id == activity_id, TripActivity.trip_id == trip_id)
+            .first()
+        )
+        if not activity:
+            raise HTTPException(status_code=404, detail="Activity not found")
+        return activity
+
     def update_activity(
         self, trip_id: int, activity_id: int, user_id: int, data: ActivityUpdate
     ) -> TripActivity:
-        self.get_trip_or_404(trip_id, user_id)  # ownership check
+        activity = self.get_activity_or_404(trip_id, activity_id, user_id)
 
+        for field in [
+            "time", "type", "title", "location", "description",
+            "notes", "user_notes", "ai_tip", "booking_ref", "booking_url",
+            "checked_in_at", "checked_out_at", "sort_order",
+        ]:
+            value = getattr(data, field)
+            if value is not None:
+                setattr(activity, field, value)
+
+        self.db.commit()
+        self.db.refresh(activity)
+        return activity
+
+    def checkin_activity(self, trip_id: int, activity_id: int, user_id: int) -> TripActivity:
+        """Set checked_in_at to now if not already set."""
+        activity = self.get_activity_or_404(trip_id, activity_id, user_id)
+        if activity.checked_in_at is None:
+            activity.checked_in_at = datetime.utcnow()
+            self.db.commit()
+            self.db.refresh(activity)
+        return activity
+
+    def add_activity_media(
+        self, trip_id: int, activity_id: int, user_id: int, data: ActivityMediaCreate
+    ) -> TripActivityMedia:
+        self.get_trip_or_404(trip_id, user_id)
         activity = (
             self.db.query(TripActivity)
             .filter(TripActivity.id == activity_id, TripActivity.trip_id == trip_id)
@@ -222,15 +264,37 @@ class TripService:
         if not activity:
             raise HTTPException(status_code=404, detail="Activity not found")
 
-        for field in ["time", "type", "title", "location", "description", "notes",
-                      "booking_ref", "sort_order"]:
-            value = getattr(data, field)
-            if value is not None:
-                setattr(activity, field, value)
-
+        media = TripActivityMedia(
+            activity_id=activity_id,
+            trip_id=trip_id,
+            media_type=data.media_type,
+            storage_url=data.s3_key,
+            filename=data.filename,
+            caption=data.caption,
+            sort_order=data.sort_order,
+        )
+        self.db.add(media)
         self.db.commit()
-        self.db.refresh(activity)
-        return activity
+        self.db.refresh(media)
+        return media
+
+    def delete_activity_media(
+        self, trip_id: int, activity_id: int, media_id: int, user_id: int
+    ) -> None:
+        self.get_trip_or_404(trip_id, user_id)
+        media = (
+            self.db.query(TripActivityMedia)
+            .filter(
+                TripActivityMedia.id == media_id,
+                TripActivityMedia.activity_id == activity_id,
+                TripActivityMedia.trip_id == trip_id,
+            )
+            .first()
+        )
+        if not media:
+            raise HTTPException(status_code=404, detail="Media not found")
+        self.db.delete(media)
+        self.db.commit()
 
     def delete_activity(
         self, trip_id: int, activity_id: int, user_id: int

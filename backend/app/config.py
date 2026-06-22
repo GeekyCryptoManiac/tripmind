@@ -2,6 +2,7 @@
 Application Configuration
 """
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -19,6 +20,11 @@ class Settings(BaseSettings):
     # Application
     DEBUG: bool = False
     FRONTEND_URL: str = "http://localhost:5173"
+
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_s3_bucket: str = ""
+    aws_s3_region: str = "ap-southeast-1"
     
     class Config:
         env_file = ".env"
