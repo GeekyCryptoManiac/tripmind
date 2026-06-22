@@ -57,15 +57,16 @@ export interface UserCreate {
 export type ActivityType = 'activity' | 'dining' | 'flight' | 'hotel' | 'transport';
 
 export interface ActivityMedia {
-  id:          number;
-  activity_id: number;
-  trip_id:     number;
-  media_type:  'photo' | 'document';
-  storage_url: string;
-  filename:    string | null;
-  caption:     string | null;
-  sort_order:  number;
-  created_at:  string;
+  id:            number;
+  activity_id:   number;
+  trip_id:       number;
+  media_type:    'photo' | 'document';
+  storage_url:   string;
+  presigned_url: string | null;
+  filename:      string | null;
+  caption:       string | null;
+  sort_order:    number;
+  created_at:    string;
 }
 
 export interface Activity {
@@ -119,7 +120,7 @@ export interface ActivityUpdateRequest {
 
 export interface ActivityMediaCreateRequest {
   media_type:  'photo' | 'document';
-  storage_url: string;
+  s3_key:      string;
   filename?:   string;
   caption?:    string;
   sort_order?: number;

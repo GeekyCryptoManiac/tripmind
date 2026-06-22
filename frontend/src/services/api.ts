@@ -275,6 +275,44 @@ export const apiService = {
     ).data;
   },
 
+  async getMediaUploadUrl(
+    tripId: number,
+    activityId: number,
+    filename: string,
+    contentType: string,
+  ): Promise<{ upload_url: string; s3_key: string }> {
+    return (
+      await api.get<{ upload_url: string; s3_key: string }>(
+        `/api/trips/${tripId}/activities/${activityId}/media/upload-url`,
+        { params: { filename, content_type: contentType } },
+      )
+    ).data;
+  },
+
+  async uploadFileToS3(presignedUrl: string, file: File): Promise<void> {
+    const resp = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!resp.ok) throw new Error(`S3 upload failed: ${resp.status}`);
+  },
+
+  async createMediaRecord(
+    tripId: number,
+    activityId: number,
+    s3Key: string,
+    filename: string,
+    mediaType: 'photo' | 'document',
+  ): Promise<ActivityMedia> {
+    return (
+      await api.post<ActivityMedia>(
+        `/api/trips/${tripId}/activities/${activityId}/media`,
+        { media_type: mediaType, s3_key: s3Key, filename },
+      )
+    ).data;
+  },
+
   async addActivityMedia(
     tripId: number,
     activityId: number,

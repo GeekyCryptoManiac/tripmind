@@ -360,24 +360,81 @@ function ExpensesSection() {
 
 function PhotosSection({
   activity,
+  tripId,
+  activityId,
+  onRefresh,
   emptyDashed,
 }: {
   activity: Activity;
+  tripId: number;
+  activityId: number;
+  onRefresh: () => void;
   emptyDashed?: boolean;
 }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const photos = (activity.media ?? []).filter((m) => m.media_type === 'photo');
 
-  if (emptyDashed || photos.length === 0) {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const { upload_url, s3_key } = await apiService.getMediaUploadUrl(
+        tripId, activityId, file.name, file.type,
+      );
+      await apiService.uploadFileToS3(upload_url, file);
+      await apiService.createMediaRecord(
+        tripId, activityId, s3_key, file.name, 'photo',
+      );
+      onRefresh();
+    } catch {
+      setUploadError('Upload failed — please try again');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const triggerUpload = () => {
+    if (!isUploading) fileInputRef.current?.click();
+  };
+
+  const unlocked = !emptyDashed || Boolean(activity.checked_in_at);
+
+  if (photos.length === 0) {
     return (
       <section>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Photos</h3>
         </div>
-        <div className="border-2 border-dashed border-card-border rounded-2xl py-10 flex flex-col items-center gap-2 text-sage">
-          <CameraIcon />
-          <p className="text-sm">No photos yet</p>
-          <p className="text-xs text-ink-tertiary">Add photos after your visit</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <div
+          className={`border-2 border-dashed border-card-border rounded-2xl py-10 flex flex-col items-center gap-2 text-sage transition-colors ${unlocked ? 'cursor-pointer hover:text-forest hover:border-forest' : ''}`}
+          onClick={unlocked ? triggerUpload : undefined}
+        >
+          {isUploading ? (
+            <div className="w-6 h-6 border-2 border-sage border-t-forest rounded-full animate-spin" />
+          ) : (
+            <CameraIcon />
+          )}
+          <p className="text-sm">
+            {unlocked ? 'Add your first photo' : 'Photos unlock when you arrive'}
+          </p>
         </div>
+        {uploadError && (
+          <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+        )}
       </section>
     );
   }
@@ -395,34 +452,45 @@ function PhotosSection({
           </span>
         )}
       </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       <div className="grid grid-cols-4 gap-2">
-        {visible.map((photo) => (
+        {visible.map((photo, idx) => (
           <div key={photo.id} className="relative" style={{ height: '90px' }}>
             <img
-              src={photo.storage_url}
+              src={photo.presigned_url ?? photo.storage_url}
               alt={photo.caption ?? photo.filename ?? 'Photo'}
               className="w-full h-full object-cover rounded-xl"
             />
+            {overflow > 0 && idx === 2 && (
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
+                +{overflow}
+              </div>
+            )}
           </div>
         ))}
-        {/* +N overflow tile */}
-        {overflow > 0 && (
-          <div
-            className="bg-terrain/60 rounded-xl flex items-center justify-center text-sm font-semibold text-forest cursor-pointer"
-            style={{ height: '90px' }}
-          >
-            +{overflow}
-          </div>
-        )}
-        {/* Add button */}
+        {/* + thumb */}
         <div
           className="border-2 border-dashed border-card-border rounded-xl flex items-center justify-center text-sage hover:text-forest hover:border-forest transition-colors cursor-pointer"
           style={{ height: '90px' }}
           title="Add photo"
+          onClick={unlocked ? triggerUpload : undefined}
         >
-          <PlusIcon />
+          {isUploading ? (
+            <div className="w-4 h-4 border-2 border-sage border-t-forest rounded-full animate-spin" />
+          ) : (
+            <PlusIcon />
+          )}
         </div>
       </div>
+      {uploadError && (
+        <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+      )}
     </section>
   );
 }
@@ -749,6 +817,16 @@ export default function ActivityDetailPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [localNotes]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Activity refresh (used after media upload) ────────────
+  const refreshActivity = async () => {
+    try {
+      const actData = await apiService.getActivityDetail(numTripId, numActId);
+      setActivity(actData);
+    } catch {
+      // silent — don't overwrite existing data on refresh failure
+    }
+  };
+
   // ── Checkin handler ───────────────────────────────────────
   const handleCheckin = async () => {
     if (isCheckingIn || !activity) return;
@@ -827,7 +905,12 @@ export default function ActivityDetailPage() {
           <>
             <AfterHeader activity={activity} trip={trip} />
 
-            <PhotosSection activity={activity} />
+            <PhotosSection
+              activity={activity}
+              tripId={numTripId}
+              activityId={numActId}
+              onRefresh={refreshActivity}
+            />
 
             <NotesSection
               localNotes={localNotes}
@@ -850,7 +933,13 @@ export default function ActivityDetailPage() {
               onCheckin={handleCheckin}
             />
 
-            <PhotosSection activity={activity} emptyDashed />
+            <PhotosSection
+              activity={activity}
+              tripId={numTripId}
+              activityId={numActId}
+              onRefresh={refreshActivity}
+              emptyDashed
+            />
 
             <NotesSection
               localNotes={localNotes}

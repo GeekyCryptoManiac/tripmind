@@ -5,11 +5,15 @@ os.environ.setdefault("DATABASE_URL",   "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY",     "test-secret-key-not-for-production")
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-placeholder")
 os.environ.setdefault("FRONTEND_URL",   "http://localhost:5173")
+os.environ.setdefault("AWS_S3_BUCKET",  "test-bucket")
+os.environ.setdefault("AWS_S3_REGION",  "ap-southeast-1")
 
 # ── SQLite compatibility: patch JSONB → JSON before app imports
 from sqlalchemy.dialects import postgresql as _pg
 from sqlalchemy.types import JSON as _JSON
 _pg.JSONB = _JSON
+
+import unittest.mock as _mock
 
 import pytest
 from sqlalchemy import create_engine
@@ -34,6 +38,21 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# ── S3 mock — prevent real AWS calls in every test ───────────
+
+@pytest.fixture(autouse=True)
+def mock_s3_service(monkeypatch):
+    dummy_url = "https://s3.example.com/presigned-url"
+    monkeypatch.setattr(
+        "app.routers.activities.generate_download_url",
+        lambda key: dummy_url,
+    )
+    monkeypatch.setattr(
+        "app.routers.activities.generate_upload_url",
+        lambda act_id, fn, ct: (dummy_url, f"activities/{act_id}/test-{fn}"),
+    )
 
 
 # ── Schema setup — once per session ──────────────────────────

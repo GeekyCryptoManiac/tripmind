@@ -1,6 +1,6 @@
 # Entity-Relationship Diagram
 
-7 tables. All foreign keys use `ON DELETE CASCADE`. All timestamps are `TIMESTAMPTZ` (timezone-aware).
+8 tables. All foreign keys use `ON DELETE CASCADE`. All timestamps are `TIMESTAMPTZ` (timezone-aware).
 
 ---
 
@@ -61,9 +61,18 @@ One row per itinerary activity. Was `trips.trip_metadata.itinerary[day].activiti
 | `location` | VARCHAR(200) | nullable | |
 | `description` | TEXT | nullable | |
 | `notes` | TEXT | nullable | |
-| `booking_ref` | VARCHAR(100) | nullable | |
+| `booking_ref` | VARCHAR(100) | nullable | Booking reference code, shown with a copy button |
+| `booking_url` | VARCHAR(500) | nullable | Confirmation URL, rendered as a tappable link |
+| `user_notes` | TEXT | nullable | User's personal diary entry — editable on the detail page |
+| `ai_tip` | TEXT | nullable | AI-generated contextual tip — cached per activity; hidden after check-in |
+| `checked_in_at` | TIMESTAMPTZ | nullable | Set once on check-in; never updated again |
+| `checked_out_at` | TIMESTAMPTZ | nullable | Reserved — not yet wired to any UI |
 | `sort_order` | INTEGER | NOT NULL, default=0 | Enables drag-and-drop reordering within a day |
 | `created_at` | TIMESTAMPTZ | NOT NULL, server_default=now() | |
+
+**Critical naming distinction:**
+- `notes` — the AI itinerary note written during trip generation (read-only)
+- `user_notes` — the user's personal diary entry (editable via PATCH)
 
 **Indexes:**
 - `ix_trip_activities_trip_day` — composite on `(trip_id, day)` — most reads are "all activities for trip X on day Y".
@@ -124,6 +133,30 @@ One row per saved travel suggestion (flight, hotel, or transport). Was `trips.tr
 
 ---
 
+### `trip_activity_media`
+
+Photos and documents attached to a specific activity. Created via the S3 upload pipeline.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, index | |
+| `activity_id` | INTEGER | FK → `trip_activities.id`, NOT NULL | CASCADE on activity delete |
+| `trip_id` | INTEGER | FK → `trips.id`, NOT NULL | CASCADE on trip delete; redundant but enables index-only queries without joining through activities |
+| `media_type` | VARCHAR(20) | NOT NULL | CHECK: `photo\|document` |
+| `storage_url` | VARCHAR(1000) | NOT NULL | S3 object key (e.g. `activities/42/uuid4-photo.jpg`) — not a full URL |
+| `filename` | VARCHAR(255) | nullable | Original filename from the client upload |
+| `caption` | VARCHAR(500) | nullable | |
+| `sort_order` | INTEGER | NOT NULL, default=0 | |
+| `created_at` | TIMESTAMPTZ | NOT NULL, server_default=now() | |
+
+`presigned_url` is **not** a column. It is generated fresh on every `GET activity` response
+(1-hour expiry via `s3_service.generate_download_url`) and returned as a transient field in
+`ActivityMediaResponse`. It is never persisted.
+
+**S3 key format:** `activities/{activity_id}/{uuid4}-{original_filename}`
+
+---
+
 ### `trip_waypoints`
 
 One ordered stop in a multi-city trip route.
@@ -151,15 +184,17 @@ One ordered stop in a multi-city trip route.
 ```
 users (1) ──────────────────────── (N) trips
                                          │
-                         ┌───────────────┼───────────────────┐
-                         │               │                   │
-                    (N) trip_activities  │              (N) trip_waypoints
-                                    (N) trip_expenses
-                                    (N) trip_checklist
-                                    (N) trip_saved_travel
+                    ┌────────────────────┼────────────────────────┐
+                    │                    │                        │
+               (N) trip_activities  (N) trip_expenses      (N) trip_waypoints
+                    │               (N) trip_checklist
+                    │               (N) trip_saved_travel
+               (N) trip_activity_media
 ```
 
-All child tables reference `trips.id` with `ON DELETE CASCADE`, so deleting a trip removes all its related rows atomically.
+All child tables reference `trips.id` with `ON DELETE CASCADE`, so deleting a trip removes
+all its related rows atomically. `trip_activity_media` additionally has a FK on
+`trip_activities.id` (CASCADE delete), so deleting an activity also removes its media.
 
 ---
 

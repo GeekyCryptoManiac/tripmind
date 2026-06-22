@@ -268,7 +268,7 @@ class TripService:
             activity_id=activity_id,
             trip_id=trip_id,
             media_type=data.media_type,
-            storage_url=data.storage_url,
+            storage_url=data.s3_key,
             filename=data.filename,
             caption=data.caption,
             sort_order=data.sort_order,

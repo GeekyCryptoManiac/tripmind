@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -8,6 +8,7 @@ from ..schemas import (
     ActivityCreate, ActivityMediaCreate, ActivityMediaResponse,
     ActivityResponse, ActivityUpdate,
 )
+from ..services.s3_service import generate_download_url, generate_upload_url
 from ..services.trip_service import TripService
 
 router = APIRouter(prefix="/api/trips", tags=["activities"])
@@ -23,6 +24,20 @@ async def add_activity(
     return TripService(db).add_activity(trip_id, current_user.id, data)
 
 
+@router.get("/{trip_id}/activities/{activity_id}/media/upload-url")
+async def get_media_upload_url(
+    trip_id: int,
+    activity_id: int,
+    filename: str = Query(...),
+    content_type: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    TripService(db).get_activity_or_404(trip_id, activity_id, current_user.id)
+    upload_url, s3_key = generate_upload_url(activity_id, filename, content_type)
+    return {"upload_url": upload_url, "s3_key": s3_key}
+
+
 @router.get("/{trip_id}/activities/{activity_id}", response_model=ActivityResponse)
 async def get_activity(
     trip_id: int,
@@ -30,7 +45,11 @@ async def get_activity(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return TripService(db).get_activity_or_404(trip_id, activity_id, current_user.id)
+    activity = TripService(db).get_activity_or_404(trip_id, activity_id, current_user.id)
+    response = ActivityResponse.model_validate(activity)
+    for media in response.media:
+        media.presigned_url = generate_download_url(media.storage_url)
+    return response
 
 
 @router.patch("/{trip_id}/activities/{activity_id}", response_model=ActivityResponse)

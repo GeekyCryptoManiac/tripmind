@@ -105,22 +105,23 @@ class ActivityUpdate(BaseModel):
 
 class ActivityMediaCreate(BaseModel):
     media_type:  Literal["photo", "document"]
-    storage_url: str            = Field(..., max_length=1000)
+    s3_key:      str            = Field(..., max_length=1000)
     filename:    Optional[str]  = Field(None, max_length=255)
     caption:     Optional[str]  = Field(None, max_length=500)
     sort_order:  int            = 0
 
 
 class ActivityMediaResponse(BaseModel):
-    id:          int
-    activity_id: int
-    trip_id:     int
-    media_type:  str
-    storage_url: str
-    filename:    Optional[str] = None
-    caption:     Optional[str] = None
-    sort_order:  int
-    created_at:  datetime
+    id:            int
+    activity_id:   int
+    trip_id:       int
+    media_type:    str
+    storage_url:   str
+    presigned_url: Optional[str] = None
+    filename:      Optional[str] = None
+    caption:       Optional[str] = None
+    sort_order:    int
+    created_at:    datetime
 
     model_config = {"from_attributes": True}
 

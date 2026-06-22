@@ -168,11 +168,12 @@ def test_checkin_404_unknown_activity(client, auth_headers, test_trip):
 
 def test_add_media_returns_201(client, auth_headers, test_trip):
     act = _create_activity(client, auth_headers, test_trip.id)
+    s3_key = f"activities/{act['id']}/uuid-photo.jpg"
     resp = client.post(
         f"/api/trips/{test_trip.id}/activities/{act['id']}/media",
         json={
             "media_type": "photo",
-            "storage_url": "https://cdn.example.com/photo.jpg",
+            "s3_key": s3_key,
             "filename": "photo.jpg",
             "caption": "Arrival day",
         },
@@ -181,7 +182,7 @@ def test_add_media_returns_201(client, auth_headers, test_trip):
     assert resp.status_code == 201
     data = resp.json()
     assert data["media_type"] == "photo"
-    assert data["storage_url"] == "https://cdn.example.com/photo.jpg"
+    assert data["storage_url"] == s3_key
     assert data["activity_id"] == act["id"]
     assert data["trip_id"] == test_trip.id
 
@@ -190,7 +191,7 @@ def test_add_media_invalid_type_returns_422(client, auth_headers, test_trip):
     act = _create_activity(client, auth_headers, test_trip.id)
     resp = client.post(
         f"/api/trips/{test_trip.id}/activities/{act['id']}/media",
-        json={"media_type": "video", "storage_url": "https://example.com/v.mp4"},
+        json={"media_type": "video", "s3_key": "activities/1/v.mp4"},
         headers=auth_headers,
     )
     assert resp.status_code == 422
@@ -200,7 +201,7 @@ def test_get_activity_includes_media(client, auth_headers, test_trip):
     act = _create_activity(client, auth_headers, test_trip.id)
     client.post(
         f"/api/trips/{test_trip.id}/activities/{act['id']}/media",
-        json={"media_type": "document", "storage_url": "https://cdn.example.com/doc.pdf"},
+        json={"media_type": "document", "s3_key": f"activities/{act['id']}/doc.pdf"},
         headers=auth_headers,
     )
     resp = client.get(
@@ -208,7 +209,9 @@ def test_get_activity_includes_media(client, auth_headers, test_trip):
         headers=auth_headers,
     )
     assert resp.status_code == 200
-    assert len(resp.json()["media"]) == 1
+    media_list = resp.json()["media"]
+    assert len(media_list) == 1
+    assert media_list[0]["presigned_url"] == "https://s3.example.com/presigned-url"
 
 
 # ── DELETE media ──────────────────────────────────────────────
@@ -217,7 +220,7 @@ def test_delete_media_returns_204(client, auth_headers, test_trip):
     act = _create_activity(client, auth_headers, test_trip.id)
     media = client.post(
         f"/api/trips/{test_trip.id}/activities/{act['id']}/media",
-        json={"media_type": "photo", "storage_url": "https://cdn.example.com/x.jpg"},
+        json={"media_type": "photo", "s3_key": f"activities/{act['id']}/x.jpg"},
         headers=auth_headers,
     ).json()
 
