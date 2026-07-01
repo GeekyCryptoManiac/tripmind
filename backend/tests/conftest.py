@@ -1,6 +1,7 @@
 import os
 
 # ── Env vars must be set before any app module is imported ───
+os.environ.setdefault("LOCAL_DEV",      "true")
 os.environ.setdefault("DATABASE_URL",   "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY",     "test-secret-key-not-for-production")
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-placeholder")

@@ -154,6 +154,7 @@ class ActivityResponse(BaseModel):
 # ═════════════════════════════════════════════════════════════
 
 class ExpenseCreate(BaseModel):
+    activity_id: Optional[int]     = None
     category:    Optional[str]     = Field(None, max_length=50)
     description: Optional[str]     = Field(None, max_length=200)
     amount:      Decimal           = Field(..., gt=0, decimal_places=2)
@@ -162,6 +163,7 @@ class ExpenseCreate(BaseModel):
 
 
 class ExpenseUpdate(BaseModel):
+    activity_id: Optional[int]     = None
     category:    Optional[str]     = None
     description: Optional[str]     = None
     amount:      Optional[Decimal] = Field(None, gt=0, decimal_places=2)
@@ -172,6 +174,7 @@ class ExpenseUpdate(BaseModel):
 class ExpenseResponse(BaseModel):
     id:          int
     trip_id:     int
+    activity_id: Optional[int]    = None
     category:    Optional[str]    = None
     description: Optional[str]   = None
     amount:      Decimal
