@@ -345,15 +345,72 @@ function BookingSection({ activity }: { activity: Activity }) {
   );
 }
 
-function ExpensesSection() {
+const EXPENSE_CATEGORY_STYLES: Record<string, { dot: string; bg: string; text: string; label: string }> = {
+  food:          { dot: 'bg-orange-400', bg: 'bg-orange-100', text: 'text-orange-700', label: 'Food & Drink' },
+  transport:     { dot: 'bg-blue-400',   bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Transport' },
+  activities:    { dot: 'bg-purple-400', bg: 'bg-purple-100', text: 'text-purple-700', label: 'Activities' },
+  shopping:      { dot: 'bg-pink-400',   bg: 'bg-pink-100',   text: 'text-pink-700',   label: 'Shopping' },
+  accommodation: { dot: 'bg-green-400',  bg: 'bg-green-100',  text: 'text-green-700',  label: 'Accommodation' },
+  other:         { dot: 'bg-gray-400',   bg: 'bg-gray-100',   text: 'text-gray-600',   label: 'Other' },
+};
+
+function getExpenseCatStyle(category: string | null) {
+  return EXPENSE_CATEGORY_STYLES[category ?? 'other'] ?? EXPENSE_CATEGORY_STYLES.other;
+}
+
+function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity }) {
+  const activityExpenses = (trip.expenses ?? []).filter(
+    (e) => e.activity_id === activity.id
+  );
+
   return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage mb-3">
-        Expenses at this stop
-      </h3>
-      <div className="text-center py-4 text-sage text-sm">
-        No expenses recorded at this stop.
+    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">
+          Expenses at this stop
+        </h3>
+        {/* TODO: open add-expense modal pre-filled with activity_id={activity.id} */}
+        <button
+          disabled
+          title="Coming soon — expense linking from activity page"
+          className="flex items-center gap-1 text-xs text-sage/40 cursor-not-allowed"
+        >
+          <PlusIcon />
+          Add expense
+        </button>
       </div>
+
+      {activityExpenses.length === 0 ? (
+        <div className="text-center py-4 text-sage text-sm">
+          No expenses recorded at this stop.
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {activityExpenses.map((expense) => {
+            const cat = getExpenseCatStyle(expense.category);
+            return (
+              <li key={expense.id} className="flex items-center gap-3 px-3 py-2.5 bg-terrain/20 rounded-xl">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cat.dot}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-forest truncate">
+                    {expense.description ?? cat.label}
+                  </p>
+                  <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cat.bg} ${cat.text}`}>
+                    {cat.label}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-forest flex-shrink-0">
+                  {expense.currency}{' '}
+                  {Number(expense.amount).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
@@ -918,7 +975,7 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection />
+            <ExpensesSection trip={trip} activity={activity} />
 
             <BookingSection activity={activity} />
           </>
@@ -947,7 +1004,7 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection />
+            <ExpensesSection trip={trip} activity={activity} />
 
             <BookingSection activity={activity} />
           </>

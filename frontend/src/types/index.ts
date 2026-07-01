@@ -131,7 +131,7 @@ export interface ActivityMediaCreateRequest {
 // Build it from Trip.activities with groupActivitiesByDay().
 export interface ItineraryDay {
   day:        number;
-  title?:     string;   // ← add this
+  title?:     string;
   activities: Activity[];
 }
 
@@ -150,6 +150,7 @@ export type ExpenseCategory =
 export interface Expense {
   id:          number;
   trip_id:     number;
+  activity_id: number | null;
   category:    string | null;
   description: string | null;
   amount:      number;           // Decimal from backend — safe as JS number for display
@@ -159,6 +160,7 @@ export interface Expense {
 }
 
 export interface ExpenseCreateRequest {
+  activity_id?: number;
   category?:    string;
   description?: string;
   amount:       number;
@@ -167,6 +169,7 @@ export interface ExpenseCreateRequest {
 }
 
 export interface ExpenseUpdateRequest {
+  activity_id?: number | null;
   category?:    string;
   description?: string;
   amount?:      number;

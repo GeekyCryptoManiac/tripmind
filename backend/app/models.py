@@ -238,6 +238,11 @@ class TripExpense(Base):
         nullable=False, index=True
     )
 
+    activity_id = Column(
+        Integer, ForeignKey("trip_activities.id", ondelete="SET NULL"),
+        nullable=True, index=True
+    )
+
     category    = Column(String(50), nullable=True)    # "food", "transport", "accommodation" …
     description = Column(String(200), nullable=True)
     amount      = Column(Numeric(10, 2), nullable=False)
