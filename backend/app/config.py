@@ -4,6 +4,9 @@ Application Configuration
 from pydantic_settings import BaseSettings
 from typing import Optional
 
+from app.ssm_loader import load_ssm_parameters
+load_ssm_parameters()
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
@@ -24,7 +27,7 @@ class Settings(BaseSettings):
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
     aws_s3_bucket: str = ""
-    aws_s3_region: str = "ap-southeast-1"
+    aws_s3_region: str = "ap-southeast-2"
     
     class Config:
         env_file = ".env"
