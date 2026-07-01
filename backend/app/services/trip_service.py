@@ -342,6 +342,7 @@ class TripService:
 
         expense = TripExpense(
             trip_id=trip_id,
+            activity_id=data.activity_id,
             category=data.category,
             description=data.description,
             amount=data.amount,
@@ -367,7 +368,7 @@ class TripService:
         if not expense:
             raise HTTPException(status_code=404, detail="Expense not found")
 
-        for field in ["category", "description", "amount", "currency", "date"]:
+        for field in ["activity_id", "category", "description", "amount", "currency", "date"]:
             value = getattr(data, field)
             if value is not None:
                 setattr(expense, field, value)
