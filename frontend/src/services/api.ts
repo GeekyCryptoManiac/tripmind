@@ -280,11 +280,12 @@ export const apiService = {
     activityId: number,
     filename: string,
     contentType: string,
+    contentLength: number,
   ): Promise<{ upload_url: string; s3_key: string }> {
     return (
       await api.get<{ upload_url: string; s3_key: string }>(
         `/api/trips/${tripId}/activities/${activityId}/media/upload-url`,
-        { params: { filename, content_type: contentType } },
+        { params: { filename, content_type: contentType, content_length: contentLength } },
       )
     ).data;
   },

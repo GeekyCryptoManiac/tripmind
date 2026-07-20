@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
+from ..media_constants import ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES
 from ..models import User
 from ..schemas import (
     ActivityCreate, ActivityMediaCreate, ActivityMediaResponse,
@@ -30,11 +31,22 @@ async def get_media_upload_url(
     activity_id: int,
     filename: str = Query(...),
     content_type: str = Query(...),
+    content_length: int = Query(..., gt=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # No media_type param exists on this endpoint today — the only live
+    # frontend caller always uploads photos (ActivityDetailPage's "Add doc"
+    # button isn't wired up yet), so the image allowlist applies unconditionally.
+    # A document allowlist (e.g. PDF) should be added alongside media_type
+    # once document upload is actually implemented.
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are accepted.")
+    if content_length > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="File must be under 5 MB.")
+
     TripService(db).get_activity_or_404(trip_id, activity_id, current_user.id)
-    upload_url, s3_key = generate_upload_url(activity_id, filename, content_type)
+    upload_url, s3_key = generate_upload_url(activity_id, filename, content_type, content_length)
     return {"upload_url": upload_url, "s3_key": s3_key}
 
 

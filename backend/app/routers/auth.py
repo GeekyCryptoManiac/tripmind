@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..auth import (
@@ -10,6 +10,7 @@ from ..auth import (
     verify_refresh_token,
 )
 from ..database import get_db
+from ..limiter import limiter
 from ..models import User
 from ..schemas import RefreshRequest, TokenResponse, UserLogin, UserRegister, UserResponse
 
@@ -17,7 +18,8 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
-async def register(data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -38,7 +40,8 @@ async def register(data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not user.password_hash:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -53,7 +56,8 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh(request: Request, data: RefreshRequest, db: Session = Depends(get_db)):
     user_id = verify_refresh_token(data.refresh_token)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
