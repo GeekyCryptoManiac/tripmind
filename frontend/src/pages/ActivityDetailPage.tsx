@@ -428,11 +428,18 @@ function PhotosSection({
   onRefresh: () => void;
   emptyDashed?: boolean;
 }) {
+  const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const photos = (activity.media ?? []).filter((m) => m.media_type === 'photo');
+
+  const openGallery = () => {
+    navigate(`/trips/${tripId}/activities/${activityId}/gallery`, {
+      state: { photos, activityTitle: activity.title },
+    });
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -443,7 +450,7 @@ function PhotosSection({
     setUploadError(null);
     try {
       const { upload_url, s3_key } = await apiService.getMediaUploadUrl(
-        tripId, activityId, file.name, file.type,
+        tripId, activityId, file.name, file.type, file.size,
       );
       await apiService.uploadFileToS3(upload_url, file);
       await apiService.createMediaRecord(
@@ -504,9 +511,12 @@ function PhotosSection({
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Photos</h3>
         {photos.length > 3 && (
-          <span className="text-xs text-forest font-medium cursor-pointer hover:underline">
+          <button
+            onClick={openGallery}
+            className="text-xs text-forest font-medium hover:underline"
+          >
             View all in gallery →
-          </span>
+          </button>
         )}
       </div>
       <input

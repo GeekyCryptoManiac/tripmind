@@ -16,8 +16,14 @@ s3_client = boto3.client(
 
 
 def generate_upload_url(
-    activity_id: int, filename: str, content_type: str
+    activity_id: int, filename: str, content_type: str, content_length: int
 ) -> tuple[str, str]:
+    """
+    Signing ContentLength binds it into X-Amz-SignedHeaders (verified locally —
+    SigV4 includes it once passed as a Param), so S3 rejects the PUT outright if
+    the actual request's Content-Length header doesn't match this exact value.
+    Caller is responsible for capping content_length before calling this.
+    """
     s3_key = f"activities/{activity_id}/{uuid.uuid4()}-{filename}"
     url = s3_client.generate_presigned_url(
         "put_object",
@@ -25,6 +31,7 @@ def generate_upload_url(
             "Bucket": settings.aws_s3_bucket,
             "Key": s3_key,
             "ContentType": content_type,
+            "ContentLength": content_length,
         },
         ExpiresIn=300,
     )

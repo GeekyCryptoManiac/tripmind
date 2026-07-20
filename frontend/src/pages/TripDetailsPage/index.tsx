@@ -26,6 +26,7 @@ import TripSummaryCard from './TripSummaryCard';
 import OverviewTab from './OverviewTab';
 import ItineraryTab from './ItineraryTab';
 import TravelTab from './TravelTab';
+import PhotosTab from './PhotosTab';
 import WaypointEditor from './WaypointEditor';
 import StatusBanner from './StatusBanner';
 import { useTripPhase } from '../../utils/tripStatus';
@@ -59,6 +60,14 @@ const RouteIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
       d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+  </svg>
+);
+
+const PhotosIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
 
@@ -431,6 +440,7 @@ export default function TripDetailsPage() {
                 { key: 'route'     as const, label: 'Route',     Icon: RouteIcon     },
                 { key: 'itinerary' as const, label: 'Itinerary', Icon: CalendarIcon  },
                 { key: 'travel'    as const, label: 'Travel',    Icon: PlaneIcon     },
+                { key: 'photos'    as const, label: 'Photos',    Icon: PhotosIcon    },
                 { key: 'chat'      as const, label: 'Chat',      Icon: ChatIcon      },
               ].map(({ key, label, Icon }) => (
                 <button
@@ -538,6 +548,14 @@ export default function TripDetailsPage() {
                       onSubTabChange={setTravelSubTab}
                       onTripUpdate={setTrip}
                     />
+                  </motion.div>
+                )}
+
+                {activeTab === 'photos' && (
+                  <motion.div key="photos"
+                    initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
+                    <PhotosTab trip={trip} />
                   </motion.div>
                 )}
 

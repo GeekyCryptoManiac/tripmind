@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
+from ..media_constants import ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES
 from ..models import User
 from ..schemas import TripCreate, TripList, TripResponse, TripUpdate
+from ..services.s3_service import generate_download_url
 from ..services.trip_service import TripService
 
 # Routers
@@ -17,9 +19,6 @@ users_router = APIRouter(tags=["trips"])
 # Upload directory — one level deeper than main.py, so go up 3 levels to reach backend/
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
-_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
 # ── User trips (prefix-less — path doesn't fit /api/trips) ───
@@ -55,7 +54,12 @@ async def get_trip(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return TripService(db).get_trip_or_404(trip_id, current_user.id)
+    trip = TripService(db).get_trip_or_404(trip_id, current_user.id)
+    response = TripResponse.model_validate(trip)
+    for activity in response.activities:
+        for media in activity.media:
+            media.presigned_url = generate_download_url(media.storage_url)
+    return response
 
 
 @router.put("/{trip_id}", response_model=TripResponse)
@@ -87,11 +91,11 @@ async def upload_trip_photo(
     current_user: User = Depends(get_current_user),
 ):
     """Upload (or replace) a cover photo for a trip. Returns the updated trip."""
-    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are accepted.")
 
     content = await file.read()
-    if len(content) > _MAX_IMAGE_BYTES:
+    if len(content) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image must be under 5 MB.")
 
     service = TripService(db)
