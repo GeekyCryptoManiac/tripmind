@@ -24,6 +24,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.database import get_db
+from app.limiter import limiter
 from app.models import Base, User, Trip
 from app.auth import hash_password, create_access_token
 from app.services.trip_service import TripService
@@ -41,6 +42,17 @@ engine = create_engine(
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+# ── Rate limiter — reset shared in-memory state between tests ─
+# slowapi's Limiter is a module-level singleton, so without this,
+# request counts accumulate across every test in the session and
+# unrelated tests start tripping 429s on auth/AI endpoints.
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    limiter.reset()
+    yield
+
+
 # ── S3 mock — prevent real AWS calls in every test ───────────
 
 @pytest.fixture(autouse=True)
@@ -52,7 +64,7 @@ def mock_s3_service(monkeypatch):
     )
     monkeypatch.setattr(
         "app.routers.activities.generate_upload_url",
-        lambda act_id, fn, ct: (dummy_url, f"activities/{act_id}/test-{fn}"),
+        lambda act_id, fn, ct, cl: (dummy_url, f"activities/{act_id}/test-{fn}"),
     )
 
 
