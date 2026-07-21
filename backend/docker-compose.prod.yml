@@ -1,6 +1,6 @@
 services:
   backend:
-    build: .
+    image: ghcr.io/geekycryptomaniac/tripmind/tripmind-backend:latest
     container_name: tripmind_backend
     restart: always
     ports:
