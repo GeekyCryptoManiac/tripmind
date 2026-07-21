@@ -133,9 +133,6 @@ jobs:
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
 
-            # Run any pending migrations
-            docker exec tripmind_backend alembic upgrade head
-
             # Remove the now-orphaned old image layers
             docker image prune -f
 
