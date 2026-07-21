@@ -124,6 +124,8 @@ jobs:
             SECRET_KEY=$SECRET_KEY
             DEBUG=$DEBUG
             FRONTEND_URL=$FRONTEND_URL
+            AWS_S3_BUCKET=tripmind-media
+            AWS_S3_REGION=ap-southeast-2
             EOF
 
             # Log in to ghcr.io to pull the image the build job just pushed
