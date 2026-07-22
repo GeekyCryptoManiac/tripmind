@@ -13,7 +13,6 @@ import type { ProgressTask } from './helpers';
 
 interface TripDetailsProgressProps {
   progressPct: number;
-  progressColor: string;
   progressTasks: ProgressTask[];
   completedCount: number;
   isExpanded: boolean;
@@ -29,7 +28,6 @@ const CheckIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 
 export default function TripDetailsProgress({
   progressPct,
-  progressColor: _progressColor,
   progressTasks,
   completedCount,
   isExpanded,
@@ -47,17 +45,17 @@ export default function TripDetailsProgress({
           <span className="font-mono text-[9px] text-sage uppercase tracking-[0.12em]">
             Progress
           </span>
-          <span className="text-sm font-bold text-ink">{progressPct}%</span>
+          <span className="text-sm font-bold text-inkText">{progressPct}%</span>
 
           {/* Bar */}
-          <div className="flex-1 max-w-[240px] h-[3px] bg-[#DDD8CE] rounded-full overflow-hidden">
+          <div className="flex-1 max-w-[240px] h-[3px] bg-card-border rounded-full overflow-hidden">
             <div
-              className="h-full bg-gold rounded-full transition-all duration-500"
+              className="h-full bg-marigold rounded-full transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
 
-          <span className="text-xs text-ink-secondary">
+          <span className="text-xs text-inkText-secondary">
             {completedCount}/{progressTasks.length} tasks
           </span>
           <span className="text-sage text-xs">
@@ -72,12 +70,12 @@ export default function TripDetailsProgress({
               <div
                 key={task.id}
                 className={`flex items-center gap-2 text-sm ${
-                  task.completed ? 'text-ink-secondary' : 'text-ink-tertiary'
+                  task.completed ? 'text-inkText-secondary' : 'text-inkText-tertiary'
                 }`}
               >
                 {/* Checkmark or icon */}
                 {task.completed ? (
-                  <div className="w-4 h-4 rounded-full bg-forest flex items-center justify-center flex-shrink-0">
+                  <div className="w-4 h-4 rounded-full bg-ink flex items-center justify-center flex-shrink-0">
                     <CheckIcon className="w-3 h-3 text-white" />
                   </div>
                 ) : (

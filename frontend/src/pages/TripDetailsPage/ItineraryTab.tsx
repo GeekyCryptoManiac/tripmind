@@ -277,10 +277,10 @@ const handleDeleteActivity = async (activityId: number) => {
             onClick={handleRegenerate}
             disabled={isGenerating || isRegenerating}
             title="Clear all activities and regenerate the itinerary"
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-sage bg-parchment border border-card-border rounded-xl hover:bg-terrain/20 hover:text-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em] text-sage bg-cream border border-card-border rounded-xl hover:bg-terrain/20 hover:text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isRegenerating ? (
-              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary border-t-ink rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-inkText-tertiary border-t-inkText rounded-full animate-spin" />
             ) : (
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -294,9 +294,9 @@ const handleDeleteActivity = async (activityId: number) => {
 
       {/* ── Generating state ──────────────────────────────── */}
       {isGenerating && (
-        <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-12 text-center">
-          <div className="w-12 h-12 border-2 border-terrain border-t-forest rounded-full animate-spin mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-forest mb-2">
+        <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-12 text-center">
+          <div className="w-12 h-12 border-2 border-terrain border-t-ink rounded-full animate-spin mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink mb-2">
             Generating your itinerary...
           </h3>
           <p className="text-sage text-sm">
@@ -308,8 +308,8 @@ const handleDeleteActivity = async (activityId: number) => {
 
       {/* ── Error state ───────────────────────────────────── */}
       {generationError && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <p className="text-amber-800 text-sm">
+        <div className="bg-poppy-tint border border-poppy/30 rounded-2xl p-4">
+          <p className="text-poppy text-sm">
             <strong>Error:</strong> {generationError}
           </p>
         </div>
@@ -376,17 +376,17 @@ const handleDeleteActivity = async (activityId: number) => {
 
       {/* ── Partial itinerary warning ─────────────────────── */}
       {hasAnyItinerary && itinerary.length < totalDays && selectedDay > itinerary.length && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+        <div className="bg-poppy-tint border border-poppy/30 rounded-2xl p-4">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-poppy flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-amber-900 mb-1">
+              <h4 className="text-sm font-semibold text-poppy mb-1">
                 Days {itinerary.length + 1}–{totalDays} not yet generated
               </h4>
-              <p className="text-sm text-amber-800">
+              <p className="text-sm text-poppy">
                 Only the first {itinerary.length} days have activities. You can add
                 activities manually or ask in the Chat tab to generate more days.
               </p>
@@ -396,24 +396,24 @@ const handleDeleteActivity = async (activityId: number) => {
       )}
 
       {/* ── Notes ─────────────────────────────────────────── */}
-      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <h4 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Trip Notes</h4>
           {saveStatus === 'saving' && (
             <span className="text-xs text-sage animate-pulse">Saving...</span>
           )}
           {saveStatus === 'saved' && (
-            <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>
+            <span className="text-xs text-sage font-medium">✓ Saved</span>
           )}
           {saveStatus === 'error' && (
-            <span className="text-xs text-red-500">Failed to save</span>
+            <span className="text-xs text-poppy">Failed to save</span>
           )}
         </div>
         <textarea
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Add notes, reminders, or ideas for your trip..."
-          className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent focus:bg-parchment resize-none transition-colors"
+          className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 text-sm text-inkText placeholder-sage focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent focus:bg-cream resize-none transition-colors"
           rows={4}
         />
       </div>

@@ -10,17 +10,32 @@
  *
  * Week 7 Fix: Uses computed `phase` prop instead of stored `trip.status`
  * to ensure badge reflects actual trip state based on dates
+ *
+ * Sidebar restructuring: the `lg:w-80 xl:w-96 shrink-0` sizing this card
+ * used to own itself now lives one level up, in TripDetailsPage/index.tsx,
+ * wrapping this card and the relocated PreTripChecklist as two stacked
+ * siblings in the same column.
+ *
+ * No sticky positioning anywhere in the sidebar — both cards scroll in
+ * plain normal document flow. This was tried (sticky on this card alone,
+ * then sticky + max-height + overflow-auto on the shared wrapper) but
+ * removed deliberately: PreTripChecklist's length is now user-editable and
+ * variable, which doesn't suit a fixed-height sticky sidebar. Revisit once
+ * checklist length settles.
  */
 
 import type { Trip } from '../../types';
 import type { TripPhase } from '../../utils/tripStatus';
 import { formatDateShort } from './helpers';
+import TripStatusBadge from '../../components/TripStatusBadge';
+import logoAsset from '../../assets/tagalong_logo.png';
+import { convertToUSD } from '../../utils/currency';
+import { EXPENSE_CATEGORY_STYLES } from '../../utils/categoryStyles';
 
 interface TripSummaryCardProps {
   trip: Trip;
   phase: TripPhase; // Computed phase, not stored status
   progressPct: number;
-  progressColor: string;
   onChatClick: () => void;
   onItineraryClick: () => void;
 }
@@ -54,13 +69,6 @@ const GlobeIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const ChatIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
-
 const ClipboardIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -68,33 +76,10 @@ const ClipboardIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-// Status badge config (cartographic)
-const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  planning:  { label: 'Planning',  dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
-  'pre-trip': { label: 'Pre-Trip', dot: 'bg-gold',  badge: 'bg-terrain text-ink ring-card-border' },
-  booked:    { label: 'Booked',   dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
-  active:    { label: 'Active',   dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
-  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
-  cancelled: { label: 'Cancelled', dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? {
-    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
-  };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-}
-
 export default function TripSummaryCard({
   trip,
   phase,
   progressPct,
-  progressColor: _progressColor,
   onChatClick,
   onItineraryClick,
 }: TripSummaryCardProps) {
@@ -113,110 +98,150 @@ export default function TripSummaryCard({
       ? `${trip.origin} → ${trip.destination}`
       : null;
 
+  // Per-category actual-spending breakdown — same aggregation pattern as
+  // ExpenseTracker.tsx's categoryTotals (filter trip.expenses by category,
+  // sum via the shared convertToUSD utility, drop zero-total categories),
+  // ported against the same trip.expenses data rather than reimplemented.
+  const categoryTotals = Object.entries(EXPENSE_CATEGORY_STYLES)
+    .map(([value, style]) => ({
+      value,
+      ...style,
+      totalUSD: trip.expenses
+        .filter((e) => e.category === value)
+        .reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0),
+    }))
+    .filter((c) => c.totalUSD > 0);
+
   return (
-    <div className="lg:w-80 xl:w-96 shrink-0">
-      <div className="lg:sticky lg:top-4 bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
-        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4 pb-3 border-b border-card-border">
-          Trip Summary
-        </h3>
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
+      <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4 pb-3 border-b border-card-border">
+        Trip Summary
+      </h3>
 
-        {/* Status badge */}
-        <div className="mb-5">
-          <StatusBadge status={phase} />
-        </div>
+      {/* Status badge */}
+      <div className="mb-5">
+        <TripStatusBadge status={phase} />
+      </div>
 
-        {/* Detail rows */}
-        <div className="space-y-4">
-          {/* Dates */}
-          <div className="flex items-start gap-3">
-            <div className="text-sage flex-shrink-0">
-              <CalendarIcon />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-forest">
-                {formatDateShort(trip.start_date)}
-                {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}
-                {endYear && `, ${endYear}`}
-              </p>
-              <p className="text-xs text-sage">
-                {trip.duration_days ? `${trip.duration_days} days` : 'Duration not set'}
-              </p>
-            </div>
+      {/* Detail rows */}
+      <div className="space-y-4">
+        {/* Dates */}
+        <div className="flex items-start gap-3">
+          <div className="text-sage flex-shrink-0">
+            <CalendarIcon />
           </div>
-
-          {/* Budget */}
-          <div className="flex items-start gap-3">
-            <div className="text-sage flex-shrink-0">
-              <CurrencyIcon />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-forest">
-                {trip.budget ? `$${trip.budget.toLocaleString()}` : 'No budget set'}
-              </p>
-              <p className="text-xs text-sage">Total budget</p>
-            </div>
-          </div>
-
-          {/* Travelers */}
-          <div className="flex items-start gap-3">
-            <div className="text-sage flex-shrink-0">
-              <UsersIcon />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-forest">
-                {trip.travelers_count} {trip.travelers_count === 1 ? 'traveler' : 'travelers'}
-              </p>
-              <p className="text-xs text-sage">
-                {trip.budget && trip.travelers_count
-                  ? `$${Math.round(trip.budget / trip.travelers_count).toLocaleString()} per person`
-                  : 'Budget per person'}
-              </p>
-            </div>
-          </div>
-
-          {/* Destination / Route */}
-          <div className="flex items-start gap-3">
-            <div className="text-sage flex-shrink-0">
-              <GlobeIcon />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-forest">{routeLabel ?? trip.destination}</p>
-              <p className="text-xs text-sage">{routeLabel ? 'Route' : 'Destination'}</p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-ink">
+              {formatDateShort(trip.start_date)}
+              {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}
+              {endYear && `, ${endYear}`}
+            </p>
+            <p className="text-xs text-sage">
+              {trip.duration_days ? `${trip.duration_days} days` : 'Duration not set'}
+            </p>
           </div>
         </div>
 
-        {/* Progress bar */}
+        {/* Budget */}
+        <div className="flex items-start gap-3">
+          <div className="text-sage flex-shrink-0">
+            <CurrencyIcon />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">
+              {trip.budget ? `$${trip.budget.toLocaleString()}` : 'No budget set'}
+            </p>
+            <p className="text-xs text-sage">Total budget</p>
+          </div>
+        </div>
+
+        {/* Travelers */}
+        <div className="flex items-start gap-3">
+          <div className="text-sage flex-shrink-0">
+            <UsersIcon />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">
+              {trip.travelers_count} {trip.travelers_count === 1 ? 'traveler' : 'travelers'}
+            </p>
+            <p className="text-xs text-sage">
+              {trip.budget && trip.travelers_count
+                ? `$${Math.round(trip.budget / trip.travelers_count).toLocaleString()} per person`
+                : 'Budget per person'}
+            </p>
+          </div>
+        </div>
+
+        {/* Destination / Route */}
+        <div className="flex items-start gap-3">
+          <div className="text-sage flex-shrink-0">
+            <GlobeIcon />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">{routeLabel ?? trip.destination}</p>
+            <p className="text-xs text-sage">{routeLabel ? 'Route' : 'Destination'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Spending by category — actual spend from trip.expenses, not a
+          budgeted allocation (trip.budget carries no per-category split).
+          Omitted entirely when nothing's been logged yet, rather than
+          showing an empty breakdown. */}
+      {categoryTotals.length > 0 && (
         <div className="mt-5 pt-5 border-t border-card-border">
-          <div className="flex justify-between items-center mb-2">
-            <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-sage">Trip Completion</p>
-            <p className="font-mono text-[9px] text-forest">{progressPct}%</p>
-          </div>
-          <div className="h-[3px] bg-[#DDD8CE] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gold rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%` }}
-            />
+          <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-sage mb-3">
+            Spending by Category
+          </p>
+          <div className="space-y-2">
+            {categoryTotals.map((cat) => (
+              <div key={cat.value} className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2 text-sm text-ink min-w-0">
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: cat.dot }}
+                  />
+                  <span className="truncate">{cat.label}</span>
+                </span>
+                <span className="text-sm font-semibold text-ink flex-shrink-0">
+                  ${cat.totalUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Action buttons */}
-        <div className="mt-5 pt-5 border-t border-card-border flex flex-col gap-2">
-          <button
-            onClick={onChatClick}
-            className="w-full px-4 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors flex items-center justify-center gap-2"
-          >
-            <ChatIcon />
-            Chat About This Trip
-          </button>
-          <button
-            onClick={onItineraryClick}
-            className="w-full px-4 py-2.5 bg-parchment text-forest rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors flex items-center justify-center gap-2"
-          >
-            <ClipboardIcon />
-            Plan Itinerary
-          </button>
+      {/* Progress bar */}
+      <div className="mt-5 pt-5 border-t border-card-border">
+        <div className="flex justify-between items-center mb-2">
+          <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-sage">Trip Completion</p>
+          <p className="font-mono text-[9px] text-ink">{progressPct}%</p>
         </div>
+        <div className="h-[3px] bg-card-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-marigold rounded-full transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="mt-5 pt-5 border-t border-card-border flex flex-col gap-2">
+        <button
+          onClick={onChatClick}
+          className="w-full px-4 py-2.5 bg-teal text-cream rounded-xl text-sm font-semibold hover:bg-teal/90 transition-colors flex items-center justify-center gap-2"
+        >
+          <img src={logoAsset} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+          Ask Sherpa about this trip
+        </button>
+        <button
+          onClick={onItineraryClick}
+          className="w-full px-4 py-2.5 bg-cream text-ink rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors flex items-center justify-center gap-2"
+        >
+          <ClipboardIcon />
+          Plan Itinerary
+        </button>
       </div>
     </div>
   );

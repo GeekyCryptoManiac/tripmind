@@ -41,7 +41,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # ── App setup ─────────────────────────────────────────────────
 
 app = FastAPI(
-    title="TripMind API",
+    title="Tagalong API",
     description="AI-powered travel planning assistant",
     version="2.0.0",
     docs_url="/docs",
@@ -78,7 +78,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "TripMind API", "version": "2.0.0"}
+    return {"status": "online", "service": "Tagalong API", "version": "2.0.0"}
 
 
 @app.get("/health")
@@ -98,7 +98,7 @@ async def health_check(db: Session = Depends(get_db)):
 @app.on_event("startup")
 async def startup_event():
     print("=" * 50)
-    print("🚀 TripMind API v2.1 starting")
+    print("🚀 Tagalong API v2.1 starting")
     print(f"   CORS origin: {settings.FRONTEND_URL}")
     print(f"   Docs: http://localhost:8000/docs")
     print("=" * 50)

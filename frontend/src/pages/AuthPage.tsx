@@ -83,7 +83,7 @@ function InputField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           disabled={disabled}
-          className="w-full pl-11 pr-11 py-3 bg-parchment border border-[#DDD8CE] rounded-[8px] text-sm text-[#3D3628] placeholder-sage focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent focus:bg-white disabled:opacity-60 transition-colors"
+          className="w-full pl-11 pr-11 py-3 bg-cream border border-card-border rounded-[8px] text-sm text-inkText placeholder-sage focus:outline-none focus:ring-2 focus:ring-marigold focus:border-transparent focus:bg-white disabled:opacity-60 transition-colors"
         />
         {rightSlot && (
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -178,29 +178,26 @@ const AuthPage: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-parchment flex flex-col items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-4 py-12 relative">
       <div className="absolute inset-0 carto-grid pointer-events-none" />
 
       {/* Logo block */}
       <div className="flex items-center gap-3 mb-8 relative">
-        <div className="w-10 h-10 bg-forest rounded-[8px] flex items-center justify-center">
-          <div
-            className="w-3 h-3 bg-gold rounded-full"
-            style={{ boxShadow: '0 0 0 3px rgba(181,144,84,0.3)' }}
-          />
+        <div className="w-10 h-10 bg-ink rounded-[8px] flex items-center justify-center">
+          <div className="w-3 h-3 bg-marigold rounded-full ring-[3px] ring-marigold/30" />
         </div>
-        <span className="font-display text-[20px] text-forest">TripMind</span>
+        <span className="font-display text-[20px] text-ink">Tagalong</span>
       </div>
 
       {/* Card */}
-      <div className="bg-white border border-[#DDD8CE] rounded-[16px] w-full max-w-md p-8 relative">
+      <div className="bg-white border border-card-border rounded-[16px] w-full max-w-md p-8 relative">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-display text-[24px] text-forest mb-2">
+          <h1 className="font-display text-[24px] text-ink mb-2">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
-          <p className="font-sans text-[12px] text-[#7A8580]">
+          <p className="font-sans text-[12px] text-inkText-secondary">
             {mode === 'login'
               ? 'Sign in to continue planning your trips'
               : 'Start planning your next adventure'}
@@ -208,15 +205,15 @@ const AuthPage: FC = () => {
         </div>
 
         {/* Mode toggle */}
-        <div className="flex bg-parchment border border-[#DDD8CE] rounded-[8px] p-1 mb-7">
+        <div className="flex bg-cream border border-card-border rounded-[8px] p-1 mb-7">
           {(['login', 'register'] as const).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               className={`flex-1 py-2 rounded-[6px] font-mono text-[10px] uppercase tracking-[0.08em] transition-all duration-200 ${
                 mode === m
-                  ? 'bg-forest text-[#E8DECE]'
-                  : 'text-sage hover:text-[#3D3628]'
+                  ? 'bg-ink text-cream'
+                  : 'text-sage hover:text-inkText'
               }`}
             >
               {m === 'login' ? 'Log in' : 'Register'}
@@ -267,7 +264,7 @@ const AuthPage: FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="text-sage hover:text-[#3D3628] transition-colors"
+                className="text-sage hover:text-inkText transition-colors"
                 tabIndex={-1}
               >
                 {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
@@ -277,8 +274,8 @@ const AuthPage: FC = () => {
 
           {/* Error */}
           {error && (
-            <div className="bg-[#FEF3C7] border border-[#D97706] rounded-[8px] px-4 py-3">
-              <p className="text-sm text-[#7A6540]">{error}</p>
+            <div className="bg-poppy-tint border border-poppy/30 rounded-[8px] px-4 py-3">
+              <p className="text-sm text-poppy">{error}</p>
             </div>
           )}
 
@@ -286,11 +283,11 @@ const AuthPage: FC = () => {
           <button
             type="submit"
             disabled={isLoading || !email || !password}
-            className="w-full py-3 bg-forest text-[#E8DECE] rounded-[8px] font-mono text-[10px] uppercase tracking-[0.1em] hover:bg-forest/80 disabled:bg-[#DDD8CE] disabled:text-sage disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3 bg-ink text-cream rounded-[8px] font-mono text-[10px] uppercase tracking-[0.1em] hover:bg-ink/80 disabled:bg-card-border disabled:text-sage disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mt-2"
           >
             {isLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-[#E8DECE]/30 border-t-[#E8DECE] rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
                 {mode === 'login' ? 'Signing in...' : 'Creating account...'}
               </>
             ) : (
@@ -306,7 +303,7 @@ const AuthPage: FC = () => {
             : 'Already have an account? '}
           <button
             onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-            className="text-gold hover:text-forest font-medium transition-colors"
+            className="text-marigold hover:text-ink font-medium transition-colors"
           >
             {mode === 'login' ? 'Register' : 'Log in'}
           </button>

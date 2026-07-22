@@ -16,6 +16,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiService } from '../../services/api';
 import { convertToUSD } from '../../utils/currency';
+import { getExpenseCategoryStyle } from '../../utils/categoryStyles';
 import type { Trip, ExpenseCategory } from '../../types';
 
 // ── SVG Icons ─────────────────────────────────────────────────
@@ -38,13 +39,14 @@ const XIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-// ── Category config (warm colors) ─────────────────────────────
+// ── Category config ─────────────────────────────────────────
+// Colors now come from the shared categoryStyles.ts (see getCategoryConfig
+// below) — this array only owns the icon + label per category, which are
+// specific to this component's UI, not shared color data.
 const CATEGORIES: {
   value: ExpenseCategory;
   label: string;
   Icon: React.ComponentType<{ className?: string }>;
-  badgeBg: string;
-  badgeText: string;
 }[] = [
   {
     value: 'food',
@@ -55,8 +57,6 @@ const CATEGORIES: {
           d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
       </svg>
     ),
-    badgeBg: 'bg-orange-100',
-    badgeText: 'text-orange-700',
   },
   {
     value: 'transport',
@@ -67,8 +67,6 @@ const CATEGORIES: {
           d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
     ),
-    badgeBg: 'bg-blue-100',
-    badgeText: 'text-blue-700',
   },
   {
     value: 'activities',
@@ -79,8 +77,6 @@ const CATEGORIES: {
           d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    badgeBg: 'bg-purple-100',
-    badgeText: 'text-purple-700',
   },
   {
     value: 'shopping',
@@ -91,8 +87,6 @@ const CATEGORIES: {
           d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
     ),
-    badgeBg: 'bg-pink-100',
-    badgeText: 'text-pink-700',
   },
   {
     value: 'accommodation',
@@ -103,8 +97,6 @@ const CATEGORIES: {
           d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ),
-    badgeBg: 'bg-green-100',
-    badgeText: 'text-green-700',
   },
   {
     value: 'other',
@@ -115,14 +107,14 @@ const CATEGORIES: {
           d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
       </svg>
     ),
-    badgeBg: 'bg-gray-100',
-    badgeText: 'text-gray-600',
   },
 ];
 
 // expense.category is string | null — fall back to 'other' config safely
 function getCategoryConfig(value: string | null) {
-  return CATEGORIES.find((c) => c.value === value) ?? CATEGORIES[CATEGORIES.length - 1];
+  const icon = CATEGORIES.find((c) => c.value === value) ?? CATEGORIES[CATEGORIES.length - 1];
+  const style = getExpenseCategoryStyle(value);
+  return { ...icon, ...style };
 }
 
 const CURRENCIES = ['SGD', 'USD', 'JPY', 'EUR', 'GBP', 'THB', 'MYR', 'AUD', 'HKD', 'KRW'];
@@ -152,6 +144,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
   const categoryTotals = CATEGORIES.map((cat) => ({
     ...cat,
+    ...getExpenseCategoryStyle(cat.value),
     totalUSD: expenses
       .filter((e) => e.category === cat.value)
       .reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0),
@@ -205,11 +198,11 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
   };
 
   const inputClass =
-    'w-full border border-card-border rounded-xl px-3 py-2.5 text-sm bg-terrain/20 text-ink ' +
-    'focus:outline-none focus:ring-2 focus:ring-forest focus:bg-parchment placeholder-sage';
+    'w-full border border-card-border rounded-xl px-3 py-2.5 text-sm bg-terrain/20 text-inkText ' +
+    'focus:outline-none focus:ring-2 focus:ring-ink focus:bg-cream placeholder-sage';
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6 space-y-5">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -217,7 +210,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
             <ReceiptIcon />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-forest">Expense Tracker</h3>
+            <h3 className="text-base font-semibold text-ink">Expense Tracker</h3>
             <p className="text-xs text-sage mt-0.5">
               {expenses.length === 0
                 ? 'No expenses logged yet'
@@ -227,11 +220,11 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
         </div>
         <div className="flex items-center gap-3">
           {saveStatus === 'saving' && <span className="text-xs text-sage animate-pulse">Saving…</span>}
-          {saveStatus === 'saved'  && <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>}
-          {saveStatus === 'error'  && <span className="text-xs text-amber-600">Failed to save</span>}
+          {saveStatus === 'saved'  && <span className="text-xs text-sage font-medium">✓ Saved</span>}
+          {saveStatus === 'error'  && <span className="text-xs text-poppy">Failed to save</span>}
           <button
             onClick={() => setFormOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest hover:bg-forest/80 text-parchment text-sm font-medium rounded-xl transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-ink hover:bg-ink/80 text-cream text-sm font-medium rounded-xl transition-colors"
           >
             {formOpen ? <XIcon /> : <PlusIcon />}
             {formOpen ? 'Cancel' : 'Add'}
@@ -245,7 +238,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
           <div className="flex items-center justify-between mb-1.5 text-sm">
             <span className="text-sage font-medium">
               Spent:{' '}
-              <span className={overBudget ? 'text-amber-600' : 'text-forest'}>
+              <span className={overBudget ? 'text-poppy' : 'text-ink'}>
                 ${totalSpentUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {expenses.some((e) => e.currency !== 'USD') && (
@@ -254,10 +247,10 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
             </span>
             <span className="text-sage">Budget: ${budget.toLocaleString()}</span>
           </div>
-          <div className="w-full bg-[#DDD8CE] rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-card-border rounded-full h-2.5 overflow-hidden">
             <motion.div
               className={`h-2.5 rounded-full transition-colors ${
-                overBudget ? 'bg-amber-500' : spentPct >= 80 ? 'bg-amber-400' : 'bg-gold'
+                overBudget ? 'bg-poppy' : spentPct >= 80 ? 'bg-poppy-tint' : 'bg-marigold'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${spentPct}%` }}
@@ -265,7 +258,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
             />
           </div>
           <div className="flex items-center justify-between mt-1.5">
-            <span className={`text-xs font-medium ${overBudget ? 'text-amber-600' : 'text-sage'}`}>
+            <span className={`text-xs font-medium ${overBudget ? 'text-poppy' : 'text-sage'}`}>
               {overBudget
                 ? `⚠ Over budget by $${(totalSpentUSD - budget).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : `${spentPct}% used`}
@@ -288,7 +281,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
               <span className="text-xs text-sage ml-1">(USD equiv.)</span>
             )}
           </span>
-          <span className="text-base font-bold text-forest">
+          <span className="text-base font-bold text-ink">
             ${totalSpentUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
@@ -365,7 +358,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
               <button
                 onClick={handleAdd}
                 disabled={saveStatus === 'saving' || !amount || parseFloat(amount) <= 0 || !description.trim()}
-                className="w-full py-2.5 bg-forest hover:bg-forest/80 disabled:bg-forest/40 text-parchment text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-2.5 bg-ink hover:bg-ink/80 disabled:bg-ink/40 text-cream text-sm font-semibold rounded-xl transition-colors"
               >
                 {saveStatus === 'saving' ? 'Adding…' : 'Add Expense'}
               </button>
@@ -380,12 +373,16 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
           <p className="font-mono text-[11px] uppercase text-sage tracking-[0.1em] mb-2">By Category</p>
           <div className="flex flex-wrap gap-2">
             {categoryTotals.map((cat) => (
-              <div key={cat.value} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${cat.badgeBg}`}>
-                <div className={cat.badgeText}>
+              <div
+                key={cat.value}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                style={{ backgroundColor: cat.bg }}
+              >
+                <div style={{ color: cat.text }}>
                   <cat.Icon className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-xs font-semibold ${cat.badgeText}`}>{cat.label}</span>
-                <span className={`text-xs font-bold ${cat.badgeText}`}>
+                <span className="text-xs font-semibold" style={{ color: cat.text }}>{cat.label}</span>
+                <span className="text-xs font-bold" style={{ color: cat.text }}>
                   ${cat.totalUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -418,9 +415,12 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-forest truncate">{expense.description}</p>
+                        <p className="text-sm font-medium text-ink truncate">{expense.description}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cat.badgeBg} ${cat.badgeText}`}>
+                          <span
+                            className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                            style={{ backgroundColor: cat.bg, color: cat.text }}
+                          >
                             {cat.label}
                           </span>
                           {expense.date && (
@@ -432,7 +432,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
                       </div>
 
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-forest">
+                        <p className="text-sm font-bold text-ink">
                           {expense.currency}{' '}
                           {Number(expense.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
@@ -440,7 +440,7 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
 
                       <button
                         onClick={() => handleDelete(expense.id)}
-                        className="flex-shrink-0 text-sage hover:text-amber-600 transition-colors opacity-0 group-hover:opacity-100 ml-1"
+                        className="flex-shrink-0 text-sage hover:text-poppy transition-colors opacity-0 group-hover:opacity-100 ml-1"
                         title="Delete expense"
                       >
                         <XIcon />

@@ -114,7 +114,7 @@ function AppShell() {
   const isAuthPage = location.pathname === '/auth';
 
   return (
-    <div className="min-h-screen bg-parchment">
+    <div className="min-h-screen bg-cream">
       {!isAuthPage && <Navbar />}
       <AnimatedRoutes />
     </div>

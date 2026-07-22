@@ -1,15 +1,30 @@
 /**
- * PreTripChecklist — Round 1 Migration
+ * PreTripChecklist — Round 1 Migration + Custom Item Support
  *
- * Changes:
+ * Round 1 Migration:
  *   - Removed trip_metadata?.checklist — now reads from trip.checklist_items
  *   - Removed local items state — trip.checklist_items is source of truth
- *   - DEFAULT_ITEMS is now text-only; seeding calls addChecklistItem per item
+ *   - DEFAULT_ITEM_TEXTS is now text-only; seeding calls addChecklistItem per item
  *   - handleToggle(id: number) → updateChecklistItem → getTrip → onTripUpdate
  *   - ChecklistItem field names: item.text (was label), item.is_checked (was checked)
  *   - Removed checked_at display (field removed from schema)
  *   - Removed useEffect re-sync from trip_metadata
  *   - Updated design tokens (gray-* → ink-*, green-* → emerald-*)
+ *
+ * Custom Item Support:
+ *   - Added a text input + "Add" affordance — apiService.addChecklistItem →
+ *     getTrip → onTripUpdate, same request/refresh pattern as toggle/seed.
+ *   - Added a per-item hover-revealed delete button, matching
+ *     ItineraryTab/ActivityCard.tsx's delete button exactly (icon, sizing,
+ *     poppy hover-color convention) — apiService.deleteChecklistItem →
+ *     getTrip → onTripUpdate.
+ *   - Add/delete work on any item regardless of origin (seeded or custom).
+ *   - checkedCount/total (and the progress bar/percentage) already derive
+ *     from items.length/items.filter(...) — no changes needed there, they
+ *     recalculate correctly as items are added or removed.
+ *   - Deliberately out of scope: no phase-specific checklist behavior, no
+ *     split between a pre-trip and during-trip list — this remains one
+ *     single, phase-agnostic checklist, per the explicit scope boundary.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -30,6 +45,21 @@ const DEFAULT_ITEM_TEXTS = [
   'Notify bank of travel',
 ];
 
+// ── SVG Icons ─────────────────────────────────────────────────
+const PlusIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+// Matches ItineraryTab/ActivityCard.tsx's TrashIcon exactly.
+const TrashIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 // ── Props ─────────────────────────────────────────────────────
 interface PreTripChecklistProps {
   trip: Trip;
@@ -43,6 +73,9 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [seeding, setSeeding] = useState(false);
+  const [newItemText, setNewItemText] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -94,6 +127,49 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
     }
   };
 
+  // ── Add a custom item ──────────────────────────────────────
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = newItemText.trim();
+    if (!text || isAdding) return;
+
+    setIsAdding(true);
+    setSaveStatus('saving');
+    try {
+      await apiService.addChecklistItem(trip.id, {
+        text,
+        sort_order: items.length,
+      });
+      const updatedTrip = await apiService.getTrip(trip.id);
+      onTripUpdate(updatedTrip);
+      setNewItemText('');
+      setSaved();
+    } catch (err) {
+      console.error('Failed to add checklist item:', err);
+      setSaveStatus('error');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  // ── Delete an item (seeded or custom) ─────────────────────
+  const handleDeleteItem = async (id: number) => {
+    if (deletingId !== null) return;
+    setDeletingId(id);
+    setSaveStatus('saving');
+    try {
+      await apiService.deleteChecklistItem(trip.id, id);
+      const updatedTrip = await apiService.getTrip(trip.id);
+      onTripUpdate(updatedTrip);
+      setSaved();
+    } catch (err) {
+      console.error('Failed to delete checklist item:', err);
+      setSaveStatus('error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // ── Derived values ────────────────────────────────────────
   const checkedCount = items.filter((i) => i.is_checked).length;
   const total = items.length;
@@ -113,8 +189,8 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
       {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-ink">Pre-Trip Checklist</h3>
-          <p className="text-sm text-ink-secondary mt-0.5">
+          <h3 className="text-base font-semibold text-inkText">Pre-Trip Checklist</h3>
+          <p className="text-sm text-inkText-secondary mt-0.5">
             Get everything ready before you fly out
           </p>
         </div>
@@ -122,13 +198,13 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
         {/* Save status indicator */}
         <div className="flex-shrink-0 text-right">
           {saveStatus === 'saving' && (
-            <span className="text-xs text-ink-tertiary animate-pulse">Saving…</span>
+            <span className="text-xs text-inkText-tertiary animate-pulse">Saving…</span>
           )}
           {saveStatus === 'saved' && (
-            <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>
+            <span className="text-xs text-sage font-medium">✓ Saved</span>
           )}
           {saveStatus === 'error' && (
-            <span className="text-xs text-amber-600">Failed to save</span>
+            <span className="text-xs text-poppy">Failed to save</span>
           )}
         </div>
       </div>
@@ -136,11 +212,11 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
       {/* ── Empty state — offer to seed defaults ─────────────── */}
       {items.length === 0 && (
         <div className="text-center py-6">
-          <p className="text-sm text-ink-secondary mb-3">No checklist items yet.</p>
+          <p className="text-sm text-inkText-secondary mb-3">No checklist items yet.</p>
           <button
             onClick={handleSeedDefaults}
             disabled={seeding}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-300 text-white text-sm font-medium rounded-xl transition-colors"
+            className="px-4 py-2 bg-ink hover:bg-ink/80 disabled:bg-ink/40 text-white text-sm font-medium rounded-xl transition-colors"
           >
             {seeding ? 'Loading defaults…' : 'Load default checklist'}
           </button>
@@ -151,10 +227,10 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
       {items.length > 0 && (
         <div className="mb-5">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-medium text-ink-secondary">
+            <span className="text-xs font-medium text-inkText-secondary">
               {allDone ? '🎉 All ready to go!' : `${checkedCount} of ${total} items ready`}
             </span>
-            <span className={`text-xs font-bold ${allDone ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <span className={`text-xs font-bold ${allDone ? 'text-sage' : 'text-marigold'}`}>
               {progressPct}%
             </span>
           </div>
@@ -162,7 +238,7 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
           <div className="w-full bg-surface-muted rounded-full h-2 overflow-hidden">
             <motion.div
               className={`h-2 rounded-full transition-colors ${
-                allDone ? 'bg-emerald-500' : 'bg-amber-400'
+                allDone ? 'bg-sage' : 'bg-marigold'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
@@ -185,16 +261,18 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
                   layout
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10, height: 0 }}
                   transition={{ duration: 0.15 }}
+                  className="group/item flex items-center gap-2"
                 >
                   <button
                     onClick={() => handleToggle(item.id, item.is_checked)}
                     className={`
-                      w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                      flex-1 min-w-0 flex items-center gap-3 px-4 py-3 rounded-xl
                       text-left transition-all duration-200 group border
                       ${item.is_checked
-                        ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-surface-bg border-surface-muted hover:bg-amber-50 hover:border-amber-200'
+                        ? 'bg-sage-tint border-sage/30 hover:bg-sage-tint/70'
+                        : 'bg-surface-bg border-surface-muted hover:bg-marigold/10 hover:border-marigold/40'
                       }
                     `}
                   >
@@ -204,8 +282,8 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
                         flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center
                         transition-all duration-200
                         ${item.is_checked
-                          ? 'bg-emerald-500 border-emerald-500 text-white'
-                          : 'border-surface-muted group-hover:border-amber-400'
+                          ? 'bg-sage border-sage text-white'
+                          : 'border-surface-muted group-hover:border-marigold'
                         }
                       `}
                     >
@@ -231,20 +309,53 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
 
                     {/* Label */}
                     <span
-                      className={`text-sm transition-all duration-200 ${
+                      className={`text-sm truncate transition-all duration-200 ${
                         item.is_checked
-                          ? 'line-through text-ink-tertiary'
-                          : 'text-ink font-medium'
+                          ? 'line-through text-inkText-tertiary'
+                          : 'text-inkText font-medium'
                       }`}
                     >
                       {item.text}
                     </span>
+                  </button>
+
+                  {/* Delete — hover-revealed, matches ActivityCard.tsx's delete button */}
+                  <button
+                    onClick={() => handleDeleteItem(item.id)}
+                    disabled={deletingId === item.id}
+                    title="Delete item"
+                    className="flex-shrink-0 opacity-0 group-hover/item:opacity-100 p-1.5 text-sage hover:text-poppy hover:bg-poppy-tint rounded-lg transition-colors disabled:cursor-not-allowed"
+                  >
+                    {deletingId === item.id ? (
+                      <div className="w-4 h-4 border-2 border-sage/30 border-t-sage rounded-full animate-spin" />
+                    ) : (
+                      <TrashIcon />
+                    )}
                   </button>
                 </motion.li>
               ))}
           </AnimatePresence>
         </ul>
       )}
+
+      {/* ── Add a custom item ─────────────────────────────────── */}
+      <form onSubmit={handleAddItem} className={`flex gap-2 ${items.length > 0 ? 'mt-3' : ''}`}>
+        <input
+          type="text"
+          value={newItemText}
+          onChange={(e) => setNewItemText(e.target.value)}
+          placeholder="Add an item…"
+          className="flex-1 min-w-0 bg-surface-bg border border-surface-muted rounded-xl px-3 py-2 text-sm text-inkText placeholder-inkText-tertiary focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={isAdding || !newItemText.trim()}
+          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-ink hover:bg-ink/80 disabled:bg-ink/40 text-white text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed"
+        >
+          <PlusIcon />
+          Add
+        </button>
+      </form>
 
       {/* ── All done celebration banner ───────────────────────── */}
       <AnimatePresence>
@@ -254,9 +365,9 @@ export default function PreTripChecklist({ trip, onTripUpdate }: PreTripChecklis
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.25 }}
-            className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center"
+            className="mt-4 bg-sage-tint border border-sage/30 rounded-xl p-3 text-center"
           >
-            <p className="text-emerald-700 text-sm font-semibold">
+            <p className="text-sage text-sm font-semibold">
               🎉 You're all set! Have an amazing trip to {trip.destination}!
             </p>
           </motion.div>

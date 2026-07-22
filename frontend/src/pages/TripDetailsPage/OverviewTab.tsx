@@ -13,7 +13,6 @@ import type { Trip, TravelAlert, Recommendation, AlertSeverity, AlertCategory, R
 import type { TripPhase } from '../../utils/tripStatus';
 import { apiService } from '../../services/api';
 import { formatDate } from './helpers';
-import PreTripChecklist from './PreTripChecklist';
 import LiveToolsPanel from './LiveToolsPanel';
 import ExpenseTracker from './ExpenseTracker';
 
@@ -119,10 +118,13 @@ const RefreshIcon = () => (
 );
 
 // ── Alert severity config ─────────────────────────────────────
+// warning/critical are a two-tier danger system on the same poppy token:
+// warning stays within the light poppy-tint family, critical steps up to
+// a solid poppy badge for clearly stronger emphasis.
 const SEVERITY_STYLES: Record<AlertSeverity, { bg: string; border: string; icon: string; badge: string }> = {
-  info:     { bg: 'bg-terrain/30', border: 'border-card-border', icon: 'text-forest',      badge: 'bg-terrain text-[#3B6150]'    },
-  warning:  { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-500',   badge: 'bg-amber-100 text-amber-700'   },
-  critical: { bg: 'bg-rose-50',    border: 'border-rose-200',    icon: 'text-rose-500',     badge: 'bg-rose-100 text-rose-700'    },
+  info:     { bg: 'bg-terrain/30',    border: 'border-card-border', icon: 'text-ink',    badge: 'bg-terrain text-ink' },
+  warning:  { bg: 'bg-poppy-tint',    border: 'border-poppy/20',    icon: 'text-poppy/70', badge: 'bg-poppy-tint text-poppy' },
+  critical: { bg: 'bg-poppy-tint',    border: 'border-poppy/40',    icon: 'text-poppy',    badge: 'bg-poppy text-cream' },
 };
 
 const CATEGORY_LABELS: Record<AlertCategory, string> = {
@@ -135,11 +137,16 @@ const CATEGORY_LABELS: Record<AlertCategory, string> = {
 };
 
 // ── Recommendation category config ───────────────────────────
+// These are AI recommendation categories (must_see/food/hidden_gem/practical),
+// a conceptually separate system from expense.category even though 'food'
+// appears in both — different domain (recommendations vs. logged spend), so
+// this intentionally stays local rather than merging into categoryStyles.ts.
+// Hues unchanged, just moved off raw Tailwind classes onto explicit hex.
 const REC_STYLES: Record<RecommendationCategory, { bg: string; border: string; badge: string; label: string }> = {
-  must_see:   { bg: 'bg-terrain/30', border: 'border-card-border', badge: 'bg-terrain text-[#3B6150]',    label: 'Must See'    },
-  food:       { bg: 'bg-amber-50',   border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-700',  label: 'Food & Drink'},
-  hidden_gem: { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700', label: 'Hidden Gem' },
-  practical:  { bg: 'bg-terrain/20', border: 'border-card-border', badge: 'bg-terrain text-[#3B6150]',    label: 'Practical'  },
+  must_see:   { bg: 'bg-terrain/30', border: 'border-card-border', badge: 'bg-terrain text-ink', label: 'Must See' },
+  food:       { bg: 'bg-[#FFFBEB]',  border: 'border-[#FDE68A]',   badge: 'bg-[#FEF3C7] text-[#B45309]', label: 'Food & Drink' },
+  hidden_gem: { bg: 'bg-[#ECFDF5]',  border: 'border-[#A7F3D0]',   badge: 'bg-[#D1FAE5] text-[#047857]', label: 'Hidden Gem' },
+  practical:  { bg: 'bg-terrain/20', border: 'border-card-border', badge: 'bg-terrain text-ink', label: 'Practical' },
 };
 
 // ── Alert severity icon ───────────────────────────────────────
@@ -167,7 +174,7 @@ function SeverityIcon({ severity }: { severity: AlertSeverity }) {
 
 // ── Travel Alerts Panel ───────────────────────────────────────
 function TravelAlertsPanel({ trip }: { trip: Trip }) {
-  const cacheKey = `tripmind_alerts_${trip.id}`;
+  const cacheKey = `tagalong_alerts_${trip.id}`;
 
   // Seed priority: DB-persisted trip.ai_alerts → sessionStorage → empty
   const [alerts, setAlerts] = useState<TravelAlert[]>(() =>
@@ -206,17 +213,17 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
   }, []);
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-gold"><AlertIcon /></div>
+          <div className="text-marigold"><AlertIcon /></div>
           <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Alerts & News</h3>
         </div>
         <button
           onClick={() => fetchAlerts(true)}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-forest hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-ink hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
         >
           <motion.span animate={loading ? { rotate: 360 } : { rotate: 0 }} transition={{ duration: 0.8, repeat: loading ? Infinity : 0, ease: 'linear' }}>
             <RefreshIcon />
@@ -231,12 +238,12 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="flex items-center gap-3 py-2">
             <TypingDots />
-            <p className="text-sm text-ink-tertiary">Checking advisories for {trip.destination}…</p>
+            <p className="text-sm text-inkText-tertiary">Checking advisories for {trip.destination}…</p>
           </motion.div>
         ) : error ? (
           <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-sm text-red-700">{error}</p>
+            className="bg-poppy-tint border border-poppy/30 rounded-xl p-4">
+            <p className="text-sm text-poppy">{error}</p>
           </motion.div>
         ) : alerts.length > 0 ? (
           <motion.div key="alerts" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -251,12 +258,12 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-sm font-semibold text-ink">{alert.title}</p>
+                        <p className="text-sm font-semibold text-inkText">{alert.title}</p>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles.badge}`}>
                           {CATEGORY_LABELS[alert.category] ?? alert.category}
                         </span>
                       </div>
-                      <p className="text-sm text-ink-secondary leading-relaxed">{alert.description}</p>
+                      <p className="text-sm text-inkText-secondary leading-relaxed">{alert.description}</p>
                     </div>
                   </div>
                 </div>
@@ -271,7 +278,7 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
 
 // ── AI Recommendations Panel ──────────────────────────────────
 function AIRecommendationsPanel({ trip }: { trip: Trip }) {
-  const cacheKey = `tripmind_recommendations_${trip.id}`;
+  const cacheKey = `tagalong_recommendations_${trip.id}`;
 
   // Seed priority: DB-persisted trip.ai_recommendations → sessionStorage → empty
   const [recs, setRecs] = useState<Recommendation[]>(() =>
@@ -309,17 +316,17 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
   }, []);
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-forest"><SparklesIcon /></div>
+          <div className="text-ink"><SparklesIcon /></div>
           <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">AI Recommendations</h3>
         </div>
         <button
           onClick={() => fetchRecs(true)}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-forest hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sage hover:text-ink hover:bg-terrain/20 rounded-lg transition-colors disabled:opacity-40"
         >
           <motion.span animate={loading ? { rotate: 360 } : { rotate: 0 }} transition={{ duration: 0.8, repeat: loading ? Infinity : 0, ease: 'linear' }}>
             <RefreshIcon />
@@ -334,12 +341,12 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="flex items-center gap-3 py-2">
             <TypingDots />
-            <p className="text-sm text-ink-tertiary">Curating picks for {trip.destination}…</p>
+            <p className="text-sm text-inkText-tertiary">Curating picks for {trip.destination}…</p>
           </motion.div>
         ) : error ? (
           <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-sm text-red-700">{error}</p>
+            className="bg-poppy-tint border border-poppy/30 rounded-xl p-4">
+            <p className="text-sm text-poppy">{error}</p>
           </motion.div>
         ) : recs.length > 0 ? (
           <motion.div key="recs" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -349,16 +356,16 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
               return (
                 <div key={rec.id} className={`${styles.bg} border ${styles.border} rounded-xl p-4`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className="text-sm font-semibold text-ink leading-snug">{rec.title}</p>
+                    <p className="text-sm font-semibold text-inkText leading-snug">{rec.title}</p>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${styles.badge}`}>
                       {styles.label}
                     </span>
                   </div>
-                  <p className="text-sm text-ink-secondary leading-relaxed mb-2">{rec.description}</p>
+                  <p className="text-sm text-inkText-secondary leading-relaxed mb-2">{rec.description}</p>
                   {rec.tip && (
-                    <p className="text-xs text-ink-tertiary italic border-t border-black/[0.06] pt-2">
+                    <p className="text-xs text-inkText-tertiary italic border-t border-black/[0.06] pt-2">
                       <span className="inline-flex items-start gap-1.5">
-                        <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
                             d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                         </svg>
@@ -381,18 +388,14 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
   return (
     <div className="space-y-5">
 
-      {phase === 'pre-trip' && (
-        <PreTripChecklist trip={trip} onTripUpdate={onTripUpdate} />
-      )}
-
       {phase === 'active' && (
         <LiveToolsPanel trip={trip} />
       )}
 
       {/* About This Trip */}
-      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
         <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-2">About This Trip</h3>
-        <p className="text-ink-secondary text-sm leading-relaxed">
+        <p className="text-inkText-secondary text-sm leading-relaxed">
           {`Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${
             trip.destination
           }. Use the tabs above to plan your itinerary, book travel, or chat with the AI assistant.`}
@@ -400,7 +403,7 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
       </div>
 
       {/* Key Details */}
-      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
         <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4">Key Details</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -414,14 +417,14 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
                 <Icon />
                 <p className="font-mono text-[9px] uppercase tracking-[0.1em]">{label}</p>
               </div>
-              <p className="text-sm font-semibold text-forest">{value}</p>
+              <p className="text-sm font-semibold text-ink">{value}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Travel Dates */}
-      <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="text-sage"><CalendarIcon /></div>
           <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Dates</h3>
@@ -429,14 +432,14 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
         <div className="flex items-center gap-4 text-sm">
           <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
             <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Departure</p>
-            <p className="font-semibold text-forest">{formatDate(trip.start_date)}</p>
+            <p className="font-semibold text-ink">{formatDate(trip.start_date)}</p>
           </div>
           <svg className="w-5 h-5 text-sage flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
           <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
             <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Return</p>
-            <p className="font-semibold text-forest">{formatDate(trip.end_date)}</p>
+            <p className="font-semibold text-ink">{formatDate(trip.end_date)}</p>
           </div>
         </div>
       </div>
