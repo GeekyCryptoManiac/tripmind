@@ -14,7 +14,7 @@ import { getChatService } from '../services/chatService';
 import type { ChatType, TripChatContext } from '../types/chat';
 import type { Trip } from '../types';
 import TripCard from './TripCard';
-import logoAsset from '../assets/tripMind_logo.png'; 
+import logoAsset from '../assets/tagalong_logo.png';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -201,7 +201,7 @@ export default function ChatInterface({
     }
     return {
       role: 'assistant',
-      content: "Hi! I'm TripMind, your AI travel assistant. 🌍\n\nI can help you **plan trips**, **build day-by-day itineraries**, **manage budgets**, and answer any **travel questions** you have. Where would you like to go?",
+      content: "Hey, I'm Sherpa 🏔️ — think of me as your travel companion who's already scouted the route. I can help you **plan trips**, **build day-by-day itineraries**, **manage budgets**, and answer any **travel questions** along the way. Where should we go?",
       timestamp: new Date().toISOString(),
     };
   };
@@ -340,7 +340,7 @@ export default function ChatInterface({
   const showEmptyState = messages.length === 1 && !isLoading;
 
   return (
-    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-parchment`}>
+    <div className={`flex flex-col ${embedded ? 'h-full' : 'h-screen'} bg-cream`}>
       
       {/* ── Messages ───────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -350,10 +350,10 @@ export default function ChatInterface({
           {showEmptyState && !embedded && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
               <div className="w-16 h-16 rounded-full bg-terrain border border-card-border flex items-center justify-center mb-6">
-                <img src={logoAsset} alt="TripMind AI" className="w-15 h-15 object-contain" />
+                <img src={logoAsset} alt="Sherpa" className="w-15 h-15 object-contain" />
               </div>
-              <h1 className="text-4xl font-semibold text-ink mb-3">
-                How can we <span className="text-forest">assist</span> you today?
+              <h1 className="text-4xl font-semibold text-inkText mb-3">
+                How can we <span className="text-ink">assist</span> you today?
               </h1>
               <p className="text-sage max-w-md leading-relaxed">
                 {chatType === 'trip' && tripContext
@@ -367,7 +367,7 @@ export default function ChatInterface({
                       key={chip.label}
                       onClick={() => handleSendText(chip.prompt)}
                       disabled={isLoading}
-                      className="text-sm px-4 py-2 rounded-full bg-terrain/30 text-forest border border-card-border hover:bg-terrain hover:border-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-sm px-4 py-2 rounded-full bg-terrain/30 text-ink border border-card-border hover:bg-terrain hover:border-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {chip.label}
                     </button>
@@ -386,13 +386,13 @@ export default function ChatInterface({
               {/* Avatar */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${
                 msg.role === 'user'
-                  ? 'bg-forest text-parchment'
+                  ? 'bg-ink text-cream'
                   : 'bg-terrain border border-card-border'
               }`}>
-                {msg.role === 'user' ? 'U' : <img 
-                  src={logoAsset} 
-                  alt="TripMind AI" 
-                  
+                {msg.role === 'user' ? 'U' : <img
+                  src={logoAsset}
+                  alt="Sherpa"
+
                 />}
               </div>
 
@@ -400,8 +400,8 @@ export default function ChatInterface({
               <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[70%]`}>
                 <div className={`rounded-2xl px-5 py-3 ${
                   msg.role === 'user'
-                    ? 'bg-forest text-parchment'
-                    : 'bg-terrain/30 border border-card-border text-ink'
+                    ? 'bg-ink text-cream'
+                    : 'bg-terrain/30 border border-card-border text-inkText'
                 }`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {renderMessageContent(msg.content)}
@@ -419,7 +419,7 @@ export default function ChatInterface({
                         key={prompt}
                         onClick={() => handleSendText(prompt)}
                         disabled={isLoading}
-                        className="font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-full bg-terrain/30 text-[#3B6150] border border-card-border hover:bg-terrain hover:border-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-full bg-terrain/30 text-ink border border-card-border hover:bg-terrain hover:border-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {prompt}
                       </button>
@@ -434,7 +434,7 @@ export default function ChatInterface({
           {isLoading && (
             <div className="flex gap-3 mb-6">
               <div className="w-10 h-10 rounded-full bg-terrain border border-card-border flex items-center justify-center flex-shrink-0">
-                <img src={logoAsset} alt="TripMind AI" className="w-15 h-15 object-contain" />
+                <img src={logoAsset} alt="Sherpa" className="w-15 h-15 object-contain" />
               </div>
               <div className="bg-terrain/30 border border-card-border rounded-2xl px-5 py-3">
                 <div className="flex gap-1.5">
@@ -458,10 +458,10 @@ export default function ChatInterface({
       </div>
 
       {/* ── Input bar (fixed bottom) ───────────────────────── */}
-      <div className="border-t border-card-border bg-parchment/90 backdrop-blur-md p-4">
+      <div className="border-t border-card-border bg-cream/90 backdrop-blur-md p-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {/* Left icon button */}
-          <button className="w-12 h-12 rounded-full bg-forest flex items-center justify-center flex-shrink-0 text-parchment hover:bg-forest/80 transition-colors">
+          <button className="w-12 h-12 rounded-full bg-ink flex items-center justify-center flex-shrink-0 text-cream hover:bg-ink/80 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
@@ -479,13 +479,13 @@ export default function ChatInterface({
                   ? `Ask about your ${tripContext.destination} trip...`
                   : 'Ask me anything — plan a trip, build an itinerary, get travel tips...'
               }
-              className="flex-1 resize-none bg-transparent text-sm text-ink placeholder-sage focus:outline-none"
+              className="flex-1 resize-none bg-transparent text-sm text-inkText placeholder-sage focus:outline-none"
               rows={1}
               disabled={isLoading}
             />
             
             {/* Microphone icon — commented out (not functioning) */}
-            {/* <button className="text-ink-tertiary hover:text-ink transition-colors">
+            {/* <button className="text-inkText-tertiary hover:text-inkText transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                   d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -497,7 +497,7 @@ export default function ChatInterface({
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="w-12 h-12 rounded-full bg-forest flex items-center justify-center flex-shrink-0 text-parchment hover:bg-forest/80 disabled:bg-forest/40 disabled:cursor-not-allowed transition-colors"
+            className="w-12 h-12 rounded-full bg-ink flex items-center justify-center flex-shrink-0 text-cream hover:bg-ink/80 disabled:bg-ink/40 disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

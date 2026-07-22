@@ -1,4 +1,4 @@
-# TripMind
+# Tagalong
 
 AI-powered trip planning application. Users describe where they want to go and a GPT-4o agent creates the trip, builds a day-by-day itinerary, and stores everything in a normalized PostgreSQL database. A React frontend provides trip management, expense tracking, checklist, multi-city waypoints, and AI-generated travel suggestions and alerts.
 
@@ -136,7 +136,7 @@ tripmind/
 │   │   └── versions/
 │   ├── app/
 │   │   ├── agents/
-│   │   │   ├── base_agent.py   # TripMindAgent — LangChain AgentExecutor
+│   │   │   ├── base_agent.py   # SherpaAgent — LangChain AgentExecutor
 │   │   │   └── tools.py        # 6 tool functions (plan, get, update, itinerary, …)
 │   │   ├── routers/
 │   │   │   ├── __init__.py

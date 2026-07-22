@@ -9,9 +9,7 @@
  * violating React's Rules of Hooks. Phases are now computed once at the
  * top level via trips.map(), then counts are derived from that array.
  *
- * NOTE: Add these two lines to your index.html <head> for the fonts:
- *   <link rel="preconnect" href="https://fonts.googleapis.com">
- *   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+ * Fonts are loaded via the @import in src/index.css — no <link> tags needed.
  */
 
 import { useState, useEffect } from 'react';
@@ -39,14 +37,14 @@ function formatDate(dateString: string | null): string {
 
 // Status config — tweak colours here if needed
 const STATUS_CONFIG = {
-  planning:  { label: 'Planning',  dot: 'bg-sage',   badge: 'bg-terrain text-ink ring-card-border'  },
-  booked:    { label: 'Booked',    dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
-  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border'  },
+  planning:  { label: 'Planning',  dot: 'bg-sage',   badge: 'bg-terrain text-inkText ring-card-border'  },
+  booked:    { label: 'Booked',    dot: 'bg-marigold',   badge: 'bg-terrain text-inkText ring-card-border' },
+  completed: { label: 'Completed', dot: 'bg-ink', badge: 'bg-terrain text-inkText ring-card-border'  },
 } as const;
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? {
-    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
+    label: status, dot: 'bg-sage', badge: 'bg-terrain text-inkText ring-card-border',
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
@@ -60,40 +58,40 @@ function StatusBadge({ status }: { status: string }) {
 const CardSkeleton: FC = () => (
   <div className="bg-white rounded-2xl p-6 shadow-card animate-pulse">
     <div className="flex justify-between items-start mb-5">
-      <div className="h-6 w-32 bg-gray-200 rounded-lg" />
-      <div className="h-5 w-20 bg-gray-100 rounded-full" />
+      <div className="h-6 w-32 bg-ink/10 rounded-lg" />
+      <div className="h-5 w-20 bg-ink/5 rounded-full" />
     </div>
     <div className="space-y-3">
-      <div className="h-4 w-48 bg-gray-100 rounded" />
-      <div className="h-4 w-36 bg-gray-100 rounded" />
-      <div className="h-4 w-28 bg-gray-100 rounded" />
+      <div className="h-4 w-48 bg-ink/5 rounded" />
+      <div className="h-4 w-36 bg-ink/5 rounded" />
+      <div className="h-4 w-28 bg-ink/5 rounded" />
     </div>
-    <div className="mt-5 pt-4 border-t border-gray-100">
-      <div className="h-4 w-24 bg-gray-200 rounded" />
+    <div className="mt-5 pt-4 border-t border-ink/5">
+      <div className="h-4 w-24 bg-ink/10 rounded" />
     </div>
   </div>
 );
 
 const PageSkeleton: FC = () => (
-  <div className="min-h-screen bg-parchment">
+  <div className="min-h-screen bg-cream">
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Header skeleton */}
       <div className="flex items-end justify-between mb-10">
         <div className="space-y-3">
-          <div className="h-10 w-40 bg-gray-200 rounded-xl animate-pulse" />
-          <div className="h-5 w-64 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-10 w-40 bg-ink/10 rounded-xl animate-pulse" />
+          <div className="h-5 w-64 bg-ink/5 rounded-lg animate-pulse" />
         </div>
         <div className="flex gap-3">
-          <div className="h-10 w-32 bg-gray-100 rounded-xl animate-pulse" />
-          <div className="h-10 w-36 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="h-10 w-32 bg-ink/5 rounded-xl animate-pulse" />
+          <div className="h-10 w-36 bg-ink/10 rounded-xl animate-pulse" />
         </div>
       </div>
       {/* Stats skeleton */}
       <div className="grid grid-cols-3 gap-4 mb-10">
         {[1, 2, 3].map(i => (
           <div key={i} className="bg-white rounded-2xl p-5 shadow-card animate-pulse">
-            <div className="h-4 w-16 bg-gray-100 rounded mb-3" />
-            <div className="h-8 w-10 bg-gray-200 rounded" />
+            <div className="h-4 w-16 bg-ink/5 rounded mb-3" />
+            <div className="h-8 w-10 bg-ink/10 rounded" />
           </div>
         ))}
       </div>
@@ -122,7 +120,7 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
     transition={{ duration: 0.15 }}
     onClick={onClose}
   >
-    <div className="absolute inset-0 bg-forest/50 backdrop-blur-sm" />
+    <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" />
     <motion.div
       className="relative z-10 bg-white rounded-3xl shadow-modal max-w-md w-full overflow-hidden"
       initial={{ scale: 0.94, y: 20, opacity: 0 }}
@@ -134,14 +132,14 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
       {/* Header */}
       <div className="flex items-center justify-between px-7 pt-7 pb-5">
         <div>
-          <h3 className="font-display text-xl text-ink">{countryName}</h3>
-          <p className="text-sm text-ink-secondary mt-0.5">
+          <h3 className="font-display text-xl text-inkText">{countryName}</h3>
+          <p className="text-sm text-inkText-secondary mt-0.5">
             {trips.length} trips · select one to view
           </p>
         </div>
         <button
           onClick={onClose}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-ink-secondary hover:bg-gray-200 transition-colors text-lg leading-none"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-inkText-secondary hover:bg-ink/10 transition-colors text-lg leading-none"
         >
           ×
         </button>
@@ -158,12 +156,12 @@ const TripSelectModal: FC<TripSelectModalProps> = ({ trips, countryName, onSelec
               className="w-full text-left bg-surface-bg hover:bg-terrain border border-surface-muted hover:border-sage rounded-2xl p-4 transition-all group"
             >
               <div className="flex items-center justify-between mb-1.5">
-                <p className="font-semibold text-ink group-hover:text-forest transition-colors">
+                <p className="font-semibold text-inkText group-hover:text-ink transition-colors">
                   {trip.destination}
                 </p>
                 <StatusBadge status={phase} />
               </div>
-              <div className="flex items-center gap-3 text-xs text-ink-tertiary">
+              <div className="flex items-center gap-3 text-xs text-inkText-tertiary">
                 {trip.start_date && <span>{formatDate(trip.start_date)}</span>}
                 {trip.budget && <span>· ${trip.budget.toLocaleString()}</span>}
                 {trip.travelers_count > 0 && <span>· {trip.travelers_count} travelers</span>}
@@ -187,23 +185,23 @@ const EmptyState: FC<{ onPlan: () => void }> = ({ onPlan }) => (
     {/* Illustrated placeholder */}
     <div className="relative mb-8">
       <div className="w-28 h-28 rounded-full bg-terrain flex items-center justify-center">
-        <svg className="w-14 h-14 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-14 h-14 text-marigold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
       {/* Floating dots for decoration */}
-      <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gold opacity-70" />
+      <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-marigold opacity-70" />
       <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-sage opacity-70" />
     </div>
 
-    <h2 className="font-display text-2xl text-ink mb-2">No trips yet</h2>
-    <p className="text-ink-secondary text-sm max-w-xs mb-8">
+    <h2 className="font-display text-2xl text-inkText mb-2">No trips yet</h2>
+    <p className="text-inkText-secondary text-sm max-w-xs mb-8">
       Your next adventure is one conversation away. Let the AI plan it for you.
     </p>
     <button
       onClick={onPlan}
-      className="inline-flex items-center gap-2 bg-forest text-parchment px-6 py-3 rounded-2xl font-medium hover:bg-forest/80 transition-colors"
+      className="inline-flex items-center gap-2 bg-ink text-cream px-6 py-3 rounded-2xl font-medium hover:bg-ink/80 transition-colors"
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -275,18 +273,18 @@ const TripsPage: FC = () => {
   // ── Error ───────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-parchment flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-sm text-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="bg-poppy-tint border border-poppy/30 rounded-2xl p-8 max-w-sm text-center">
           <div className="flex justify-center mb-3">
-            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-poppy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
                 d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
-          <p className="text-red-800 font-medium mb-4">{error}</p>
+          <p className="text-poppy font-medium mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-sm font-medium text-red-700 underline underline-offset-2"
+            className="text-sm font-medium text-poppy underline underline-offset-2"
           >
             Try again
           </button>
@@ -297,7 +295,7 @@ const TripsPage: FC = () => {
 
   // ── Main render ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-parchment">
+    <div className="min-h-screen bg-cream">
       <div className="max-w-7xl mx-auto px-6 py-10">
 
         {/* ── Page header ─────────────────────────────────── */}
@@ -311,7 +309,7 @@ const TripsPage: FC = () => {
             <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-1">
               Your travel journal
             </p>
-            <h1 className="font-display text-4xl text-forest">My Trips</h1>
+            <h1 className="font-display text-4xl text-ink">My Trips</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -324,8 +322,8 @@ const TripsPage: FC = () => {
                     onClick={() => setViewMode(mode)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       viewMode === mode
-                        ? 'bg-forest text-parchment shadow-sm'
-                        : 'text-ink-secondary hover:text-ink'
+                        ? 'bg-ink text-cream shadow-sm'
+                        : 'text-inkText-secondary hover:text-inkText'
                     }`}
                   >
                     {mode === 'map' ? (
@@ -352,7 +350,7 @@ const TripsPage: FC = () => {
 
             <button
               onClick={() => setShowNewTrip(true)}
-              className="inline-flex items-center gap-2 bg-forest text-parchment px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 bg-ink text-cream px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -370,13 +368,13 @@ const TripsPage: FC = () => {
             transition={{ duration: 0.3, delay: 0.08 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"
           >
-            <div className="bg-forest rounded-2xl p-5 shadow-card">
-              <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-parchment/50 mb-1">Total</p>
-              <p className="text-3xl font-display text-parchment">{trips.length}</p>
+            <div className="bg-ink rounded-2xl p-5 shadow-card">
+              <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-cream/50 mb-1">Total</p>
+              <p className="text-3xl font-display text-cream">{trips.length}</p>
             </div>
             <StatChip label="Planning"  count={tripCounts.planning}  color="text-sage" />
-            <StatChip label="Booked"    count={tripCounts.booked}    color="text-gold" />
-            <StatChip label="Completed" count={tripCounts.completed} color="text-forest" />
+            <StatChip label="Booked"    count={tripCounts.booked}    color="text-marigold" />
+            <StatChip label="Completed" count={tripCounts.completed} color="text-ink" />
           </motion.div>
         )}
 
@@ -399,8 +397,8 @@ const TripsPage: FC = () => {
                 <p className="font-mono text-[11px] tracking-[0.12em] uppercase text-sage mb-1">
                   Your Travel Journal
                 </p>
-                <p className="text-5xl font-display text-forest mb-4">{trips.length}</p>
-                <p className="text-xs text-ink-secondary">
+                <p className="text-5xl font-display text-ink mb-4">{trips.length}</p>
+                <p className="text-xs text-inkText-secondary">
                   {trips.length === 1 ? 'trip' : 'trips'} planned
                 </p>
               </div>
@@ -413,8 +411,8 @@ const TripsPage: FC = () => {
                 <div className="space-y-3">
                   {[
                     { status: 'planning',  count: tripCounts.planning,  color: 'bg-sage',   label: 'Planning'  },
-                    { status: 'booked',    count: tripCounts.booked,    color: 'bg-gold',   label: 'Booked'    },
-                    { status: 'completed', count: tripCounts.completed, color: 'bg-forest', label: 'Completed' },
+                    { status: 'booked',    count: tripCounts.booked,    color: 'bg-marigold',   label: 'Booked'    },
+                    { status: 'completed', count: tripCounts.completed, color: 'bg-ink', label: 'Completed' },
                   ].map(({ status, count, color, label }) => {
                     const percentage = trips.length > 0
                       ? Math.round((count / trips.length) * 100)
@@ -424,9 +422,9 @@ const TripsPage: FC = () => {
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${color}`} />
-                            <span className="text-sm font-medium text-ink">{label}</span>
+                            <span className="text-sm font-medium text-inkText">{label}</span>
                           </div>
-                          <span className="text-sm font-semibold text-ink">{count}</span>
+                          <span className="text-sm font-semibold text-inkText">{count}</span>
                         </div>
                         <div className="w-full h-1.5 bg-surface-muted rounded-full overflow-hidden">
                           <div
@@ -434,7 +432,7 @@ const TripsPage: FC = () => {
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <p className="text-xs text-ink-tertiary mt-1">{percentage}% of trips</p>
+                        <p className="text-xs text-inkText-tertiary mt-1">{percentage}% of trips</p>
                       </div>
                     );
                   })}
@@ -467,21 +465,21 @@ const TripsPage: FC = () => {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                             phase === 'planning'  ? 'bg-sage'   :
-                            phase === 'completed' ? 'bg-forest' :
-                                                    'bg-gold'
+                            phase === 'completed' ? 'bg-ink' :
+                                                    'bg-marigold'
                           }`} />
-                          <span className="text-sm text-ink font-medium truncate group-hover:text-forest transition-colors">
+                          <span className="text-sm text-inkText font-medium truncate group-hover:text-ink transition-colors">
                             {trip.destination}
                           </span>
                         </div>
-                        <svg className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-forest flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 text-inkText-tertiary group-hover:text-ink flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
                     );
                   })}
                   {trips.length > 4 && (
-                    <p className="text-xs text-ink-tertiary pt-1">+{trips.length - 4} more trips</p>
+                    <p className="text-xs text-inkText-tertiary pt-1">+{trips.length - 4} more trips</p>
                   )}
                 </div>
               </div>

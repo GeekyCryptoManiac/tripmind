@@ -1,4 +1,4 @@
-# TripMind — Deployment Reference
+# Tagalong — Deployment Reference
 
 Operational guide for deploying and maintaining the backend on EC2. For the architecture
 overview and infrastructure diagram, see `docs/ARCHITECTURE_OVERVIEW.md` §7.

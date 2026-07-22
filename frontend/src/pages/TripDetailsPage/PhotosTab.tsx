@@ -50,19 +50,19 @@ export default function PhotosTab({ trip }: { trip: Trip }) {
   const clampedIndex = Math.min(activeIndex, Math.max(0, items.length - 1));
 
   return (
-    <div className="rounded-2xl overflow-hidden ring-1 ring-black/[0.03] shadow-sm" style={{ backgroundColor: '#1C2B24' }}>
+    <div className="rounded-2xl overflow-hidden ring-1 ring-black/[0.03] shadow-sm bg-ink">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 py-4">
-        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-parchment/60">Trip Photos</h3>
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-cream/60">Trip Photos</h3>
         {items.length > 0 && (
-          <span className="font-mono text-[11px] text-parchment/50 tracking-[0.08em]">
+          <span className="font-mono text-[11px] text-cream/50 tracking-[0.08em]">
             {clampedIndex + 1} / {items.length}
           </span>
         )}
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 text-parchment/50 py-16 px-6 text-center">
+        <div className="flex flex-col items-center gap-2 text-cream/50 py-16 px-6 text-center">
           <CameraIcon />
           <p className="text-sm">No photos yet — check in to activities and add some along the way.</p>
         </div>

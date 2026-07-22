@@ -20,7 +20,7 @@ function highlight(text: string, query: string): string {
   if (idx === -1) return text;
   return (
     text.slice(0, idx) +
-    `<mark class="bg-brand-100 text-brand-800 rounded">${text.slice(idx, idx + query.length)}</mark>` +
+    `<mark class="bg-marigold/20 text-marigold rounded">${text.slice(idx, idx + query.length)}</mark>` +
     text.slice(idx + query.length)
   );
 }
@@ -97,8 +97,8 @@ export default function CityAutocomplete({
 
   const inputClass = [
     'w-full px-4 py-2.5 bg-surface-bg border border-surface-muted rounded-xl',
-    'text-sm text-ink placeholder-ink-tertiary',
-    'focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent transition',
+    'text-sm text-inkText placeholder-inkText-tertiary',
+    'focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition',
     className,
   ].join(' ');
 
@@ -107,7 +107,7 @@ export default function CityAutocomplete({
       {label && (
         <label
           htmlFor={id}
-          className="block text-xs font-medium text-ink-secondary uppercase tracking-wide mb-1.5"
+          className="block text-xs font-medium text-inkText-secondary uppercase tracking-wide mb-1.5"
         >
           {label}
         </label>
@@ -156,14 +156,14 @@ export default function CityAutocomplete({
                 onMouseDown={() => select(entry)}
                 onMouseEnter={() => setActiveIdx(i)}
                 className={`flex items-center justify-between px-4 py-2.5 cursor-pointer transition-colors ${
-                  i === activeIdx ? 'bg-brand-50' : 'hover:bg-surface-bg'
+                  i === activeIdx ? 'bg-terrain/30' : 'hover:bg-surface-bg'
                 }`}
               >
                 <span
-                  className="text-sm text-ink font-medium"
+                  className="text-sm text-inkText font-medium"
                   dangerouslySetInnerHTML={{ __html: highlight(entry.city, query.trim()) }}
                 />
-                <span className="text-xs text-ink-tertiary ml-3 flex-shrink-0">
+                <span className="text-xs text-inkText-tertiary ml-3 flex-shrink-0">
                   {entry.country}
                 </span>
               </li>

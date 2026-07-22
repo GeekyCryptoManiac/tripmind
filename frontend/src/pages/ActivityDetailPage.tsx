@@ -11,6 +11,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { apiService } from '../services/api';
+import { getExpenseCategoryStyle } from '../utils/categoryStyles';
+import { FanCarousel, type FanCarouselItem } from '../components/FanCarousel';
 import type { Activity, ActivityMedia, Trip } from '../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -181,13 +183,13 @@ function DescriptionBlock({ text }: { text: string }) {
   const long = text.length > 200;
   return (
     <div>
-      <p className={`text-sm text-ink leading-relaxed ${!expanded && long ? 'line-clamp-3' : ''}`}>
+      <p className={`font-display italic text-sm text-ink leading-relaxed ${!expanded && long ? 'line-clamp-3' : ''}`}>
         {text}
       </p>
       {long && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-forest font-medium mt-1 hover:underline"
+          className="text-xs text-ink font-medium mt-1 hover:underline"
         >
           {expanded ? 'See less' : 'See more'}
         </button>
@@ -206,17 +208,17 @@ function NotesSection({
   onChange: (v: string) => void;
 }) {
   return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5">
+    <section className="bg-cream rounded-2xl border border-card-border p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Your notes</h3>
         {saveStatus === 'saving' && (
           <span className="text-xs text-sage animate-pulse">Saving…</span>
         )}
         {saveStatus === 'saved' && (
-          <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>
+          <span className="text-xs text-sage font-medium">✓ Saved</span>
         )}
         {saveStatus === 'error' && (
-          <span className="text-xs text-red-500">Failed to save</span>
+          <span className="text-xs text-poppy">Failed to save</span>
         )}
       </div>
       <textarea
@@ -224,7 +226,7 @@ function NotesSection({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Jot down memories, tips, or things you want to remember…"
         rows={4}
-        className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent focus:bg-parchment resize-none transition-colors"
+        className="w-full bg-terrain/20 border border-card-border rounded-xl p-3 font-display italic text-sm text-inkText placeholder-sage focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent focus:bg-cream resize-none transition-colors"
       />
     </section>
   );
@@ -261,11 +263,11 @@ function BookingSection({ activity }: { activity: Activity }) {
   };
 
   return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-4">
+    <section className="bg-cream rounded-2xl border border-card-border p-5 space-y-4">
       <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Booking & Tickets</h3>
 
       {!hasContent ? (
-        <button className="w-full flex items-center justify-center gap-2 py-5 border-2 border-dashed border-card-border rounded-xl text-sm text-sage hover:text-forest hover:border-forest transition-colors">
+        <button className="w-full flex items-center justify-center gap-2 py-5 border-2 border-dashed border-card-border rounded-xl text-sm text-sage hover:text-ink hover:border-ink transition-colors">
           <PlusIcon />
           Add booking details
         </button>
@@ -276,15 +278,15 @@ function BookingSection({ activity }: { activity: Activity }) {
             <div className="space-y-1.5">
               <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-sage">Reference</p>
               <div className="flex items-stretch gap-2">
-                <code className="flex-1 bg-terrain/30 border border-card-border rounded-xl px-3 py-2.5 font-mono text-sm text-ink font-semibold tracking-widest min-w-0 break-all">
+                <code className="flex-1 bg-terrain/30 border border-card-border rounded-xl px-3 py-2.5 font-mono text-sm text-inkText font-semibold tracking-widest min-w-0 break-all">
                   {activity.booking_ref}
                 </code>
                 <button
                   onClick={handleCopy}
                   className={`flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold flex-shrink-0 transition-colors border ${
                     copied
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-terrain/40 border-card-border text-sage hover:text-forest hover:bg-terrain'
+                      ? 'bg-sage-tint text-sage border-sage/30'
+                      : 'bg-terrain/40 border-card-border text-sage hover:text-ink hover:bg-terrain'
                   }`}
                 >
                   {copied ? (
@@ -305,11 +307,11 @@ function BookingSection({ activity }: { activity: Activity }) {
               rel="noopener noreferrer"
               className="flex items-center gap-3 p-3 bg-terrain/20 border border-card-border rounded-xl hover:bg-terrain/40 transition-colors"
             >
-              <div className="w-8 h-8 bg-forest/10 rounded-lg flex items-center justify-center flex-shrink-0 text-forest font-bold text-sm select-none">
+              <div className="w-8 h-8 bg-ink/10 rounded-lg flex items-center justify-center flex-shrink-0 text-ink font-bold text-sm select-none">
                 {bookingHostname(activity.booking_url)[0]?.toUpperCase() ?? '↗'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink">Confirmation link</p>
+                <p className="text-sm font-medium text-inkText">Confirmation link</p>
                 <p className="text-xs text-sage truncate">{bookingHostname(activity.booking_url)}</p>
               </div>
               <ExternalLinkIcon />
@@ -326,14 +328,14 @@ function BookingSection({ activity }: { activity: Activity }) {
                   href={doc.storage_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-terrain/30 border border-card-border rounded-lg text-xs text-forest hover:bg-terrain transition-colors max-w-[180px]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-terrain/30 border border-card-border rounded-lg text-xs text-ink hover:bg-terrain transition-colors max-w-[180px]"
                 >
                   <DocumentIcon />
                   <span className="truncate">{doc.filename ?? 'Document'}</span>
                   <span className="font-mono text-sage text-[10px] flex-shrink-0">{fileExt(doc.filename)}</span>
                 </a>
               ))}
-              <button className="flex items-center gap-1 px-3 py-1.5 border-2 border-dashed border-card-border rounded-lg text-xs text-sage hover:text-forest hover:border-forest transition-colors">
+              <button className="flex items-center gap-1 px-3 py-1.5 border-2 border-dashed border-card-border rounded-lg text-xs text-sage hover:text-ink hover:border-ink transition-colors">
                 <PlusIcon />
                 Add doc
               </button>
@@ -345,26 +347,13 @@ function BookingSection({ activity }: { activity: Activity }) {
   );
 }
 
-const EXPENSE_CATEGORY_STYLES: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-  food:          { dot: 'bg-orange-400', bg: 'bg-orange-100', text: 'text-orange-700', label: 'Food & Drink' },
-  transport:     { dot: 'bg-blue-400',   bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Transport' },
-  activities:    { dot: 'bg-purple-400', bg: 'bg-purple-100', text: 'text-purple-700', label: 'Activities' },
-  shopping:      { dot: 'bg-pink-400',   bg: 'bg-pink-100',   text: 'text-pink-700',   label: 'Shopping' },
-  accommodation: { dot: 'bg-green-400',  bg: 'bg-green-100',  text: 'text-green-700',  label: 'Accommodation' },
-  other:         { dot: 'bg-gray-400',   bg: 'bg-gray-100',   text: 'text-gray-600',   label: 'Other' },
-};
-
-function getExpenseCatStyle(category: string | null) {
-  return EXPENSE_CATEGORY_STYLES[category ?? 'other'] ?? EXPENSE_CATEGORY_STYLES.other;
-}
-
 function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity }) {
   const activityExpenses = (trip.expenses ?? []).filter(
     (e) => e.activity_id === activity.id
   );
 
   return (
-    <section className="bg-parchment rounded-2xl border border-card-border p-5 space-y-3">
+    <section className="bg-cream rounded-2xl border border-card-border p-5 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">
           Expenses at this stop
@@ -387,19 +376,22 @@ function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity })
       ) : (
         <ul className="space-y-2">
           {activityExpenses.map((expense) => {
-            const cat = getExpenseCatStyle(expense.category);
+            const cat = getExpenseCategoryStyle(expense.category);
             return (
               <li key={expense.id} className="flex items-center gap-3 px-3 py-2.5 bg-terrain/20 rounded-xl">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cat.dot}`} />
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.dot }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-forest truncate">
+                  <p className="text-sm font-medium text-ink truncate">
                     {expense.description ?? cat.label}
                   </p>
-                  <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${cat.bg} ${cat.text}`}>
+                  <span
+                    className="text-[11px] font-medium px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: cat.bg, color: cat.text }}
+                  >
                     {cat.label}
                   </span>
                 </div>
-                <p className="text-sm font-bold text-forest flex-shrink-0">
+                <p className="text-sm font-bold text-ink flex-shrink-0">
                   {expense.currency}{' '}
                   {Number(expense.amount).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -431,6 +423,7 @@ function PhotosSection({
   const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const photos = (activity.media ?? []).filter((m) => m.media_type === 'photo');
@@ -484,11 +477,11 @@ function PhotosSection({
           onChange={handleFileChange}
         />
         <div
-          className={`border-2 border-dashed border-card-border rounded-2xl py-10 flex flex-col items-center gap-2 text-sage transition-colors ${unlocked ? 'cursor-pointer hover:text-forest hover:border-forest' : ''}`}
+          className={`border-2 border-dashed border-card-border rounded-2xl py-10 flex flex-col items-center gap-2 text-sage transition-colors ${unlocked ? 'cursor-pointer hover:text-ink hover:border-ink' : ''}`}
           onClick={unlocked ? triggerUpload : undefined}
         >
           {isUploading ? (
-            <div className="w-6 h-6 border-2 border-sage border-t-forest rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-sage border-t-ink rounded-full animate-spin" />
           ) : (
             <CameraIcon />
           )}
@@ -497,27 +490,37 @@ function PhotosSection({
           </p>
         </div>
         {uploadError && (
-          <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+          <p className="text-xs text-poppy mt-1">{uploadError}</p>
         )}
       </section>
     );
   }
 
-  const visible = photos.slice(0, 3);
-  const overflow = photos.length - 3;
+  const clampedIndex = Math.min(activeIndex, photos.length - 1);
+  const carouselItems: FanCarouselItem[] = photos.map((photo) => ({
+    id: photo.id,
+    imageUrl: photo.presigned_url ?? photo.storage_url,
+    alt: photo.caption ?? photo.filename,
+    caption: photo.caption,
+  }));
 
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">Photos</h3>
-        {photos.length > 3 && (
-          <button
-            onClick={openGallery}
-            className="text-xs text-forest font-medium hover:underline"
-          >
-            View all in gallery →
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] text-sage tracking-[0.08em]">
+            {clampedIndex + 1} / {photos.length}
+          </span>
+          {photos.length > 3 && (
+            <button
+              onClick={openGallery}
+              className="text-xs text-ink font-medium hover:underline"
+            >
+              View all in gallery →
+            </button>
+          )}
+        </div>
       </div>
       <input
         ref={fileInputRef}
@@ -526,37 +529,34 @@ function PhotosSection({
         className="hidden"
         onChange={handleFileChange}
       />
-      <div className="grid grid-cols-4 gap-2">
-        {visible.map((photo, idx) => (
-          <div key={photo.id} className="relative" style={{ height: '90px' }}>
-            <img
-              src={photo.presigned_url ?? photo.storage_url}
-              alt={photo.caption ?? photo.filename ?? 'Photo'}
-              className="w-full h-full object-cover rounded-xl"
-            />
-            {overflow > 0 && idx === 2 && (
-              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-sm font-semibold">
-                +{overflow}
-              </div>
-            )}
-          </div>
-        ))}
-        {/* + thumb */}
-        <div
-          className="border-2 border-dashed border-card-border rounded-xl flex items-center justify-center text-sage hover:text-forest hover:border-forest transition-colors cursor-pointer"
-          style={{ height: '90px' }}
-          title="Add photo"
-          onClick={unlocked ? triggerUpload : undefined}
-        >
-          {isUploading ? (
-            <div className="w-4 h-4 border-2 border-sage border-t-forest rounded-full animate-spin" />
-          ) : (
-            <PlusIcon />
-          )}
-        </div>
+      {/* Horizontal fan-carousel strip — same mechanic as PhotosTab/ActivityGalleryPage, sized down and
+          recolored (via size="compact") to sit as a contained photo module on this page's cream cards,
+          instead of the dark full-bleed stage those other two contexts use. */}
+      <div className="bg-cream border border-card-border rounded-2xl overflow-hidden p-3">
+        <FanCarousel
+          items={carouselItems}
+          activeIndex={clampedIndex}
+          onActiveIndexChange={setActiveIndex}
+          size="compact"
+          stageClassName="h-40"
+        />
       </div>
+      <button
+        onClick={unlocked ? triggerUpload : undefined}
+        disabled={!unlocked}
+        className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-card-border rounded-xl text-xs text-sage transition-colors ${
+          unlocked ? 'cursor-pointer hover:text-ink hover:border-ink' : 'cursor-not-allowed opacity-60'
+        }`}
+      >
+        {isUploading ? (
+          <div className="w-4 h-4 border-2 border-sage border-t-ink rounded-full animate-spin" />
+        ) : (
+          <PlusIcon />
+        )}
+        {unlocked ? 'Add photo' : 'Photos unlock when you arrive'}
+      </button>
       {uploadError && (
-        <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+        <p className="text-xs text-poppy mt-1">{uploadError}</p>
       )}
     </section>
   );
@@ -573,10 +573,10 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
     : null;
 
   return (
-    <div className="bg-parchment border border-card-border rounded-2xl p-5 space-y-3">
+    <div className="bg-cream border border-card-border rounded-2xl p-5 space-y-3">
       {/* Visited badge + date */}
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-terrain text-[#3B6150] text-xs font-semibold rounded-full border border-card-border">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-sage-tint text-sage text-xs font-semibold rounded-full border border-card-border">
           <CheckCircleIcon />
           Visited
         </span>
@@ -584,7 +584,7 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
       </div>
 
       {/* Serif title */}
-      <h1 className="font-display text-3xl text-ink leading-tight">{activity.title}</h1>
+      <h1 className="font-display text-3xl text-inkText leading-tight">{activity.title}</h1>
 
       {/* Type + time */}
       <div className="flex flex-wrap items-center gap-2 text-sm text-sage">
@@ -594,7 +594,7 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
             {activity.time}
           </span>
         )}
-        <span className="px-2 py-0.5 bg-terrain rounded-full text-xs text-forest font-medium border border-card-border">
+        <span className="px-2 py-0.5 bg-terrain rounded-full text-xs text-ink font-medium border border-card-border">
           {typeLabel}
         </span>
       </div>
@@ -606,7 +606,7 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
             href={mapsUrl!}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm text-forest hover:underline"
+            className="flex items-center gap-1 text-sm text-ink hover:underline"
           >
             <MapPinIcon />
             {activity.location}
@@ -623,15 +623,18 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
           <div className="border-t border-card-border" />
           {activity.description && <DescriptionBlock text={activity.description} />}
           {activity.notes && (
-            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+            <div className="flex items-start gap-2.5 border-l-4 border-ink pl-3 py-1.5 bg-terrain/70 rounded-r-lg">
               <LightbulbIcon />
-              <p className="text-sm text-amber-900 leading-relaxed">{activity.notes}</p>
+              <p className="font-display italic text-sm text-ink leading-relaxed">{activity.notes}</p>
             </div>
           )}
           {activity.ai_tip && (
-            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
-              <LightbulbIcon />
-              <p className="text-sm text-amber-900 leading-relaxed">{activity.ai_tip}</p>
+            <div className="flex items-start gap-2.5 border-l-4 border-teal bg-teal/[0.08] pl-3 py-1.5 rounded-r-lg">
+              <div className="text-teal"><LightbulbIcon /></div>
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-teal mb-0.5">Sherpa tip</p>
+                <p className="font-display italic text-sm text-ink leading-relaxed">{activity.ai_tip}</p>
+              </div>
             </div>
           )}
         </>
@@ -665,16 +668,16 @@ function BeforeHeader({
     : null;
 
   return (
-    <div className="bg-parchment border border-card-border rounded-2xl p-5 space-y-4">
+    <div className="bg-cream border border-card-border rounded-2xl p-5 space-y-4">
       {/* Icon + title row */}
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-forest rounded-full flex items-center justify-center text-parchment flex-shrink-0 shadow-md">
+        <div className="w-12 h-12 bg-ink rounded-full flex items-center justify-center text-cream flex-shrink-0 shadow-md">
           {ACTIVITY_ICONS[activity.type]}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-xl font-bold text-ink leading-tight">{activity.title}</h1>
-            <span className="px-2 py-0.5 bg-terrain rounded-full text-xs text-forest font-medium border border-card-border">
+            <h1 className="text-xl font-bold text-inkText leading-tight">{activity.title}</h1>
+            <span className="px-2 py-0.5 bg-terrain rounded-full text-xs text-ink font-medium border border-card-border">
               {typeLabel}
             </span>
           </div>
@@ -694,7 +697,7 @@ function BeforeHeader({
                 href={mapsUrl!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-forest hover:underline"
+                className="flex items-center gap-1 text-sm text-ink hover:underline"
               >
                 <MapPinIcon />
                 {activity.location}
@@ -709,7 +712,7 @@ function BeforeHeader({
 
       {/* I'm here button */}
       {alreadyCheckedIn ? (
-        <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
+        <div className="flex items-center gap-2 text-sage text-sm font-medium">
           <CheckCircleIcon />
           Checked in at {formatCheckinTime(activity.checked_in_at!)}
         </div>
@@ -719,13 +722,13 @@ function BeforeHeader({
           disabled={!isToday || isCheckingIn}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
             isToday
-              ? 'bg-forest text-parchment hover:bg-forest/80'
+              ? 'bg-ink text-cream hover:bg-ink/80'
               : 'bg-terrain/40 text-sage cursor-not-allowed border border-card-border'
           }`}
           title={!isToday ? 'Available on the day of your visit' : undefined}
         >
           {isCheckingIn ? (
-            <div className="w-4 h-4 border-2 border-parchment/30 border-t-parchment rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
           ) : (
             <>
               I'm here
@@ -741,15 +744,18 @@ function BeforeHeader({
           <div className="border-t border-card-border" />
           {activity.description && <DescriptionBlock text={activity.description} />}
           {activity.notes && (
-            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
+            <div className="flex items-start gap-2.5 border-l-4 border-ink pl-3 py-1.5 bg-terrain/70 rounded-r-lg">
               <LightbulbIcon />
-              <p className="text-sm text-amber-900 leading-relaxed">{activity.notes}</p>
+              <p className="font-display italic text-sm text-ink leading-relaxed">{activity.notes}</p>
             </div>
           )}
           {activity.ai_tip && (
-            <div className="flex items-start gap-2.5 border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/70 rounded-r-lg">
-              <LightbulbIcon />
-              <p className="text-sm text-amber-900 leading-relaxed">{activity.ai_tip}</p>
+            <div className="flex items-start gap-2.5 border-l-4 border-teal bg-teal/[0.08] pl-3 py-1.5 rounded-r-lg">
+              <div className="text-teal"><LightbulbIcon /></div>
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-teal mb-0.5">Sherpa tip</p>
+                <p className="font-display italic text-sm text-ink leading-relaxed">{activity.ai_tip}</p>
+              </div>
             </div>
           )}
         </>
@@ -767,12 +773,12 @@ function PrevStrip({ activity, tripId }: { activity: Activity; tripId: string })
   return (
     <button
       onClick={() => navigate(`/trips/${tripId}/activities/${activity.id}`)}
-      className="w-full flex items-center gap-3 px-4 py-3 bg-parchment border border-card-border rounded-2xl hover:bg-terrain/20 transition-colors text-left"
+      className="w-full flex items-center gap-3 px-4 py-3 bg-cream border border-card-border rounded-2xl hover:bg-terrain/20 transition-colors text-left"
     >
       <ChevronLeftIcon />
       <div>
         <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-sage">Previous</p>
-        <p className="text-sm font-medium text-ink truncate">{activity.title}</p>
+        <p className="text-sm font-medium text-inkText truncate">{activity.title}</p>
       </div>
     </button>
   );
@@ -785,18 +791,18 @@ function NextCard({ activity, tripId }: { activity: Activity; tripId: string }) 
   return (
     <button
       onClick={() => navigate(`/trips/${tripId}/activities/${activity.id}`)}
-      className="w-full bg-parchment border border-card-border rounded-2xl p-5 hover:bg-terrain/20 transition-colors text-left space-y-2"
+      className="w-full bg-cream border border-card-border rounded-2xl p-5 hover:bg-terrain/20 transition-colors text-left space-y-2"
     >
       <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-sage">Next stop</p>
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 bg-forest/10 rounded-full flex items-center justify-center text-forest flex-shrink-0">
+        <div className="w-9 h-9 bg-ink/10 rounded-full flex items-center justify-center text-ink flex-shrink-0">
           {ACTIVITY_ICONS[activity.type]}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-ink truncate">{activity.title}</p>
+          <p className="font-semibold text-inkText truncate">{activity.title}</p>
           <div className="flex items-center gap-2 mt-0.5 text-xs text-sage">
             {activity.time && <span>{activity.time}</span>}
-            <span className="px-1.5 py-0.5 bg-terrain rounded-full text-forest border border-card-border">
+            <span className="px-1.5 py-0.5 bg-terrain rounded-full text-ink border border-card-border">
               {typeLabel}
             </span>
           </div>
@@ -933,11 +939,11 @@ export default function ActivityDetailPage() {
   if (error || !activity || !trip || !tripId) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
-          <p className="text-amber-800 font-medium mb-4">{error ?? 'Activity not found'}</p>
+        <div className="bg-poppy-tint border border-poppy/30 rounded-2xl p-8 text-center">
+          <p className="text-poppy font-medium mb-4">{error ?? 'Activity not found'}</p>
           <button
             onClick={() => navigate(`/trips/${tripId}`)}
-            className="text-forest hover:text-forest/80 text-sm font-medium"
+            className="text-ink hover:text-ink/80 text-sm font-medium"
           >
             ← Back to trip
           </button>
@@ -949,13 +955,13 @@ export default function ActivityDetailPage() {
   const isAfterState  = temporalState === 'after';
 
   return (
-    <div className="min-h-screen pb-16" style={{ backgroundColor: '#E2DED7' }}>
+    <div className="min-h-screen pb-16 bg-cream">
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
         {/* ── Back button ───────────────────────────────── */}
         <button
           onClick={() => navigate(`/trips/${tripId}`)}
-          className="flex items-center gap-1.5 text-sm text-sage hover:text-forest transition-colors font-medium"
+          className="flex items-center gap-1.5 text-sm text-sage hover:text-ink transition-colors font-medium"
         >
           <ChevronLeftIcon />
           Back to {trip.destination}

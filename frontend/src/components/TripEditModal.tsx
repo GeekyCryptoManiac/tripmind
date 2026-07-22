@@ -81,13 +81,13 @@ function calcDays(start: string, end: string): number | null {
 }
 
 // ── Status dropdown options ──────────────────────────────────
-// Colours intentionally match getStatusStyles() in TripDetailsPage
+// Colours sourced directly from the status.* tokens in tailwind.config.js.
 const STATUS_OPTIONS: { value: TripStatus; label: string; dot: string; highlight: string }[] = [
-  { value: 'planning',  label: 'Planning',   dot: 'bg-amber-400',  highlight: 'bg-amber-50'   },
-  { value: 'booked',    label: 'Booked',     dot: 'bg-emerald-400',highlight: 'bg-emerald-50' },
-  { value: 'ongoing',   label: 'Ongoing',    dot: 'bg-brand-400',  highlight: 'bg-brand-50'   },
-  { value: 'completed', label: 'Completed',  dot: 'bg-brand-500',  highlight: 'bg-brand-50'   },
-  { value: 'cancelled', label: 'Cancelled',  dot: 'bg-rose-400',   highlight: 'bg-rose-50'    },
+  { value: 'planning',  label: 'Planning',   dot: 'bg-status-planning-text',  highlight: 'bg-status-planning-bg'   },
+  { value: 'booked',    label: 'Booked',     dot: 'bg-status-booked-text',    highlight: 'bg-status-booked-bg'     },
+  { value: 'ongoing',   label: 'Ongoing',    dot: 'bg-status-ongoing-text',   highlight: 'bg-status-ongoing-bg'    },
+  { value: 'completed', label: 'Completed',  dot: 'bg-status-completed-text', highlight: 'bg-status-completed-bg' },
+  { value: 'cancelled', label: 'Cancelled',  dot: 'bg-status-cancelled-text', highlight: 'bg-status-cancelled-bg' },
 ];
 
 // ── Types ─────────────────────────────────────────────────────
@@ -174,11 +174,11 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
   // ── Shared input className helper ─────────────────────────────
   const inputClass = (disabled?: boolean) =>
     [
-      'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800',
-      'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+      'w-full border border-card-border rounded-lg px-3 py-2.5 text-sm text-inkText',
+      'focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent',
       disabled
-        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-        : 'bg-gray-50 focus:bg-white',
+        ? 'bg-terrain/30 text-inkText-tertiary cursor-not-allowed'
+        : 'bg-terrain/20 focus:bg-cream',
     ].join(' ');
 
   // ── Render ────────────────────────────────────────────────────
@@ -214,12 +214,12 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
               {/* ── Header ──────────────────────────────────── */}
               <div className="flex items-center justify-between px-6 pt-6 pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Edit Trip</h2>
-                  <p className="text-sm text-gray-400">{trip.destination}</p>
+                  <h2 className="text-lg font-bold text-inkText">Edit Trip</h2>
+                  <p className="text-sm text-inkText-tertiary">{trip.destination}</p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1 transition-colors"
+                  className="text-inkText-tertiary hover:text-inkText-secondary text-xl leading-none p-1 transition-colors"
                 >
                   ✕
                 </button>
@@ -230,12 +230,12 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
 
                 {/* ─── Section 1: Trip Info ─────────────────── */}
                 <div className="space-y-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Trip Info</p>
+                  <p className="text-xs font-semibold text-inkText-tertiary uppercase tracking-wider">Trip Info</p>
 
                   {/* Origin + Destination side by side */}
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
+                      <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center gap-1.5">
                         {IC.plane} From
                       </label>
                       <input
@@ -247,7 +247,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
+                      <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center gap-1.5">
                         {IC.mapPin} Destination
                       </label>
                       <input
@@ -261,7 +261,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
 
                   {/* Status — custom dropdown with coloured dots */}
                   <div className="relative">
-                    <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center gap-1.5">
                       {IC.tag} Status
                     </label>
 
@@ -269,18 +269,18 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                     <button
                       type="button"
                       onClick={() => setStatusOpen(!statusOpen)}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 bg-gray-50 hover:bg-white text-sm flex items-center justify-between transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-card-border rounded-lg px-3 py-2.5 bg-terrain/20 hover:bg-cream text-sm flex items-center justify-between transition-colors focus:outline-none focus:ring-2 focus:ring-ink"
                     >
                       <span className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${STATUS_OPTIONS.find(s => s.value === status)?.dot}`} />
-                        <span className="text-gray-800 capitalize">{status}</span>
+                        <span className="text-inkText capitalize">{status}</span>
                       </span>
-                      <span className="text-gray-400 text-xs">{statusOpen ? '▲' : '▼'}</span>
+                      <span className="text-inkText-tertiary text-xs">{statusOpen ? '▲' : '▼'}</span>
                     </button>
 
                     {/* Dropdown options */}
                     {statusOpen && (
-                      <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-10">
+                      <div className="absolute top-full mt-1 left-0 right-0 bg-cream rounded-lg shadow-lg border border-card-border overflow-hidden z-10">
                         {STATUS_OPTIONS.map((opt) => (
                           <button
                             key={opt.value}
@@ -288,11 +288,11 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                             onClick={() => { setStatus(opt.value); setStatusOpen(false); }}
                             className={[
                               'w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 transition-colors',
-                              status === opt.value ? opt.highlight : 'hover:bg-gray-50',
+                              status === opt.value ? opt.highlight : 'hover:bg-terrain/20',
                             ].join(' ')}
                           >
                             <span className={`w-2.5 h-2.5 rounded-full ${opt.dot}`} />
-                            <span className={status === opt.value ? 'font-semibold text-gray-900' : 'text-gray-700'}>
+                            <span className={status === opt.value ? 'font-semibold text-inkText' : 'text-inkText-secondary'}>
                               {opt.label}
                             </span>
                           </button>
@@ -303,16 +303,16 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                 </div>
 
                 {/* ─── Divider ────────────────────────────────── */}
-                <hr className="border-gray-100" />
+                <hr className="border-card-border" />
 
                 {/* ─── Section 2: Travel Dates ──────────────── */}
                 <div className="space-y-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Travel Dates</p>
+                  <p className="text-xs font-semibold text-inkText-tertiary uppercase tracking-wider">Travel Dates</p>
 
                   {/* Start + End side by side */}
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-1.5 block">Start Date</label>
+                      <label className="text-sm font-medium text-inkText-secondary mb-1.5 block">Start Date</label>
                       <input
                         type="date"
                         value={startDate}
@@ -321,7 +321,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-600 mb-1.5 block">End Date</label>
+                      <label className="text-sm font-medium text-inkText-secondary mb-1.5 block">End Date</label>
                       <input
                         type="date"
                         value={endDate}
@@ -333,15 +333,15 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
 
                   {/* Date validation error */}
                   {dateError && (
-                    <p className="text-xs text-red-500 -mt-2">{dateError}</p>
+                    <p className="text-xs text-poppy -mt-2">{dateError}</p>
                   )}
 
                   {/* Duration — auto-calc when both dates set */}
                   <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center justify-between">
+                    <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">{IC.clock} Duration (days)</span>
                       {durationIsAutoCalc && (
-                        <span className="text-xs text-blue-500 font-normal">Auto-calculated</span>
+                        <span className="text-xs text-inkText-tertiary font-normal">Auto-calculated</span>
                       )}
                     </label>
                     <input
@@ -357,17 +357,17 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                 </div>
 
                 {/* ─── Divider ────────────────────────────────── */}
-                <hr className="border-gray-100" />
+                <hr className="border-card-border" />
 
                 {/* ─── Section 3: Budget & Travelers ────────── */}
                 <div className="space-y-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Budget & Travelers</p>
+                  <p className="text-xs font-semibold text-inkText-tertiary uppercase tracking-wider">Budget & Travelers</p>
 
                   {/* Budget with $ prefix */}
                   <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">{IC.banknote} Budget (USD)</label>
+                    <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center gap-1.5">{IC.banknote} Budget (USD)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-inkText-tertiary text-sm select-none">$</span>
                       <input
                         type="number"
                         min={0}
@@ -382,7 +382,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
 
                   {/* Travelers */}
                   <div>
-                    <label className="text-sm font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">{IC.users} Number of Travelers</label>
+                    <label className="text-sm font-medium text-inkText-secondary mb-1.5 flex items-center gap-1.5">{IC.users} Number of Travelers</label>
                     <input
                       type="number"
                       min={1}
@@ -397,7 +397,7 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                 <div className="flex items-center justify-between pt-2">
                   <button
                     onClick={onClose}
-                    className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                    className="px-5 py-2.5 text-sm font-medium text-inkText-tertiary hover:text-inkText-secondary transition-colors"
                   >
                     Cancel
                   </button>
@@ -407,10 +407,10 @@ export default function TripEditModal({ trip, isOpen, onClose, onSave }: TripEdi
                     disabled={!destination.trim() || !!dateError || saveStatus === 'saving'}
                     className={[
                       'px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors',
-                      saveStatus === 'error'    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                      : saveStatus === 'saved'  ? 'bg-green-100 text-green-700'
-                      : saveStatus === 'saving' ? 'bg-blue-400 text-white cursor-not-allowed'
-                      :                           'bg-blue-600 text-white hover:bg-blue-700',
+                      saveStatus === 'error'    ? 'bg-poppy-tint text-poppy hover:bg-poppy-tint/70'
+                      : saveStatus === 'saved'  ? 'bg-sage-tint text-sage'
+                      : saveStatus === 'saving' ? 'bg-ink/40 text-cream cursor-not-allowed'
+                      :                           'bg-ink text-cream hover:bg-ink/80',
                     ].join(' ')}
                   >
                     {saveStatus === 'saving'  ? 'Saving...'

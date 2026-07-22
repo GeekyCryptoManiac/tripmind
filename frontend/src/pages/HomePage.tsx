@@ -37,7 +37,7 @@ const steps = [
 const features: { icon: ReactNode; label: string; desc: string }[] = [
   {
     icon: (
-      <svg className="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
           d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
       </svg>
@@ -47,7 +47,7 @@ const features: { icon: ReactNode; label: string; desc: string }[] = [
   },
   {
     icon: (
-      <svg className="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
           d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
       </svg>
@@ -57,7 +57,7 @@ const features: { icon: ReactNode; label: string; desc: string }[] = [
   },
   {
     icon: (
-      <svg className="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
           d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
       </svg>
@@ -67,7 +67,7 @@ const features: { icon: ReactNode; label: string; desc: string }[] = [
   },
   {
     icon: (
-      <svg className="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
           d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
       </svg>
@@ -116,7 +116,7 @@ const HomePage: FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-parchment font-sans">
+    <div className="min-h-screen bg-cream font-sans">
 
       {/* ══════════════════════════════════════════════════════
           HERO
@@ -135,10 +135,10 @@ const HomePage: FC = () => {
                 initial="hidden"
                 animate="visible"
                 custom={0}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EEF6F1] border border-[#C8D8C2] mb-7"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-terrain border border-card-border mb-7"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
-                <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#3B6150]">
+                <span className="w-1.5 h-1.5 rounded-full bg-sage" />
+                <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-ink">
                   AI-Powered Travel Planning
                 </span>
               </motion.div>
@@ -149,11 +149,11 @@ const HomePage: FC = () => {
                 initial="hidden"
                 animate="visible"
                 custom={0.08}
-                className="font-display text-5xl sm:text-6xl lg:text-7xl leading-none text-forest mb-4"
+                className="font-display text-5xl sm:text-6xl lg:text-7xl leading-none text-ink mb-4"
               >
                 Plan Your
                 <br />
-                <em className="text-gold" style={{ fontStyle: 'italic' }}>Escape.</em>
+                <em className="text-marigold" style={{ fontStyle: 'italic' }}>Escape.</em>
               </motion.h1>
 
               <motion.p
@@ -161,9 +161,9 @@ const HomePage: FC = () => {
                 initial="hidden"
                 animate="visible"
                 custom={0.16}
-                className="text-[#7A8580] text-lg leading-relaxed max-w-md mb-10"
+                className="text-inkText-secondary text-lg leading-relaxed max-w-md mb-10"
               >
-                Tell TripMind where you want to go. It builds your itinerary,
+                Tell Sherpa where you want to go. It builds your itinerary,
                 manages your budget, and keeps every detail organized — so you
                 can focus on the adventure.
               </motion.p>
@@ -178,7 +178,7 @@ const HomePage: FC = () => {
               >
                 <button
                   onClick={() => navigate('/chat')}
-                  className="inline-flex items-center justify-center gap-2 bg-forest text-[#E8DECE] px-7 py-3.5 rounded-[8px] font-semibold text-sm hover:bg-forest/80 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-ink text-cream px-7 py-3.5 rounded-[8px] font-semibold text-sm hover:bg-ink/80 transition-colors"
                 >
                   Start Planning
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@ const HomePage: FC = () => {
                 </button>
                 <button
                   onClick={() => navigate('/trips')}
-                  className="inline-flex items-center justify-center gap-2 bg-transparent text-forest px-7 py-3.5 rounded-[8px] font-semibold text-sm border border-[#DDD8CE] hover:bg-terrain/20 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-transparent text-ink px-7 py-3.5 rounded-[8px] font-semibold text-sm border border-card-border hover:bg-terrain/20 transition-colors"
                 >
                   View My Trips
                 </button>
@@ -227,15 +227,15 @@ const HomePage: FC = () => {
               className="relative flex justify-center lg:justify-end"
             >
               {/* Main card */}
-              <div className="w-full max-w-sm bg-white rounded-3xl border border-[#DDD8CE] p-6 relative">
+              <div className="w-full max-w-sm bg-white rounded-3xl border border-card-border p-6 relative">
                 {/* Card header */}
                 <div className="flex items-center justify-between mb-5">
                   <div>
                     <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-sage mb-0.5">Upcoming trip</p>
-                    <p className="font-display text-xl text-forest">Andaz Tokyo</p>
+                    <p className="font-display text-xl text-ink">Andaz Tokyo</p>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[9px] uppercase tracking-[0.08em] bg-[rgba(181,144,84,0.15)] border border-[rgba(181,144,84,0.4)] text-[#D9C8A8]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[9px] uppercase tracking-[0.08em] bg-marigold/15 border border-marigold/40 text-marigold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-marigold" />
                     active
                   </span>
                 </div>
@@ -243,11 +243,10 @@ const HomePage: FC = () => {
                 {/* Destination map thumbnail */}
                 <div className="w-full h-36 rounded-2xl mb-5 relative overflow-hidden bg-terrain carto-grid flex items-end p-4">
                   <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-gold"
-                    style={{ boxShadow: '0 0 0 4px rgba(181,144,84,0.25)' }}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-marigold ring-4 ring-marigold/25"
                   />
                   <div className="relative z-10">
-                    <p className="font-display text-sm text-forest">Andaz Tokyo</p>
+                    <p className="font-display text-sm text-ink">Andaz Tokyo</p>
                     <p className="font-mono text-[9px] text-sage">Sep 12 – Sep 26 · 14 days</p>
                   </div>
                 </div>
@@ -259,9 +258,9 @@ const HomePage: FC = () => {
                     { label: 'Travelers', value: '2 adults' },
                     { label: 'Progress',  value: '74%'     },
                   ].map(({ label, value }) => (
-                    <div key={label} className="bg-parchment rounded-xl p-3 text-center">
+                    <div key={label} className="bg-cream rounded-xl p-3 text-center">
                       <p className="font-mono text-[8px] uppercase tracking-[0.08em] text-sage mb-0.5">{label}</p>
-                      <p className="font-sans text-[12px] font-medium text-forest">{value}</p>
+                      <p className="font-sans text-[12px] font-medium text-ink">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -272,13 +271,13 @@ const HomePage: FC = () => {
                     <span>Trip progress</span>
                     <span>74%</span>
                   </div>
-                  <div className="w-full h-[3px] bg-[#EEE8DA] rounded-full overflow-hidden">
-                    <div className="h-full bg-gold rounded-full" style={{ width: '74%' }} />
+                  <div className="w-full h-[3px] bg-ink/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-marigold rounded-full" style={{ width: '74%' }} />
                   </div>
                 </div>
 
                 {/* Explore button */}
-                <button className="w-full mt-4 bg-forest text-[#E8DECE] py-3 rounded-xl font-mono text-[10px] uppercase tracking-[0.08em] hover:bg-forest/80 transition-colors">
+                <button className="w-full mt-4 bg-ink text-cream py-3 rounded-xl font-mono text-[10px] uppercase tracking-[0.08em] hover:bg-ink/80 transition-colors">
                   View Trip Details →
                 </button>
               </div>
@@ -287,17 +286,17 @@ const HomePage: FC = () => {
               <motion.div
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-6 -left-6 bg-white rounded-2xl border border-[#DDD8CE] p-4 w-48"
+                className="absolute -bottom-6 -left-6 bg-white rounded-2xl border border-card-border p-4 w-48"
               >
                 <div className="flex items-center gap-2.5 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-terrain flex items-center justify-center text-sm">🗼</div>
                   <div>
-                    <p className="font-sans text-[11px] font-medium text-forest">Paris</p>
+                    <p className="font-sans text-[11px] font-medium text-ink">Paris</p>
                     <p className="font-mono text-[9px] text-sage">Mar 2025</p>
                   </div>
                 </div>
-                <div className="w-full h-1 bg-[#EEE8DA] rounded-full">
-                  <div className="h-full rounded-full" style={{ width: '40%', background: '#D97706' }} />
+                <div className="w-full h-1 bg-ink/5 rounded-full">
+                  <div className="h-full rounded-full bg-status-planning-text" style={{ width: '40%' }} />
                 </div>
                 <p className="font-mono text-[8px] text-sage mt-1">Planning · 40%</p>
               </motion.div>
@@ -306,9 +305,9 @@ const HomePage: FC = () => {
               <motion.div
                 animate={{ y: [0, 5, 0] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                className="absolute -top-4 -right-4 bg-forest text-[#E8DECE] rounded-2xl px-4 py-2.5"
+                className="absolute -top-4 -right-4 bg-ink text-cream rounded-2xl px-4 py-2.5"
               >
-                <p className="font-mono text-[9px] text-[#E8DECE]">✨ AI Generated</p>
+                <p className="font-mono text-[9px] text-cream">✨ AI Generated</p>
                 <p className="font-mono text-[8px] text-sage">5-day itinerary ready</p>
               </motion.div>
             </motion.div>
@@ -320,32 +319,32 @@ const HomePage: FC = () => {
       {/* ══════════════════════════════════════════════════════
           HOW IT WORKS
           ══════════════════════════════════════════════════════ */}
-      <section id="how-it-works" className="bg-white py-24 px-6 border-t border-[#DDD8CE]">
+      <section id="how-it-works" className="bg-white py-24 px-6 border-t border-card-border">
         <div className="max-w-6xl mx-auto">
           <RevealSection className="text-center mb-16">
             <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-sage mb-3">
               The Process
             </p>
-            <h2 className="font-display text-4xl sm:text-5xl text-forest">
+            <h2 className="font-display text-4xl sm:text-5xl text-ink">
               Three steps to your<br />
-              <em className="text-gold" style={{ fontStyle: 'italic' }}>dream trip.</em>
+              <em className="text-marigold" style={{ fontStyle: 'italic' }}>dream trip.</em>
             </h2>
           </RevealSection>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
             {steps.map((step, i) => (
               <RevealSection key={step.number} delay={i * 0.1}>
-                <div className="group relative bg-parchment border border-[#DDD8CE] rounded-[12px] p-8 hover:border-gold transition-colors duration-300">
+                <div className="group relative bg-cream border border-card-border rounded-[12px] p-8 hover:border-marigold transition-colors duration-300">
                   {/* Step number watermark */}
-                  <p className="font-display text-7xl text-[#DDD8CE] leading-none mb-6 select-none">
+                  <p className="font-display text-7xl text-card-border leading-none mb-6 select-none">
                     {step.number}
                   </p>
-                  <h3 className="font-sans font-medium text-forest text-lg mb-3">{step.title}</h3>
-                  <p className="font-sans text-[12px] text-[#7A8580] leading-relaxed">{step.description}</p>
+                  <h3 className="font-sans font-medium text-ink text-lg mb-3">{step.title}</h3>
+                  <p className="font-sans text-[12px] text-inkText-secondary leading-relaxed">{step.description}</p>
 
                   {/* Connector line for md+ */}
                   {i < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-12 -right-5 lg:-right-8 w-6 lg:w-8 h-px bg-[#DDD8CE]" />
+                    <div className="hidden md:block absolute top-12 -right-5 lg:-right-8 w-6 lg:w-8 h-px bg-card-border" />
                   )}
                 </div>
               </RevealSection>
@@ -357,13 +356,13 @@ const HomePage: FC = () => {
       {/* ══════════════════════════════════════════════════════
           FEATURES GRID
           ══════════════════════════════════════════════════════ */}
-      <section id="features" className="bg-parchment py-24 px-6">
+      <section id="features" className="bg-cream py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <RevealSection className="text-center mb-14">
             <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-sage mb-3">
               What's inside
             </p>
-            <h2 className="font-display text-4xl text-forest">
+            <h2 className="font-display text-4xl text-ink">
               Everything you need,<br />
               <em style={{ fontStyle: 'italic' }}>nothing you don't.</em>
             </h2>
@@ -372,11 +371,11 @@ const HomePage: FC = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {features.map((f, i) => (
               <RevealSection key={f.label} delay={i * 0.07}>
-                <div className="bg-white border border-[#DDD8CE] rounded-[10px] p-6 text-center">
-                  <div className="w-[36px] h-[36px] bg-[#EEF6F1] rounded-[8px] flex items-center justify-center mx-auto mb-3">
+                <div className="bg-white border border-card-border rounded-[10px] p-6 text-center">
+                  <div className="w-[36px] h-[36px] bg-terrain rounded-[8px] flex items-center justify-center mx-auto mb-3">
                     {f.icon}
                   </div>
-                  <p className="font-sans font-medium text-[12px] text-forest mb-1">{f.label}</p>
+                  <p className="font-sans font-medium text-[12px] text-ink mb-1">{f.label}</p>
                   <p className="font-mono text-[9px] text-sage leading-relaxed">{f.desc}</p>
                 </div>
               </RevealSection>
@@ -388,7 +387,7 @@ const HomePage: FC = () => {
       {/* ══════════════════════════════════════════════════════
           BOTTOM CTA
           ══════════════════════════════════════════════════════ */}
-      <section className="bg-forest py-24 px-6 relative overflow-hidden">
+      <section className="bg-ink py-24 px-6 relative overflow-hidden">
         <div className="absolute inset-0 carto-grid pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto text-center">
@@ -396,9 +395,9 @@ const HomePage: FC = () => {
             <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-sage mb-4">
               Ready when you are
             </p>
-            <h2 className="font-display text-4xl sm:text-5xl text-[#E8DECE] mb-5 leading-tight">
+            <h2 className="font-display text-4xl sm:text-5xl text-cream mb-5 leading-tight">
               Your next adventure<br />
-              <em className="text-gold" style={{ fontStyle: 'italic' }}>starts here.</em>
+              <em className="text-marigold" style={{ fontStyle: 'italic' }}>starts here.</em>
             </h2>
             <p className="text-sage text-[13px] mb-10 max-w-md mx-auto">
               Join the smarter way to plan and organize your travels.
@@ -407,7 +406,7 @@ const HomePage: FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => navigate('/chat')}
-                className="inline-flex items-center gap-2 bg-gold text-forest px-8 py-3.5 rounded-[8px] font-sans font-medium text-sm hover:bg-gold/80 transition-colors"
+                className="inline-flex items-center gap-2 bg-marigold text-ink px-8 py-3.5 rounded-[8px] font-sans font-medium text-sm hover:bg-marigold/80 transition-colors"
               >
                 Start Planning
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -416,7 +415,7 @@ const HomePage: FC = () => {
               </button>
               <button
                 onClick={() => navigate('/trips')}
-                className="inline-flex items-center gap-2 text-sage border border-[rgba(255,255,255,0.15)] px-4 py-3.5 rounded-[8px] font-mono text-[10px] uppercase hover:text-[#E8DECE] transition-colors"
+                className="inline-flex items-center gap-2 text-sage border border-cream/[0.15] px-4 py-3.5 rounded-[8px] font-mono text-[10px] uppercase hover:text-cream transition-colors"
               >
                 See my trips →
               </button>
@@ -426,8 +425,8 @@ const HomePage: FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-forest border-t border-[rgba(255,255,255,0.08)] px-6 py-4 flex items-center justify-between">
-        <span className="font-display text-[14px] text-sage">TripMind</span>
+      <footer className="bg-ink border-t border-cream/[0.08] px-6 py-4 flex items-center justify-between">
+        <span className="font-display text-[14px] text-sage">Tagalong</span>
         <span className="font-mono text-[9px] tracking-[0.08em] uppercase text-sage">
           Built by Daffa · Aspiring Software Engineer
         </span>

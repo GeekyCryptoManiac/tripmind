@@ -6,14 +6,18 @@ export default {
   ],
   theme: {
     extend: {
-      // ── Brand palette — change these 6 values to retheme the entire app ──
+      // ── Brand palette — change these values to retheme the entire app ──
       colors: {
-        // ── Cartographic editorial palette ──────────────────────
-        forest:      '#1C2B24',
-        parchment:   '#F7F4EE',
-        gold:        '#B59054',
+        // ── Tagalong palette ──────────────────────────────────────
+        ink:         '#1E2A38',  // was: forest
+        cream:       '#F6F1E7',  // was: parchment
+        marigold:    '#E8A33D',  // was: gold
+        teal:        '#3F7C74',  // new — Sherpa's color
+        poppy:       '#C1432E',  // danger/warning — full strength for text/icons/borders
+        'poppy-tint': '#FBEAE6', // danger/warning — light tint for backgrounds
         terrain:     '#D9E8DF',
-        sage:        '#8FA898',
+        sage:        '#8FA898',  // semantic success color — full strength for text/icons/borders
+        'sage-tint': '#EDF1EF',  // semantic success color — light tint for backgrounds
         'card-border': '#DDD8CE',
         // Primary action colour (buttons, links, active states)
         brand: {
@@ -31,34 +35,40 @@ export default {
           card:  '#FFFFFF',   // ← card white
           muted: '#F0EDE8',   // ← subtle tinted background (sidebar, badges)
         },
-        // Text scale
-        ink: {
+        // Text scale — renamed from `ink` to avoid colliding with the new
+        // flat `ink` brand token (#1E2A38) above.
+        inkText: {
           DEFAULT: '#1C1917',  // ← near-black headings
           secondary: '#78716C',// ← muted body text
           tertiary: '#A8A29E', // ← timestamps, labels
         },
-        // Status colours
+        // Status colours — one consistent light-bg/dark-text pair per status,
+        // reconciled against the scattered raw amber/emerald/rose shades
+        // previously used ad hoc across components.
         status: {
-          planning:  { bg: '#FEF3C7', text: '#92400E' },
-          booked:    { bg: '#D1FAE5', text: '#065F46' },
-          completed: { bg: '#DBEAFE', text: '#1E40AF' },
+          planning:  { bg: '#FEF3C7', text: '#92400E' },  // amber family — unchanged, already a good pair
+          booked:    { bg: '#EDF1EF', text: '#8FA898' },  // sage / sage-tint
+          ongoing:   { bg: '#eef2ff', text: '#6366f1' },  // brand.50 / brand.500 — same indigo already used ad hoc
+          completed: { bg: '#E6ECE8', text: '#4F5C54' },  // darker/muted sage — distinct from booked's lighter sage
+          cancelled: { bg: '#FBEAE6', text: '#C1432E' },  // poppy-tint / poppy
         },
-        // Chat UI (Qubi-inspired)
+        // Chat UI — Sherpa is the one colored element in the thread;
+        // everything else stays neutral (cream/ink-derived).
         chat: {
-          bg:       '#f3f0ff',  // lavender page background
-          user:     '#e9d5ff',  // purple-200 user message bubble
-          ai:       '#ffffff',  // white AI message bubble
-          avatar:   '#86efac',  // green-300 AI avatar circle
-          send:     '#a78bfa',  // purple-400 send button (dark lavender)
-          input:    '#faf5ff',  // purple-50 input background
+          bg:       '#FAF7F1',  // neutral backdrop (cream mixed toward white)
+          user:     '#E9E5DC',  // neutral bubble (cream mixed toward ink)
+          ai:       '#ECF2F1',  // Sherpa's bubble — light teal tint
+          avatar:   '#3F7C74',  // Sherpa's avatar circle — teal itself
+          send:     '#32635D',  // Sherpa's send button — darker teal shade
+          input:    '#FCFBF8',  // neutral input background
         },
       },
       fontFamily: {
-        // Display font for headings (Playfair Display — editorial serif)
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        // Body font — clean geometric sans
-        sans:    ['"DM Sans"', 'system-ui', 'sans-serif'],
-        body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
+        // Display font for headings (Fraunces — warm editorial serif)
+        display: ['"Fraunces"', 'Georgia', 'serif'],
+        // Body font — clean humanist sans
+        sans:    ['"Inter"', 'system-ui', 'sans-serif'],
+        body:    ['"Inter"', 'system-ui', 'sans-serif'],
         // Mono — coordinates, eyebrow labels, metadata
         mono:    ['"DM Mono"', 'ui-monospace', 'monospace'],
       },

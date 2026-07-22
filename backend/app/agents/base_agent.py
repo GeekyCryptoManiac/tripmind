@@ -1,5 +1,5 @@
 """
-TripMind Base Agent
+Sherpa Base Agent
 ====================
 LangChain agent orchestrating all AI-driven trip planning.
 
@@ -41,7 +41,7 @@ from .tools import (
 )
 
 
-class TripMindAgent:
+class SherpaAgent:
     """Core AI agent for trip planning."""
 
     def __init__(self, db: Session, user_id: int, trip_id: Optional[int] = None):
@@ -286,7 +286,7 @@ class TripMindAgent:
     # ── System prompt ─────────────────────────────────────────
 
     def _build_system_prompt(self) -> str:
-        base = """You are TripMind, a friendly and knowledgeable AI travel planning assistant.
+        base = """You are Sherpa, a friendly and knowledgeable AI travel planning assistant.
 
 YOUR TOOLS:
 - plan_trip: Create and save a new trip
@@ -410,7 +410,7 @@ Use update_trip or generate_itinerary with trip_id={t.get("id")} for any modific
                     svc       = TripService(self.db)
                     trip_data = svc.get_trip_or_404(self.trip_id, self.user_id)
                 except (HTTPException, SQLAlchemyError) as e:
-                    print(f"[TripMindAgent] failed to reload trip {self.trip_id}: {e}")
+                    print(f"[SherpaAgent] failed to reload trip {self.trip_id}: {e}")
 
             return {
                 "response":     output,
@@ -421,7 +421,7 @@ Use update_trip or generate_itinerary with trip_id={t.get("id")} for any modific
         except OpenAIError as e:
             import traceback
             traceback.print_exc()
-            print(f"[TripMindAgent] OpenAI error: {type(e).__name__}: {e}")
+            print(f"[SherpaAgent] OpenAI error: {type(e).__name__}: {e}")
             return {
                 "response":     f"I encountered an OpenAI API issue: {e}",
                 "action_taken": "error",
@@ -430,7 +430,7 @@ Use update_trip or generate_itinerary with trip_id={t.get("id")} for any modific
         except Exception as e:  # unexpected — re-raise after logging
             import traceback
             traceback.print_exc()
-            print(f"[TripMindAgent] process_message error: {type(e).__name__}: {e}")
+            print(f"[SherpaAgent] process_message error: {type(e).__name__}: {e}")
             return {
                 "response":     f"I encountered an issue: {type(e).__name__}: {e}",
                 "action_taken": "error",

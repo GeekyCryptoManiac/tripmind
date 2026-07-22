@@ -110,9 +110,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-ink mb-1.5">
+      <label className="block text-sm font-medium text-inkText mb-1.5">
         {label}
-        {required && <span className="text-amber-500 ml-0.5">*</span>}
+        {required && <span className="text-marigold ml-0.5">*</span>}
       </label>
       {children}
     </div>
@@ -120,7 +120,7 @@ function Field({
 }
 
 const inputClass =
-  'w-full px-4 py-2.5 bg-terrain/20 border border-card-border rounded-xl text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-colors';
+  'w-full px-4 py-2.5 bg-terrain/20 border border-card-border rounded-xl text-sm text-inkText placeholder-sage focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition-colors';
 
 // ── Modal ─────────────────────────────────────────────────────
 export default function AddActivityModal({
@@ -201,11 +201,11 @@ export default function AddActivityModal({
           onClick={handleClose}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-inkText/40 backdrop-blur-sm" />
 
           {/* Modal panel */}
           <motion.div
-            className="relative z-10 bg-parchment rounded-3xl shadow-modal w-full max-w-lg overflow-hidden"
+            className="relative z-10 bg-cream rounded-3xl shadow-modal w-full max-w-lg overflow-hidden"
             initial={{ scale: 0.94, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.94, y: 20, opacity: 0 }}
@@ -215,7 +215,7 @@ export default function AddActivityModal({
             {/* Header */}
             <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-card-border">
               <div>
-                <h2 className="font-display text-xl text-forest">Add Activity</h2>
+                <h2 className="font-display text-xl text-ink">Add Activity</h2>
                 <p className="text-sm text-sage mt-0.5">
                   Day {day} · {tripDestination}
                 </p>
@@ -253,8 +253,8 @@ export default function AddActivityModal({
                       onClick={() => setType(t.value)}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
                         type === t.value
-                          ? 'bg-forest text-parchment border-forest shadow-sm'
-                          : 'bg-terrain/20 text-sage border-card-border hover:border-forest hover:text-forest'
+                          ? 'bg-ink text-cream border-ink shadow-sm'
+                          : 'bg-terrain/20 text-sage border-card-border hover:border-ink hover:text-ink'
                       }`}
                     >
                       {t.icon}
@@ -309,7 +309,7 @@ export default function AddActivityModal({
 
               {/* Error */}
               {error && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+                <p className="text-sm text-poppy bg-poppy-tint border border-poppy/30 rounded-xl px-4 py-2.5">
                   {error}
                 </p>
               )}
@@ -321,7 +321,7 @@ export default function AddActivityModal({
                 type="button"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 text-sm font-semibold text-sage hover:text-forest hover:bg-terrain/20 rounded-xl transition-colors"
+                className="px-5 py-2.5 text-sm font-semibold text-sage hover:text-ink hover:bg-terrain/20 rounded-xl transition-colors"
               >
                 Cancel
               </button>
@@ -330,7 +330,7 @@ export default function AddActivityModal({
                 form=""
                 disabled={isSubmitting || !title.trim()}
                 onClick={handleSubmit}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest text-parchment text-sm font-semibold rounded-xl hover:bg-forest/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-ink text-cream text-sm font-semibold rounded-xl hover:bg-ink/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? (
                   <>

@@ -53,7 +53,7 @@ interface ErrorBoundaryState {
 // ── SVG Icons ─────────────────────────────────────────────────
 function AlertIcon() {
   return (
-    <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-8 h-8 text-poppy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
     </svg>
@@ -93,17 +93,17 @@ function DefaultFallback({
       <div className="bg-white rounded-2xl ring-1 ring-black/[0.06] shadow-sm p-8 max-w-md w-full text-center">
 
         {/* Icon */}
-        <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-5">
+        <div className="w-16 h-16 rounded-full bg-poppy-tint flex items-center justify-center mx-auto mb-5">
           <AlertIcon />
         </div>
 
         {/* Heading */}
-        <h2 className="font-display text-xl text-ink mb-2">
+        <h2 className="font-display text-xl text-inkText mb-2">
           {label ? `${label} failed to load` : 'Something went wrong'}
         </h2>
 
         {/* Subtitle */}
-        <p className="text-ink-secondary text-sm mb-6 leading-relaxed">
+        <p className="text-inkText-secondary text-sm mb-6 leading-relaxed">
           An unexpected error occurred. This has been noted — try refreshing
           the section or returning home.
         </p>
@@ -111,10 +111,10 @@ function DefaultFallback({
         {/* Error detail — collapsed, dev-friendly */}
         {error && (
           <details className="mb-6 text-left">
-            <summary className="text-xs text-ink-tertiary cursor-pointer hover:text-ink transition-colors select-none">
+            <summary className="text-xs text-inkText-tertiary cursor-pointer hover:text-inkText transition-colors select-none">
               Show error details
             </summary>
-            <pre className="mt-2 p-3 bg-surface-bg rounded-xl text-xs text-ink-secondary overflow-auto whitespace-pre-wrap break-words">
+            <pre className="mt-2 p-3 bg-surface-bg rounded-xl text-xs text-inkText-secondary overflow-auto whitespace-pre-wrap break-words">
               {error.message}
             </pre>
           </details>
@@ -124,14 +124,14 @@ function DefaultFallback({
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
           <button
             onClick={onRetry}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-ink text-white text-sm font-semibold rounded-xl hover:bg-ink/80 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-inkText text-white text-sm font-semibold rounded-xl hover:bg-inkText/80 transition-colors"
           >
             <RefreshIcon />
             Try again
           </button>
           <button
             onClick={() => window.location.assign('/')}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-ink text-sm font-semibold rounded-xl ring-1 ring-surface-muted hover:bg-surface-bg transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-inkText text-sm font-semibold rounded-xl ring-1 ring-surface-muted hover:bg-surface-bg transition-colors"
           >
             <HomeIcon />
             Go home

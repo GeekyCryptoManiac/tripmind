@@ -71,8 +71,8 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
     }
   };
 
-  const labelClass = 'block text-xs font-medium text-ink-secondary uppercase tracking-wide mb-1.5';
-  const inputClass = 'w-full px-4 py-2.5 bg-surface-bg border border-surface-muted rounded-xl text-sm text-ink placeholder-ink-tertiary focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent transition';
+  const labelClass = 'block text-xs font-medium text-inkText-secondary uppercase tracking-wide mb-1.5';
+  const inputClass = 'w-full px-4 py-2.5 bg-surface-bg border border-surface-muted rounded-xl text-sm text-inkText placeholder-inkText-tertiary focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition';
   void originCountry;
 
   return (
@@ -86,7 +86,7 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
           transition={{ duration: 0.15 }}
           onClick={handleClose}
         >
-          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-inkText/40 backdrop-blur-sm" />
 
           <motion.div
             className="relative z-10 bg-white rounded-3xl shadow-modal w-full max-w-md"
@@ -99,12 +99,12 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-surface-muted">
               <div>
-                <h2 className="font-display text-xl text-ink">New trip</h2>
-                <p className="text-sm text-ink-secondary mt-0.5">Fill in the basics — you can edit details later</p>
+                <h2 className="font-display text-xl text-inkText">New trip</h2>
+                <p className="text-sm text-inkText-secondary mt-0.5">Fill in the basics — you can edit details later</p>
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-ink-secondary hover:bg-gray-200 transition-colors text-lg leading-none"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-inkText-secondary hover:bg-ink/10 transition-colors text-lg leading-none"
               >
                 ×
               </button>
@@ -122,7 +122,7 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
                 />
                 <div>
                   <label className={labelClass}>
-                    Destination <span className="text-rose-400">*</span>
+                    Destination <span className="text-marigold">*</span>
                   </label>
                   <CityAutocomplete
                     value={destination}
@@ -154,9 +154,9 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
                   />
                 </div>
               </div>
-              {dateError && <p className="text-xs text-rose-500 -mt-3">{dateError}</p>}
+              {dateError && <p className="text-xs text-poppy -mt-3">{dateError}</p>}
               {durationDays && !dateError && (
-                <p className="text-xs text-ink-tertiary -mt-3">{durationDays} days</p>
+                <p className="text-xs text-inkText-tertiary -mt-3">{durationDays} days</p>
               )}
 
               {/* Travelers + Budget row */}
@@ -188,20 +188,20 @@ export default function NewTripModal({ isOpen, onClose, onCreate }: Props) {
             {/* Footer */}
             <div className="px-7 pb-7 flex items-center justify-between gap-3">
               {saveStatus === 'error' && (
-                <p className="text-xs text-rose-500">Something went wrong. Try again.</p>
+                <p className="text-xs text-poppy">Something went wrong. Try again.</p>
               )}
               {saveStatus !== 'error' && <span />}
               <div className="flex gap-3">
                 <button
                   onClick={handleClose}
-                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-ink-secondary bg-surface-muted hover:bg-gray-200 transition-colors"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-inkText-secondary bg-surface-muted hover:bg-ink/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={!destination.trim() || !!dateError || saveStatus === 'saving'}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-ink text-white hover:bg-ink/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-w-[90px]"
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-inkText text-white hover:bg-inkText/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-w-[90px]"
                 >
                   {saveStatus === 'saving' ? 'Creating…' : 'Create trip'}
                 </button>

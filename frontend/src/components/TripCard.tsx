@@ -25,6 +25,7 @@ import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import type { Trip } from '../types';
 import type { TripPhase } from '../utils/tripStatus';
+import TripStatusBadge, { getTripStatusStyle } from './TripStatusBadge';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ interface CachedPhoto extends UnsplashPhoto {
 }
 
 // ── Solution 4: localStorage cache ────────────────────────────
-const CACHE_KEY = 'tripmind_unsplash_cache';
+const CACHE_KEY = 'tagalong_unsplash_cache';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Initialize cache from localStorage on module load
@@ -161,32 +162,6 @@ async function fetchUnsplashPhoto(trip: Trip): Promise<UnsplashPhoto | null> {
   return requestPromise;
 }
 
-/** Status → gradient fallback when Unsplash image hasn't loaded */
-const STATUS_GRADIENT: Record<string, string> = {
-  planning:  'from-sage    to-forest',
-  booked:    'from-gold    to-[#8C6C3A]',
-  completed: 'from-forest  to-[#0E1A13]',
-};
-
-/** Status badge config — cartographic editorial palette */
-const STATUS_BADGE: Record<string, { dot: string; badge: string; label: string }> = {
-  planning:  { dot: 'bg-sage',   badge: 'bg-terrain text-ink ring-card-border', label: 'Planning'  },
-  booked:    { dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border', label: 'Booked'    },
-  completed: { dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border', label: 'Completed' },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_BADGE[status] ?? {
-    dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border', label: status,
-  };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-}
-
 // ── Image panel ───────────────────────────────────────────────
 // Handles Unsplash API fetch, load/error states, and attribution.
 interface ImagePanelProps {
@@ -199,7 +174,7 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
-  const gradient = STATUS_GRADIENT[displayStatus] ?? 'from-gray-400 to-gray-600';
+  const { background } = getTripStatusStyle(displayStatus);
   const initial = trip.destination.charAt(0).toUpperCase();
 
   // Fetch Unsplash photo on mount
@@ -214,7 +189,7 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
   return (
     <div className="relative w-full h-44 overflow-hidden rounded-t-2xl">
       {/* Gradient fallback — always rendered underneath */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+      <div className={`absolute inset-0 ${background} flex items-center justify-center`}>
         <span className="font-display text-6xl text-white/30 select-none">{initial}</span>
       </div>
 
@@ -233,7 +208,7 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
           {/* Attribution badge — required by Unsplash API terms */}
           {loaded && (
             <a
-              href={`${photo.profileUrl}?utm_source=tripmind&utm_medium=referral`}
+              href={`${photo.profileUrl}?utm_source=tagalong&utm_medium=referral`}
               target="_blank"
               rel="noopener noreferrer"
               className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-black/40 backdrop-blur-sm text-white text-xs hover:bg-black/60 transition-colors flex items-center gap-1"
@@ -258,7 +233,7 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
           )}
         </div>
         {/* Status badge floated right, over the image */}
-        <StatusBadge status={displayStatus} />
+        <TripStatusBadge status={displayStatus} />
       </div>
     </div>
   );
@@ -267,12 +242,12 @@ function ImagePanel({ trip, displayStatus }: ImagePanelProps) {
 // ── Detail cell ───────────────────────────────────────────────
 function DetailCell({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-parchment rounded-xl p-3">
+    <div className="bg-cream rounded-xl p-3">
       <div className="flex items-center gap-1.5 text-sage mb-1">
         {icon}
         <span className="font-mono text-[10px] tracking-[0.05em] uppercase">{label}</span>
       </div>
-      <p className="text-xs font-medium text-ink-secondary truncate">{value}</p>
+      <p className="text-xs font-medium text-inkText-secondary truncate">{value}</p>
     </div>
   );
 }
@@ -296,10 +271,9 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
       onClick={onClick}
       whileHover={onClick ? { y: -3 } : undefined}
       transition={{ duration: 0.18, ease: 'easeOut' }}
-      className={`bg-white rounded-[12px] overflow-hidden hover:shadow-card-hover transition-shadow ${
+      className={`bg-white rounded-[12px] overflow-hidden hover:shadow-card-hover transition-shadow border-[0.5px] border-card-border ${
         onClick ? 'cursor-pointer' : ''
       } group`}
-      style={{ border: '0.5px solid #DDD8CE' }}
     >
       {/* ── Photo panel (Unsplash + carto-grid fallback) ───── */}
       <ImagePanel trip={trip} displayStatus={displayStatus} />
@@ -311,11 +285,11 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
           <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-sage">
             {trip.start_date ? formatDate(trip.start_date) : 'Date TBD'}
           </p>
-          <StatusBadge status={displayStatus} />
+          <TripStatusBadge status={displayStatus} />
         </div>
 
         {/* Trip name */}
-        <h3 className="font-display text-[16px] leading-snug text-forest mb-3">
+        <h3 className="font-display text-[16px] leading-snug text-ink mb-3">
           {trip.destination}
         </h3>
 
@@ -373,7 +347,7 @@ const TripCard = memo(function TripCard({ trip, onClick, phase }: TripCardProps)
             {trip.notes ? 'Has notes' : 'No notes'}
           </span>
           {onClick && (
-            <span className="font-mono text-[10px] tracking-[0.05em] uppercase text-forest group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
+            <span className="font-mono text-[10px] tracking-[0.05em] uppercase text-ink group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
               View
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />

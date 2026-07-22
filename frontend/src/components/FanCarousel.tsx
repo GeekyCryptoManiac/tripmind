@@ -3,9 +3,16 @@
  *
  * Cartographic Editorial gallery mechanic: center card full scale, ±1/±2
  * positions scaled down and rotated outward, clipped at the container
- * boundary. Used by both the per-activity gallery (ActivityGalleryPage)
- * and the trip-wide Photos tab — each supplies its own item list and an
- * optional `badge` per item (photo tag vs. originating activity title).
+ * boundary. Used by the per-activity gallery (ActivityGalleryPage), the
+ * trip-wide Photos tab, and inline within a single activity's card
+ * (ActivityDetailPage) — each supplies its own item list and an optional
+ * `badge` per item (photo tag vs. originating activity title).
+ *
+ * `size="compact"` scales the card/offset dimensions down for embedding in
+ * a narrow, page-width card (e.g. ActivityDetailPage's single-activity photo
+ * section) rather than a full-width stage (ActivityGalleryPage, PhotosTab).
+ * Only the fan's own geometry changes — `stageClassName` still controls the
+ * outer stage height as before.
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +24,8 @@ export interface FanCarouselItem {
   caption?: string | null;
   badge?: string | null;
 }
+
+export type FanCarouselSize = 'default' | 'compact';
 
 // ─────────────────────────────────────────────────────────────
 // Icons
@@ -37,24 +46,39 @@ const ArrowRightIcon = () => (
 // Fan card — position relative to active index drives scale/rotation
 // ─────────────────────────────────────────────────────────────
 
-const CARD_STYLE_BY_OFFSET: Record<number, { scale: number; rotate: number; x: number; z: number }> = {
-  0:  { scale: 1,    rotate: 0,   x: 0,    z: 30 },
-  1:  { scale: 0.8,  rotate: 8,   x: 90,   z: 20 },
-  [-1]: { scale: 0.8, rotate: -8,  x: -90,  z: 20 },
-  2:  { scale: 0.62, rotate: 16,  x: 150,  z: 10 },
-  [-2]: { scale: 0.62, rotate: -16, x: -150, z: 10 },
+const CARD_STYLE_BY_OFFSET: Record<FanCarouselSize, Record<number, { scale: number; rotate: number; x: number; z: number }>> = {
+  default: {
+    0:  { scale: 1,    rotate: 0,   x: 0,    z: 30 },
+    1:  { scale: 0.8,  rotate: 8,   x: 90,   z: 20 },
+    [-1]: { scale: 0.8, rotate: -8,  x: -90,  z: 20 },
+    2:  { scale: 0.62, rotate: 16,  x: 150,  z: 10 },
+    [-2]: { scale: 0.62, rotate: -16, x: -150, z: 10 },
+  },
+  // Same relative geometry, scaled down to fit a small in-page photo module
+  // (ActivityDetailPage) instead of a full-width stage — card size and
+  // x-offsets shrink together so the fan-spread proportions stay identical,
+  // just smaller.
+  compact: {
+    0:  { scale: 1,    rotate: 0,   x: 0,   z: 30 },
+    1:  { scale: 0.8,  rotate: 8,   x: 34,  z: 20 },
+    [-1]: { scale: 0.8, rotate: -8,  x: -34, z: 20 },
+    2:  { scale: 0.62, rotate: 16,  x: 58,  z: 10 },
+    [-2]: { scale: 0.62, rotate: -16, x: -58, z: 10 },
+  },
 };
 
 function FanCard({
   item,
   offset,
+  size,
   onSelect,
 }: {
   item: FanCarouselItem;
   offset: number;
+  size: FanCarouselSize;
   onSelect: () => void;
 }) {
-  const style = CARD_STYLE_BY_OFFSET[offset];
+  const style = CARD_STYLE_BY_OFFSET[size][offset];
   if (!style) return null;
 
   // Off-center cards jump straight to that photo and must not also
@@ -67,7 +91,9 @@ function FanCard({
 
   return (
     <motion.div
-      className="absolute top-1/2 left-1/2 w-64 h-80 -ml-32 -mt-40 rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
+      className={`absolute top-1/2 left-1/2 rounded-2xl overflow-hidden shadow-2xl cursor-pointer ${
+        size === 'compact' ? 'w-24 h-32 -ml-12 -mt-16' : 'w-64 h-80 -ml-32 -mt-40'
+      }`}
       style={{ zIndex: style.z }}
       initial={false}
       animate={{
@@ -97,10 +123,12 @@ function DotIndicators({
   count,
   activeIndex,
   onSelect,
+  compact,
 }: {
   count: number;
   activeIndex: number;
   onSelect: (i: number) => void;
+  compact: boolean;
 }) {
   return (
     <div className="flex items-center justify-center gap-1.5 flex-wrap">
@@ -112,8 +140,9 @@ function DotIndicators({
           className="p-1"
         >
           <motion.span
-            className="block h-1.5 rounded-full"
-            style={{ backgroundColor: i === activeIndex ? '#B59054' : 'rgba(247,244,238,0.35)' }}
+            className={`block h-1.5 rounded-full ${
+              i === activeIndex ? 'bg-marigold' : compact ? 'bg-ink/15' : 'bg-cream/35'
+            }`}
             animate={{ width: i === activeIndex ? 20 : 6 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
@@ -133,6 +162,7 @@ export function FanCarousel({
   onActiveIndexChange,
   className = '',
   stageClassName = '',
+  size = 'default',
 }: {
   items: FanCarouselItem[];
   activeIndex: number;
@@ -140,10 +170,13 @@ export function FanCarousel({
   /** Applied to the outer wrapper — pass `flex-1` when the parent is a flex column that should let the stage grow. */
   className?: string;
   stageClassName?: string;
+  /** `'compact'` shrinks the fan geometry and surrounding chrome for a page-width card; default fits a full-width stage. */
+  size?: FanCarouselSize;
 }) {
   const goPrev = () => onActiveIndexChange(Math.max(0, activeIndex - 1));
   const goNext = () => onActiveIndexChange(Math.min(items.length - 1, activeIndex + 1));
   const activeItem = items[activeIndex];
+  const compact = size === 'compact';
 
   return (
     <div className={`flex flex-col ${className}`}>
@@ -166,6 +199,7 @@ export function FanCarousel({
               key={item.id}
               item={item}
               offset={offset}
+              size={size}
               onSelect={() => onActiveIndexChange(i)}
             />
           );
@@ -176,7 +210,11 @@ export function FanCarousel({
           <button
             aria-label="Previous photo"
             onClick={(e) => { e.stopPropagation(); goPrev(); }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-parchment/10 hover:bg-parchment/20 backdrop-blur-sm flex items-center justify-center text-parchment transition-colors"
+            className={`absolute top-1/2 -translate-y-1/2 z-40 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${
+              compact
+                ? 'left-0 w-6 h-6 bg-ink/10 hover:bg-ink/20 text-ink'
+                : 'left-3 w-10 h-10 bg-cream/10 hover:bg-cream/20 text-cream'
+            }`}
           >
             <ArrowLeftIcon />
           </button>
@@ -185,7 +223,11 @@ export function FanCarousel({
           <button
             aria-label="Next photo"
             onClick={(e) => { e.stopPropagation(); goNext(); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-parchment/10 hover:bg-parchment/20 backdrop-blur-sm flex items-center justify-center text-parchment transition-colors"
+            className={`absolute top-1/2 -translate-y-1/2 z-40 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${
+              compact
+                ? 'right-0 w-6 h-6 bg-ink/10 hover:bg-ink/20 text-ink'
+                : 'right-3 w-10 h-10 bg-cream/10 hover:bg-cream/20 text-cream'
+            }`}
           >
             <ArrowRightIcon />
           </button>
@@ -193,12 +235,12 @@ export function FanCarousel({
       </div>
 
       {/* ── Dots ─────────────────────────────────────────────── */}
-      <div className="py-4">
-        <DotIndicators count={items.length} activeIndex={activeIndex} onSelect={onActiveIndexChange} />
+      <div className={compact ? 'py-1.5' : 'py-4'}>
+        <DotIndicators count={items.length} activeIndex={activeIndex} onSelect={onActiveIndexChange} compact={compact} />
       </div>
 
       {/* ── Caption area ─────────────────────────────────────── */}
-      <div className="max-w-md mx-auto w-full px-6 pb-6 min-h-[4.5rem]">
+      <div className={compact ? 'max-w-md mx-auto w-full px-3 pb-2 min-h-[2.5rem]' : 'max-w-md mx-auto w-full px-6 pb-6 min-h-[4.5rem]'}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeItem.id}
@@ -208,12 +250,12 @@ export function FanCarousel({
             transition={{ duration: 0.2 }}
           >
             {activeItem.badge && (
-              <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-[0.08em] text-gold border border-gold/40">
+              <span className="inline-block mb-1.5 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-[0.08em] text-marigold border border-marigold/40">
                 {activeItem.badge}
               </span>
             )}
             {activeItem.caption && (
-              <p className="font-display italic text-lg text-parchment/90 leading-snug">
+              <p className={`font-display italic leading-snug ${compact ? 'text-sm text-inkText' : 'text-lg text-cream/90'}`}>
                 {activeItem.caption}
               </p>
             )}

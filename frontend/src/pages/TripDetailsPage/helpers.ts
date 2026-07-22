@@ -17,12 +17,6 @@ export interface ProgressTask {
   icon: string;
 }
 
-export interface StatusStyles {
-  bg: string;
-  text: string;
-  dot: string;
-}
-
 // ── Helper: format dates ──────────────────────────────────────
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Not set';
@@ -43,20 +37,6 @@ export function formatDateShort(dateStr: string | null): string {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
-  }
-}
-
-// ── Helper: status badge styles ───────────────────────────────
-export function getStatusStyles(status: string): StatusStyles {
-  switch (status) {
-    case 'planning':
-      return { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400' };
-    case 'booked':
-      return { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' };
-    case 'completed':
-      return { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500' };
-    default:
-      return { bg: 'bg-gray-100', text: 'text-gray-800', dot: 'bg-gray-400' };
   }
 }
 
