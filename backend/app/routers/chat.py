@@ -20,9 +20,9 @@ async def chat(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        from ..agents.base_agent import TripMindAgent
+        from ..agents.base_agent import SherpaAgent
 
-        agent = TripMindAgent(db=db, user_id=current_user.id, trip_id=data.trip_id)
+        agent = SherpaAgent(db=db, user_id=current_user.id, trip_id=data.trip_id)
         history = [m.model_dump() for m in (data.chat_history or [])]
         response = await agent.process_message(
             message=data.message,

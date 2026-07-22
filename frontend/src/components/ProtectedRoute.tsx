@@ -25,8 +25,8 @@ const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
     return (
       <div className="min-h-screen bg-surface-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
-          <p className="text-sm text-ink-secondary">Loading TripMind...</p>
+          <div className="w-10 h-10 border-2 border-ink/20 border-t-ink rounded-full animate-spin" />
+          <p className="text-sm text-inkText-secondary">Loading Tagalong...</p>
         </div>
       </div>
     );

@@ -4,9 +4,9 @@
  * Replaces the UUID guest-identity flow with real email/password auth.
  *
  * Token storage:
- *   localStorage['tripmind_access_token']   — short-lived (30 min)
- *   localStorage['tripmind_refresh_token']  — long-lived (7 days)
- *   localStorage['tripmind_user']           — cached user object
+ *   localStorage['tagalong_access_token']   — short-lived (30 min)
+ *   localStorage['tagalong_refresh_token']  — long-lived (7 days)
+ *   localStorage['tagalong_user']           — cached user object
  *
  * On mount:
  *   1. Read tokens from localStorage
@@ -50,9 +50,9 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 // ── Storage helpers ───────────────────────────────────────────
 
 const KEYS = {
-  access:  'tripmind_access_token',
-  refresh: 'tripmind_refresh_token',
-  user:    'tripmind_user',
+  access:  'tagalong_access_token',
+  refresh: 'tagalong_refresh_token',
+  user:    'tagalong_user',
 } as const;
 
 function saveSession(accessToken: string, refreshToken: string, user: User): void {
@@ -65,9 +65,6 @@ function clearSession(): void {
   localStorage.removeItem(KEYS.access);
   localStorage.removeItem(KEYS.refresh);
   localStorage.removeItem(KEYS.user);
-  // Also clean up legacy guest keys from the old flow
-  localStorage.removeItem('tripmind_user_id');
-  localStorage.removeItem('tripmind_guest_id');
 }
 
 function readCachedUser(): User | null {

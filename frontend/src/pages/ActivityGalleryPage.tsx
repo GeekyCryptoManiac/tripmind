@@ -100,19 +100,19 @@ export default function ActivityGalleryPage() {
   // ── Loading / error / empty ───────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1C2B24' }}>
-        <div className="w-8 h-8 border-2 border-parchment/30 border-t-gold rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-ink">
+        <div className="w-8 h-8 border-2 border-cream/30 border-t-marigold rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error || !photos || !tripId || !activityId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ backgroundColor: '#1C2B24' }}>
-        <p className="text-parchment/80">{error ?? 'Gallery not found.'}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center bg-ink">
+        <p className="text-cream/80">{error ?? 'Gallery not found.'}</p>
         <button
           onClick={goBack}
-          className="flex items-center gap-1.5 text-sm text-gold hover:text-gold/80 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-sm text-marigold hover:text-marigold/80 transition-colors font-medium"
         >
           <ChevronLeftIcon />
           Back to activity
@@ -123,11 +123,11 @@ export default function ActivityGalleryPage() {
 
   if (photos.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ backgroundColor: '#1C2B24' }}>
-        <p className="text-parchment/80">No photos yet.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center bg-ink">
+        <p className="text-cream/80">No photos yet.</p>
         <button
           onClick={goBack}
-          className="flex items-center gap-1.5 text-sm text-gold hover:text-gold/80 transition-colors font-medium"
+          className="flex items-center gap-1.5 text-sm text-marigold hover:text-marigold/80 transition-colors font-medium"
         >
           <ChevronLeftIcon />
           Back to activity
@@ -139,17 +139,17 @@ export default function ActivityGalleryPage() {
   const items = photos.map(toCarouselItem);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#1C2B24' }}>
+    <div className="min-h-screen flex flex-col bg-ink">
       {/* ── Header / back nav ─────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-4 max-w-2xl mx-auto w-full">
         <button
           onClick={goBack}
-          className="flex items-center gap-1.5 text-sm text-parchment/70 hover:text-parchment transition-colors font-medium"
+          className="flex items-center gap-1.5 text-sm text-cream/70 hover:text-cream transition-colors font-medium"
         >
           <ChevronLeftIcon />
           Back{activityTitle ? ` to ${activityTitle}` : ''}
         </button>
-        <span className="font-mono text-[11px] text-parchment/50 tracking-[0.08em]">
+        <span className="font-mono text-[11px] text-cream/50 tracking-[0.08em]">
           {activeIndex + 1} / {photos.length}
         </span>
       </div>

@@ -87,10 +87,12 @@ const ACTIVITY_ICONS: Record<Activity['type'], React.ComponentType<{ className?:
 
 // Booking badge styles
 const BOOKING_STYLES = {
-  mock:         { bg: 'bg-terrain',    text: 'text-[#3B6150]',  label: 'Mock Booking'  },
-  booked:       { bg: 'bg-[#EEF6F1]', text: 'text-[#3B6150]',  label: '✓ Confirmed'   },
-  pending:      { bg: 'bg-terrain/40', text: 'text-sage',       label: 'Pending'       },
-  ai_suggested: { bg: 'bg-terrain',   text: 'text-[#3B6150]',  label: '✦ AI Suggested' },
+  mock:         { bg: 'bg-terrain',            text: 'text-ink',                 label: 'Mock Booking'  },
+  // Confirmed booking — a success semantic, so it uses the status.booked tokens
+  // (sage-based), not the neutral terrain/ink treatment the other states use.
+  booked:       { bg: 'bg-status-booked-bg',   text: 'text-status-booked-text',  label: '✓ Confirmed'   },
+  pending:      { bg: 'bg-terrain/40',         text: 'text-sage',                label: 'Pending'       },
+  ai_suggested: { bg: 'bg-terrain',            text: 'text-ink',                 label: '✦ AI Suggested' },
 };
 
 export default function ActivityCard({ activity, booking, onDelete }: ActivityCardProps) {
@@ -129,7 +131,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleNavigate}
-      className="relative bg-parchment border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="relative bg-cream border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
     >
       {/* Time badge */}
       <div className="absolute -left-16 top-4 text-sm font-medium text-sage">
@@ -137,7 +139,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
       </div>
 
       {/* Icon circle */}
-      <div className="absolute -left-5 top-3 w-10 h-10 bg-forest rounded-full flex items-center justify-center text-parchment shadow-md z-10">
+      <div className="absolute -left-5 top-3 w-10 h-10 bg-ink rounded-full flex items-center justify-center text-cream shadow-md z-10">
         <Icon className="w-5 h-5" />
       </div>
 
@@ -146,7 +148,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
-            <h4 className="text-base font-semibold text-forest mb-1">{activity.title}</h4>
+            <h4 className="text-base font-semibold text-ink mb-1">{activity.title}</h4>
             {activity.location && (
               <p className="text-sm text-sage flex items-center gap-1">
                 <MapPinIcon />
@@ -164,7 +166,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={(e) => handleDelete(e)}
                 disabled={isDeleting}
-                className="ml-3 p-1.5 text-sage hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:cursor-not-allowed"
+                className="ml-3 p-1.5 text-sage hover:text-poppy hover:bg-poppy-tint rounded-lg transition-colors disabled:cursor-not-allowed"
                 title="Delete activity"
               >
                 {isDeleting ? (
@@ -188,7 +190,7 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
             {shouldShowExpand && (
               <button
                 onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-                className="text-sm text-forest hover:text-forest/80 font-medium mt-1"
+                className="text-sm text-ink hover:text-ink/80 font-medium mt-1"
               >
                 {isExpanded ? 'See less ▲' : 'See more ▼'}
               </button>
@@ -208,12 +210,19 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
           </div>
         )}
 
-        {/* Notes */}
+        {/* Notes — this is the AI-authored itinerary recommendation (activity.notes,
+            read-only), the same Sherpa-branded teal treatment established on
+            ActivityDetailPage's ai_tip callout, applied here since it's the same
+            user-facing concept ("Sherpa said this about this activity") even
+            though it's a different underlying field. */}
         {activity.notes && (
-          <div className="mt-3 p-2.5 bg-terrain/30 border border-card-border rounded-xl">
-            <p className="text-xs text-[#3B6150] flex items-start gap-1.5">
-              <LightbulbIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span><span className="font-semibold">Note:</span> {activity.notes}</span>
+          <div className="mt-3 p-2.5 border-l-4 border-teal bg-teal/[0.08] rounded-r-lg">
+            <p className="text-xs flex items-start gap-1.5">
+              <div className="text-teal"><LightbulbIcon className="w-4 h-4 flex-shrink-0 mt-0.5" /></div>
+              <span>
+                <span className="block font-mono text-[9px] uppercase tracking-[0.1em] text-teal mb-0.5">Sherpa</span>
+                <span className="text-ink">{activity.notes}</span>
+              </span>
             </p>
           </div>
         )}

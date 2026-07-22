@@ -77,10 +77,10 @@ export default function DayNavigation({
           pt-2
           ${
             isSelected
-              ? 'bg-forest text-parchment scale-105 shadow-md'
+              ? 'bg-ink text-cream scale-105 shadow-md'
               : isToday
-              ? 'bg-terrain text-forest hover:bg-terrain/70 ring-2 ring-gold ring-offset-1'
-              : 'bg-parchment text-sage hover:bg-terrain/30'
+              ? 'bg-terrain text-ink hover:bg-terrain/70 ring-2 ring-marigold ring-offset-1'
+              : 'bg-cream text-sage hover:bg-terrain/30'
           }
         `}
       >
@@ -96,12 +96,12 @@ export default function DayNavigation({
               ${
                 hasItinerary
                   ? isSelected
-                    ? 'bg-parchment'
+                    ? 'bg-cream'
                     : isToday
-                    ? 'bg-gold'
-                    : 'bg-forest'
+                    ? 'bg-marigold'
+                    : 'bg-ink'
                   : isSelected
-                  ? 'bg-parchment/30 ring-1 ring-parchment'
+                  ? 'bg-cream/30 ring-1 ring-cream'
                   : 'bg-card-border ring-1 ring-sage'
               }
             `}
@@ -117,8 +117,8 @@ export default function DayNavigation({
               px-1.5 py-0.5 rounded-full
               ${
                 isSelected
-                  ? 'bg-parchment/20 text-parchment'
-                  : 'bg-gold text-forest'
+                  ? 'bg-cream/20 text-cream'
+                  : 'bg-marigold text-ink'
               }
             `}
           >
@@ -130,7 +130,7 @@ export default function DayNavigation({
   };
 
   return (
-    <div className="bg-parchment border-b border-card-border sticky top-0 z-10">
+    <div className="bg-cream border-b border-card-border sticky top-0 z-10">
       <div
         ref={scrollContainerRef}
         className="flex items-start gap-3 px-4 py-3 overflow-x-auto"

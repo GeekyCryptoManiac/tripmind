@@ -1,7 +1,7 @@
 """
 Agent Tools
 ============
-All LangChain tool functions used by TripMindAgent.
+All LangChain tool functions used by SherpaAgent.
 
 Key design decisions:
   - All tools are synchronous — LangChain runs them in a thread pool executor

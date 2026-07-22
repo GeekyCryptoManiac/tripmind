@@ -56,12 +56,12 @@ export default function EmptyDayState({
   const isPartial = day > daysGenerated && daysGenerated > 0;
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-8">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-8">
       <div className="text-center py-6">
         {/* Icon */}
         <div
           className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-            isPartial ? 'bg-amber-100 text-amber-600' : 'bg-terrain text-forest'
+            isPartial ? 'bg-poppy-tint text-poppy' : 'bg-terrain text-ink'
           }`}
         >
           {isPartial ? <AlertIcon /> : <CalendarIcon />}
@@ -70,18 +70,18 @@ export default function EmptyDayState({
         {/* Title & description */}
         {isPartial ? (
           <>
-            <h3 className="text-lg font-semibold text-ink mb-2">
+            <h3 className="text-lg font-semibold text-inkText mb-2">
               Day {day} not yet generated
             </h3>
-            <p className="text-ink-secondary text-sm max-w-md mx-auto mb-6">
+            <p className="text-inkText-secondary text-sm max-w-md mx-auto mb-6">
               Due to MVP limitations, only the first {daysGenerated} days were generated. You can
               add remaining days manually or ask the AI assistant to generate more days.
             </p>
           </>
         ) : (
           <>
-            <h3 className="text-lg font-semibold text-ink mb-2">No itinerary yet</h3>
-            <p className="text-ink-secondary text-sm max-w-md mx-auto mb-6">
+            <h3 className="text-lg font-semibold text-inkText mb-2">No itinerary yet</h3>
+            <p className="text-inkText-secondary text-sm max-w-md mx-auto mb-6">
               Let AI plan your perfect Day {day} in {destination}
             </p>
           </>
@@ -92,7 +92,7 @@ export default function EmptyDayState({
           {isPartial ? (
             <button
               onClick={onManualAdd}
-              className="flex items-center gap-2 px-5 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-ink text-cream rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors"
             >
               <PlusIcon />
               Add Days Manually
@@ -101,14 +101,14 @@ export default function EmptyDayState({
             <>
               <button
                 onClick={onGenerate}
-                className="flex items-center gap-2 px-5 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-ink text-cream rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors"
               >
                 <SparklesIcon />
                 Generate with AI
               </button>
               <button
                 onClick={onManualAdd}
-                className="flex items-center gap-2 px-5 py-2.5 bg-parchment text-forest rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-cream text-ink rounded-xl text-sm font-semibold ring-1 ring-card-border hover:bg-terrain/20 transition-colors"
               >
                 <PlusIcon />
                 Manual Add

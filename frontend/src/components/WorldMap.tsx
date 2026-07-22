@@ -99,8 +99,8 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
 
         {/* Tooltip */}
         {hoverInfo && (
-          <div className="absolute top-4 left-4 bg-parchment border border-card-border rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
-            <p className="font-display text-sm text-forest">{hoverInfo.geoName}</p>
+          <div className="absolute top-4 left-4 bg-cream border border-card-border rounded-lg shadow-lg p-4 max-w-xs z-10 pointer-events-none">
+            <p className="font-display text-sm text-ink">{hoverInfo.geoName}</p>
             <p className="font-mono text-[10px] text-sage mt-0.5">
               {hoverInfo.data.tripCount}{' '}
               {hoverInfo.data.tripCount === 1 ? 'trip' : 'trips'}
@@ -112,7 +112,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: getCountryColor(hoverInfo.data.status) }}
                 />
-                <span className="text-xs text-ink">
+                <span className="text-xs text-inkText">
                   {hoverInfo.data.trips[0].destination}
                 </span>
                 <span className="text-xs text-sage capitalize">
@@ -133,7 +133,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
                         ),
                       }}
                     />
-                    <span className="text-xs text-ink">{trip.destination}</span>
+                    <span className="text-xs text-inkText">{trip.destination}</span>
                     <span className="text-xs text-sage capitalize">
                       ({trip.status})
                     </span>
@@ -142,7 +142,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
               </div>
             )}
 
-            <p className="font-mono text-[10px] text-gold mt-2.5">
+            <p className="font-mono text-[10px] text-marigold mt-2.5">
               {hoverInfo.data.tripCount === 1
                 ? 'Click to view trip →'
                 : 'Click to select a trip →'}
@@ -150,7 +150,7 @@ const WorldMap: FC<WorldMapProps> = ({ trips, onCountryClick }) => {
           </div>
         )}
 
-        <div className="absolute bottom-4 right-4 bg-parchment/90 backdrop-blur-sm border border-card-border rounded px-3 py-2">
+        <div className="absolute bottom-4 right-4 bg-cream/90 backdrop-blur-sm border border-card-border rounded px-3 py-2">
           <p className="font-mono text-[10px] text-sage">Scroll to zoom · Drag to pan</p>
         </div>
       </div>

@@ -100,7 +100,7 @@ api.interceptors.response.use(
     original._retry = true;
     isRefreshing    = true;
 
-    const refreshToken = localStorage.getItem('tripmind_refresh_token');
+    const refreshToken = localStorage.getItem('tagalong_refresh_token');
     if (!refreshToken) {
       isRefreshing = false;
       processQueue(error, null);
@@ -113,16 +113,16 @@ api.interceptors.response.use(
         `${api.defaults.baseURL}/api/auth/refresh`,
         { refresh_token: refreshToken }
       );
-      localStorage.setItem('tripmind_access_token',  data.access_token);
-      localStorage.setItem('tripmind_refresh_token', data.refresh_token);
+      localStorage.setItem('tagalong_access_token',  data.access_token);
+      localStorage.setItem('tagalong_refresh_token', data.refresh_token);
       setAuthToken(data.access_token);
       original.headers['Authorization'] = `Bearer ${data.access_token}`;
       processQueue(null, data.access_token);
       return api(original);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      localStorage.removeItem('tripmind_access_token');
-      localStorage.removeItem('tripmind_refresh_token');
+      localStorage.removeItem('tagalong_access_token');
+      localStorage.removeItem('tagalong_refresh_token');
       clearAuthToken();
       window.location.href = '/auth';
       return Promise.reject(refreshError);

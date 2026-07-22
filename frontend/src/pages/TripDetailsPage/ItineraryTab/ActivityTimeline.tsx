@@ -68,27 +68,27 @@ export default function ActivityTimeline({
 };
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-6">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
 
       {/* Day header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 bg-forest rounded-full flex items-center justify-center text-parchment font-bold text-lg">
+          <div className="flex-shrink-0 w-12 h-12 bg-ink rounded-full flex items-center justify-center text-cream font-bold text-lg">
             {day.day}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-ink">
+              <h3 className="text-lg font-bold text-inkText">
                 {day.title || `Day ${day.day}`}
               </h3>
               {cityName && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-terrain text-forest border border-card-border">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-terrain text-ink border border-card-border">
                   {cityName}
                 </span>
               )}
             </div>
             {computedDate && (
-              <p className="text-sm text-ink-secondary">{computedDate}</p>
+              <p className="text-sm text-inkText-secondary">{computedDate}</p>
             )}
           </div>
         </div>
@@ -128,9 +128,9 @@ export default function ActivityTimeline({
             <div className="mt-6">
               <button
                 onClick={() => onAddActivity(day.day)}
-                className="flex items-center gap-2 text-sm font-medium text-sage hover:text-forest transition-colors group"
+                className="flex items-center gap-2 text-sm font-medium text-sage hover:text-ink transition-colors group"
               >
-                <div className="w-8 h-8 rounded-full border-2 border-dashed border-card-border group-hover:border-forest flex items-center justify-center transition-colors">
+                <div className="w-8 h-8 rounded-full border-2 border-dashed border-card-border group-hover:border-ink flex items-center justify-center transition-colors">
                   <PlusIcon className="w-3.5 h-3.5" />
                 </div>
                 Add activity
@@ -147,11 +147,11 @@ export default function ActivityTimeline({
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-sm text-ink-tertiary mb-4">No activities planned for this day yet</p>
+          <p className="text-sm text-inkText-tertiary mb-4">No activities planned for this day yet</p>
           {onAddActivity && (
             <button
               onClick={() => onAddActivity(day.day)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-forest text-parchment text-sm font-semibold rounded-xl hover:bg-forest/80 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-ink text-cream text-sm font-semibold rounded-xl hover:bg-ink/80 transition-colors"
             >
               <PlusIcon />
               Add activity

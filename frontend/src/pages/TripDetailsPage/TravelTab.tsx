@@ -106,7 +106,7 @@ function TypingDots() {
 // ── Status badge ──────────────────────────────────────────────
 function AISuggestedBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain text-[#3B6150] text-xs font-medium rounded-full ring-1 ring-card-border">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain text-ink text-xs font-medium rounded-full ring-1 ring-card-border">
       <SparklesIcon className="w-3 h-3" />
       AI Suggested
     </span>
@@ -125,47 +125,47 @@ interface SavedCardBaseProps {
 function SavedFlightCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
   const flight = item.data as unknown as FlightSuggestion;
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-5">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-semibold text-ink">{flight.airline}</p>
-          <p className="text-xs text-ink-tertiary mt-0.5">{flight.flight_number}</p>
+          <p className="font-semibold text-inkText">{flight.airline}</p>
+          <p className="text-xs text-inkText-tertiary mt-0.5">{flight.flight_number}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">
+          <span className="text-xs bg-sage-tint text-sage px-2 py-0.5 rounded-full ring-1 ring-sage/30">
             Saved
           </span>
           <button
             onClick={() => onDelete(item.id)}
             disabled={isDeleting}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-inkText-tertiary hover:text-poppy hover:bg-poppy-tint transition-colors disabled:opacity-40"
             title="Remove saved item"
           >
             {isDeleting ? (
-              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-inkText-tertiary/30 border-t-inkText-tertiary rounded-full animate-spin" />
             ) : (
               <TrashIcon className="w-3.5 h-3.5" />
             )}
           </button>
         </div>
       </div>
-      <div className="flex items-center gap-3 text-sm text-ink mb-2">
+      <div className="flex items-center gap-3 text-sm text-inkText mb-2">
         <span className="font-mono font-semibold">{flight.from}</span>
         <span className="flex-1 border-t-2 border-dashed border-surface-muted relative">
-          <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 text-ink-tertiary text-xs">
+          <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 text-inkText-tertiary text-xs">
             {flight.duration}
           </span>
         </span>
         <span className="font-mono font-semibold">{flight.to}</span>
       </div>
-      <div className="flex items-center justify-between text-xs text-ink-secondary">
+      <div className="flex items-center justify-between text-xs text-inkText-secondary">
         <span>{flight.departure} → {flight.arrival}</span>
         {flight.estimated_price && (
-          <span className="font-semibold text-ink">${flight.estimated_price}/pax</span>
+          <span className="font-semibold text-inkText">${flight.estimated_price}/pax</span>
         )}
       </div>
       {flight.notes && (
-        <p className="mt-2 text-xs text-ink-tertiary bg-surface-bg rounded-lg px-3 py-1.5">{flight.notes}</p>
+        <p className="mt-2 text-xs text-inkText-tertiary bg-surface-bg rounded-lg px-3 py-1.5">{flight.notes}</p>
       )}
     </div>
   );
@@ -174,22 +174,22 @@ function SavedFlightCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
 function SavedHotelCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
   const hotel = item.data as unknown as HotelSuggestion;
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-5">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-5">
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="font-semibold text-ink">{hotel.name}</p>
-          <p className="text-xs text-ink-secondary mt-0.5">{hotel.area}, {hotel.location}</p>
+          <p className="font-semibold text-inkText">{hotel.name}</p>
+          <p className="text-xs text-inkText-secondary mt-0.5">{hotel.area}, {hotel.location}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">Saved</span>
+          <span className="text-xs bg-sage-tint text-sage px-2 py-0.5 rounded-full ring-1 ring-sage/30">Saved</span>
           <button
             onClick={() => onDelete(item.id)}
             disabled={isDeleting}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-inkText-tertiary hover:text-poppy hover:bg-poppy-tint transition-colors disabled:opacity-40"
             title="Remove saved item"
           >
             {isDeleting ? (
-              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-inkText-tertiary/30 border-t-inkText-tertiary rounded-full animate-spin" />
             ) : (
               <TrashIcon className="w-3.5 h-3.5" />
             )}
@@ -199,18 +199,18 @@ function SavedHotelCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
       {hotel.star_rating && (
         <div className="flex items-center gap-0.5 mb-2">
           {Array.from({ length: hotel.star_rating }).map((_, i) => (
-            <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />
+            <StarIcon key={i} className="w-3.5 h-3.5 text-marigold" />
           ))}
         </div>
       )}
-      <div className="flex items-center justify-between text-xs text-ink-secondary mt-1">
+      <div className="flex items-center justify-between text-xs text-inkText-secondary mt-1">
         <span>{hotel.highlights?.slice(0, 2).join(' · ')}</span>
         {hotel.price_per_night && (
-          <span className="font-semibold text-ink">${hotel.price_per_night}/night</span>
+          <span className="font-semibold text-inkText">${hotel.price_per_night}/night</span>
         )}
       </div>
       {hotel.notes && (
-        <p className="mt-2 text-xs text-ink-tertiary bg-surface-bg rounded-lg px-3 py-1.5">{hotel.notes}</p>
+        <p className="mt-2 text-xs text-inkText-tertiary bg-surface-bg rounded-lg px-3 py-1.5">{hotel.notes}</p>
       )}
     </div>
   );
@@ -219,41 +219,41 @@ function SavedHotelCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
 function SavedTransportCard({ item, onDelete, isDeleting }: SavedCardBaseProps) {
   const transport = item.data as unknown as TransportSuggestion;
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm p-5">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-5">
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="font-semibold text-ink">{transport.title}</p>
-          <p className="text-xs text-ink-secondary capitalize mt-0.5">{transport.type}</p>
+          <p className="font-semibold text-inkText">{transport.title}</p>
+          <p className="text-xs text-inkText-secondary capitalize mt-0.5">{transport.type}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full ring-1 ring-emerald-200">Saved</span>
+          <span className="text-xs bg-sage-tint text-sage px-2 py-0.5 rounded-full ring-1 ring-sage/30">Saved</span>
           <button
             onClick={() => onDelete(item.id)}
             disabled={isDeleting}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-ink-tertiary hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-inkText-tertiary hover:text-poppy hover:bg-poppy-tint transition-colors disabled:opacity-40"
             title="Remove saved item"
           >
             {isDeleting ? (
-              <div className="w-3.5 h-3.5 border-2 border-ink-tertiary/30 border-t-ink-tertiary rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-inkText-tertiary/30 border-t-inkText-tertiary rounded-full animate-spin" />
             ) : (
               <TrashIcon className="w-3.5 h-3.5" />
             )}
           </button>
         </div>
       </div>
-      <p className="text-sm text-ink-secondary mb-2">{transport.description}</p>
+      <p className="text-sm text-inkText-secondary mb-2">{transport.description}</p>
       {transport.pros && transport.pros.length > 0 && (
         <ul className="space-y-0.5 mb-2">
           {transport.pros.slice(0, 3).map((pro, i) => (
-            <li key={i} className="flex items-center gap-1.5 text-xs text-ink-secondary">
-              <CheckIcon className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+            <li key={i} className="flex items-center gap-1.5 text-xs text-inkText-secondary">
+              <CheckIcon className="w-3 h-3 text-sage flex-shrink-0" />
               {pro}
             </li>
           ))}
         </ul>
       )}
       {transport.estimated_cost && (
-        <p className="text-xs font-semibold text-ink">
+        <p className="text-xs font-semibold text-inkText">
           ~${transport.estimated_cost} {transport.cost_unit && `(${transport.cost_unit})`}
         </p>
       )}
@@ -272,15 +272,15 @@ function FlightResultCard({
   isSaved: boolean;
 }) {
   return (
-    <div className={`bg-parchment rounded-2xl border p-5 transition-all ${isSaved ? 'border-emerald-300 bg-emerald-50/20' : 'border-card-border bg-terrain/20'}`}>
+    <div className={`bg-cream rounded-2xl border p-5 transition-all ${isSaved ? 'border-sage/50 bg-sage-tint' : 'border-card-border bg-terrain/20'}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-semibold text-ink">{flight.airline}</p>
-          <p className="text-xs text-ink-tertiary">{flight.flight_number} · {flight.cabin || 'Economy'}</p>
+          <p className="font-semibold text-inkText">{flight.airline}</p>
+          <p className="text-xs text-inkText-tertiary">{flight.flight_number} · {flight.cabin || 'Economy'}</p>
         </div>
         <AISuggestedBadge />
       </div>
-      <div className="flex items-center gap-3 text-sm text-ink mb-2">
+      <div className="flex items-center gap-3 text-sm text-inkText mb-2">
         <span className="font-mono font-bold text-base">{flight.from}</span>
         <div className="flex-1 flex flex-col items-center">
           <span className="text-xs text-sage mb-0.5">{flight.duration}</span>
@@ -289,21 +289,21 @@ function FlightResultCard({
         <span className="font-mono font-bold text-base">{flight.to}</span>
       </div>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-ink-secondary">{flight.departure} → {flight.arrival}</span>
+        <span className="text-xs text-inkText-secondary">{flight.departure} → {flight.arrival}</span>
         {flight.estimated_price && (
-          <span className="text-lg font-bold text-ink">
-            ${flight.estimated_price}<span className="text-xs font-normal text-ink-tertiary">/pax</span>
+          <span className="text-lg font-bold text-inkText">
+            ${flight.estimated_price}<span className="text-xs font-normal text-inkText-tertiary">/pax</span>
           </span>
         )}
       </div>
-      {flight.notes && <p className="text-xs text-ink-tertiary mb-3">{flight.notes}</p>}
+      {flight.notes && <p className="text-xs text-inkText-tertiary mb-3">{flight.notes}</p>}
       <button
         onClick={onSave}
         disabled={isSaving || isSaved}
         className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           isSaved
-            ? 'bg-emerald-100 text-emerald-700 cursor-default'
-            : 'bg-forest text-parchment hover:bg-forest/80 disabled:opacity-50'
+            ? 'bg-sage-tint text-sage cursor-default'
+            : 'bg-ink text-cream hover:bg-ink/80 disabled:opacity-50'
         }`}
       >
         {isSaving ? (
@@ -325,47 +325,47 @@ function HotelResultCard({
   isSaved: boolean;
 }) {
   return (
-    <div className={`bg-parchment rounded-2xl border p-5 transition-all ${isSaved ? 'border-emerald-300 bg-emerald-50/20' : 'border-card-border bg-terrain/20'}`}>
+    <div className={`bg-cream rounded-2xl border p-5 transition-all ${isSaved ? 'border-sage/50 bg-sage-tint' : 'border-card-border bg-terrain/20'}`}>
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="font-semibold text-ink">{hotel.name}</p>
-          <p className="text-xs text-ink-secondary">{hotel.area}, {hotel.location}</p>
+          <p className="font-semibold text-inkText">{hotel.name}</p>
+          <p className="text-xs text-inkText-secondary">{hotel.area}, {hotel.location}</p>
         </div>
         <AISuggestedBadge />
       </div>
       {hotel.star_rating && (
         <div className="flex items-center gap-0.5 mb-2">
           {Array.from({ length: hotel.star_rating }).map((_, i) => (
-            <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />
+            <StarIcon key={i} className="w-3.5 h-3.5 text-marigold" />
           ))}
         </div>
       )}
       {hotel.highlights && hotel.highlights.length > 0 && (
         <ul className="space-y-0.5 mb-2">
           {hotel.highlights.map((h, i) => (
-            <li key={i} className="flex items-center gap-1.5 text-xs text-ink-secondary">
-              <CheckIcon className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+            <li key={i} className="flex items-center gap-1.5 text-xs text-inkText-secondary">
+              <CheckIcon className="w-3 h-3 text-sage flex-shrink-0" />
               {h}
             </li>
           ))}
         </ul>
       )}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-ink-tertiary">Check-in {hotel.check_in} · Check-out {hotel.check_out}</span>
+        <span className="text-xs text-inkText-tertiary">Check-in {hotel.check_in} · Check-out {hotel.check_out}</span>
         {hotel.price_per_night && (
-          <span className="text-lg font-bold text-ink">
-            ${hotel.price_per_night}<span className="text-xs font-normal text-ink-tertiary">/night</span>
+          <span className="text-lg font-bold text-inkText">
+            ${hotel.price_per_night}<span className="text-xs font-normal text-inkText-tertiary">/night</span>
           </span>
         )}
       </div>
-      {hotel.notes && <p className="text-xs text-ink-tertiary mb-3">{hotel.notes}</p>}
+      {hotel.notes && <p className="text-xs text-inkText-tertiary mb-3">{hotel.notes}</p>}
       <button
         onClick={onSave}
         disabled={isSaving || isSaved}
         className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           isSaved
-            ? 'bg-emerald-100 text-emerald-700 cursor-default'
-            : 'bg-forest text-parchment hover:bg-forest/80 disabled:opacity-50'
+            ? 'bg-sage-tint text-sage cursor-default'
+            : 'bg-ink text-cream hover:bg-ink/80 disabled:opacity-50'
         }`}
       >
         {isSaving ? (
@@ -387,42 +387,42 @@ function TransportResultCard({
   isSaved: boolean;
 }) {
   return (
-    <div className={`bg-parchment rounded-2xl border p-5 transition-all ${isSaved ? 'border-emerald-300 bg-emerald-50/20' : 'border-card-border bg-terrain/20'}`}>
+    <div className={`bg-cream rounded-2xl border p-5 transition-all ${isSaved ? 'border-sage/50 bg-sage-tint' : 'border-card-border bg-terrain/20'}`}>
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="font-semibold text-ink">{transport.title}</p>
-          <p className="text-xs text-ink-secondary capitalize">{transport.type}</p>
+          <p className="font-semibold text-inkText">{transport.title}</p>
+          <p className="text-xs text-inkText-secondary capitalize">{transport.type}</p>
         </div>
         <AISuggestedBadge />
       </div>
-      <p className="text-sm text-ink-secondary mb-2">{transport.description}</p>
+      <p className="text-sm text-inkText-secondary mb-2">{transport.description}</p>
       {transport.pros && transport.pros.length > 0 && (
         <ul className="space-y-0.5 mb-2">
           {transport.pros.map((p, i) => (
-            <li key={i} className="flex items-center gap-1.5 text-xs text-ink-secondary">
-              <CheckIcon className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+            <li key={i} className="flex items-center gap-1.5 text-xs text-inkText-secondary">
+              <CheckIcon className="w-3 h-3 text-sage flex-shrink-0" />
               {p}
             </li>
           ))}
         </ul>
       )}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-ink-tertiary" />
+        <span className="text-xs text-inkText-tertiary" />
         {transport.estimated_cost && (
-          <span className="text-lg font-bold text-ink">
+          <span className="text-lg font-bold text-inkText">
             ~${transport.estimated_cost}
-            <span className="text-xs font-normal text-ink-tertiary ml-1">{transport.cost_unit}</span>
+            <span className="text-xs font-normal text-inkText-tertiary ml-1">{transport.cost_unit}</span>
           </span>
         )}
       </div>
-      {transport.notes && <p className="text-xs text-ink-tertiary mb-3">{transport.notes}</p>}
+      {transport.notes && <p className="text-xs text-inkText-tertiary mb-3">{transport.notes}</p>}
       <button
         onClick={onSave}
         disabled={isSaving || isSaved}
         className={`w-full py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
           isSaved
-            ? 'bg-emerald-100 text-emerald-700 cursor-default'
-            : 'bg-forest text-parchment hover:bg-forest/80 disabled:opacity-50'
+            ? 'bg-sage-tint text-sage cursor-default'
+            : 'bg-ink text-cream hover:bg-ink/80 disabled:opacity-50'
         }`}
       >
         {isSaving ? (
@@ -444,8 +444,8 @@ interface AIPanelProps {
 }
 
 function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
-  const suggestKey = `tripmind_suggestions_${trip.id}_${type}`;
-  const savedKey   = `tripmind_saved_ids_${trip.id}_${type}`;
+  const suggestKey = `tagalong_suggestions_${trip.id}_${type}`;
+  const savedKey   = `tagalong_saved_ids_${trip.id}_${type}`;
 
   function readSuggestions(): (FlightSuggestion | HotelSuggestion | TransportSuggestion)[] {
     try {
@@ -539,21 +539,21 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
       transition={{ duration: 0.25, ease: 'easeInOut' }}
       className="overflow-hidden"
     >
-      <div className="border-t border-card-border bg-gradient-to-b from-terrain/30 to-parchment p-6">
+      <div className="border-t border-card-border bg-gradient-to-b from-terrain/30 to-cream p-6">
         {/* Panel header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-forest flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-ink flex items-center justify-center">
               <SparklesIcon className="w-3.5 h-3.5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-ink capitalize">Find {type} with AI</p>
-              <p className="text-xs text-ink-tertiary">{contextLine}</p>
+              <p className="text-sm font-semibold text-inkText capitalize">Find {type} with AI</p>
+              <p className="text-xs text-inkText-tertiary">{contextLine}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-terrain/30 text-sage hover:text-forest hover:bg-terrain transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-terrain/30 text-sage hover:text-ink hover:bg-terrain transition-colors"
           >
             <XIcon />
           </button>
@@ -561,8 +561,8 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
 
         {/* Preferences input */}
         <div className="mb-4">
-          <label className="block text-xs font-medium text-ink-secondary mb-1.5">
-            Preferences <span className="text-ink-tertiary font-normal">(optional)</span>
+          <label className="block text-xs font-medium text-inkText-secondary mb-1.5">
+            Preferences <span className="text-inkText-tertiary font-normal">(optional)</span>
           </label>
           <input
             type="text"
@@ -570,14 +570,14 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
             onChange={(e) => setPreferences(e.target.value)}
             placeholder={placeholder[type]}
             onKeyDown={(e) => e.key === 'Enter' && !isSearching && handleSearch()}
-            className="w-full px-4 py-2.5 bg-parchment border border-card-border rounded-xl text-sm text-ink placeholder-sage focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-colors"
+            className="w-full px-4 py-2.5 bg-cream border border-card-border rounded-xl text-sm text-inkText placeholder-sage focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition-colors"
           />
         </div>
 
         {suggestions.length === 0 && !isSearching && (
           <button
             onClick={handleSearch}
-            className="w-full py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-ink text-cream rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors flex items-center justify-center gap-2"
           >
             <SparklesIcon />
             Search with AI
@@ -587,14 +587,14 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
         {isSearching && (
           <div className="flex items-center gap-3 py-2">
             <TypingDots />
-            <span className="text-sm text-ink-secondary">
+            <span className="text-sm text-inkText-secondary">
               Finding the best {type} for {trip.destination}...
             </span>
           </div>
         )}
 
         {error && (
-          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">
+          <p className="text-sm text-poppy bg-poppy-tint border border-poppy/30 rounded-xl px-4 py-2.5">
             {error}
           </p>
         )}
@@ -602,12 +602,12 @@ function AIPanel({ trip, type, onClose, onTripUpdate }: AIPanelProps) {
         {suggestions.length > 0 && (
           <div className="mt-2 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-ink-secondary">
+              <p className="text-xs font-medium text-inkText-secondary">
                 {suggestions.length} suggestions · tap to save any to your trip
               </p>
               <button
                 onClick={handleSearch}
-                className="text-xs text-forest hover:text-forest/80 font-medium"
+                className="text-xs text-ink hover:text-ink/80 font-medium"
               >
                 Regenerate
               </button>
@@ -657,7 +657,7 @@ export default function TravelTab({
   function hasCachedSuggestions(tripId: number, type: TravelSubTab): boolean {
     try {
       const singular: Record<TravelSubTab, TravelSuggestType> = { flights: 'flight', hotels: 'hotel', transport: 'transport' };
-      const raw = sessionStorage.getItem(`tripmind_suggestions_${tripId}_${singular[type]}`);
+      const raw = sessionStorage.getItem(`tagalong_suggestions_${tripId}_${singular[type]}`);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) && parsed.length > 0;
@@ -713,7 +713,7 @@ export default function TravelTab({
   };
 
   return (
-    <div className="bg-parchment rounded-2xl border border-card-border shadow-sm overflow-hidden">
+    <div className="bg-cream rounded-2xl border border-card-border shadow-sm overflow-hidden">
 
       {/* Sub-tab bar */}
       <div className="flex border-b border-card-border">
@@ -728,14 +728,14 @@ export default function TravelTab({
               onClick={() => handleSubTabChange(key)}
               className={`flex-1 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2
                 ${activeSubTab === key
-                  ? 'bg-terrain text-forest border-b-2 border-forest'
-                  : 'text-sage hover:text-forest hover:bg-terrain/20'
+                  ? 'bg-terrain text-ink border-b-2 border-ink'
+                  : 'text-sage hover:text-ink hover:bg-terrain/20'
                 }`}
             >
               <Icon className="w-4 h-4" />
               {label}
               {count > 0 && (
-                <span className="ml-1 text-xs bg-terrain text-forest rounded-full px-1.5 py-0.5 font-semibold">
+                <span className="ml-1 text-xs bg-terrain text-ink rounded-full px-1.5 py-0.5 font-semibold">
                   {count}
                 </span>
               )}
@@ -785,7 +785,7 @@ export default function TravelTab({
               {!aiPanelOpen && (
                 <button
                   onClick={() => setAIPanelOpen(true)}
-                  className="w-full py-2.5 text-sm font-medium text-forest hover:text-forest/80 border-2 border-dashed border-card-border hover:border-sage rounded-2xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 text-sm font-medium text-ink hover:text-ink/80 border-2 border-dashed border-card-border hover:border-sage rounded-2xl transition-colors flex items-center justify-center gap-2"
                 >
                   <SparklesIcon />
                   Find more with AI
@@ -798,19 +798,19 @@ export default function TravelTab({
           {!hasSavedItems && !aiPanelOpen && (
             <div className="p-8 text-center">
               <div className="w-16 h-16 bg-terrain rounded-full flex items-center justify-center mx-auto mb-4">
-                <activeTabConfig.Icon className="w-8 h-8 text-forest" />
+                <activeTabConfig.Icon className="w-8 h-8 text-ink" />
               </div>
-              <h3 className="text-lg font-semibold text-ink mb-2">
+              <h3 className="text-lg font-semibold text-inkText mb-2">
                 No {activeSubTab} saved yet
               </h3>
-              <p className="text-ink-secondary text-sm mb-6 max-w-xs mx-auto">
+              <p className="text-inkText-secondary text-sm mb-6 max-w-xs mx-auto">
                 {activeSubTab === 'flights'   && `Find the best flights for your ${trip.destination} trip`}
                 {activeSubTab === 'hotels'    && `Find accommodation in ${trip.destination}`}
                 {activeSubTab === 'transport' && `Plan how to get around ${trip.destination}`}
               </p>
               <button
                 onClick={() => setAIPanelOpen(true)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-forest text-parchment rounded-xl text-sm font-semibold hover:bg-forest/80 transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-ink text-cream rounded-xl text-sm font-semibold hover:bg-ink/80 transition-colors shadow-sm"
               >
                 <SparklesIcon />
                 Find with AI

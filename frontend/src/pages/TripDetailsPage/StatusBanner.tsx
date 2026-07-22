@@ -4,10 +4,17 @@
  * Contextual banner between progress bar and tab navigation.
  * Returns null for 'planning' phase.
  *
- * Color palette harmonized with app-wide tokens:
- *   pre-trip  → amber-50 (warm, matches planning status)
- *   active    → emerald-50 (soft, matches booked status)
- *   completed → brand-50 (our blue)
+ * Color palette — each phase now genuinely uses a distinct token (previously
+ * all three rendered with the identical #EEF6F1/#C8D8C2 pair despite this
+ * comment claiming otherwise — that was the actual bug, now fixed):
+ *   pre-trip  → status.planning (amber family)
+ *   active    → ink, NOT marigold — the Navbar's "+ New Trip" CTA is already
+ *               marigold and visible on every screen this banner can appear
+ *               on, so reusing marigold here would compete with it for
+ *               attention. ink matches the "you are here now" convention
+ *               already used elsewhere (e.g. TripSummaryCard's status dots).
+ *   completed → status.completed (a darker/muted sage, distinct from
+ *               status.booked's lighter sage)
  *
  * All emojis replaced with SVG icons for visual consistency.
  */
@@ -60,35 +67,35 @@ type PhaseConfig = {
 
 const PHASE_CONFIG: Record<Exclude<TripPhase, 'planning'>, PhaseConfig> = {
   'pre-trip': {
-    bg: 'bg-[#EEF6F1]',
-    border: 'border-[#C8D8C2]/50',
-    badgeBg: 'bg-terrain',
-    badgeText: 'text-[#3B6150] font-mono text-[9px] tracking-[0.1em]',
+    bg: 'bg-status-planning-bg',
+    border: 'border-status-planning-text/20',
+    badgeBg: 'bg-status-planning-text',
+    badgeText: 'text-status-planning-bg font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'PRE-TRIP',
-    titleColor: 'text-[#3B6150]',
-    subtitleColor: 'text-[#3B6150]/80',
-    iconColor: 'text-gold',
+    titleColor: 'text-status-planning-text',
+    subtitleColor: 'text-status-planning-text/80',
+    iconColor: 'text-marigold',
     icon: ClockIcon,
   },
   active: {
-    bg: 'bg-[#EEF6F1]',
-    border: 'border-[#C8D8C2]/50',
-    badgeBg: 'bg-forest',
-    badgeText: 'text-[#E8DECE] font-mono text-[9px] tracking-[0.1em]',
+    bg: 'bg-ink/10',
+    border: 'border-ink/20',
+    badgeBg: 'bg-ink',
+    badgeText: 'text-cream font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'LIVE',
-    titleColor: 'text-forest',
-    subtitleColor: 'text-forest/70',
-    iconColor: 'text-forest',
+    titleColor: 'text-ink',
+    subtitleColor: 'text-ink/70',
+    iconColor: 'text-ink',
     icon: AirplaneIcon,
   },
   completed: {
-    bg: 'bg-[#EEF6F1]',
-    border: 'border-[#C8D8C2]/50',
-    badgeBg: 'bg-terrain',
-    badgeText: 'text-[#3B6150] font-mono text-[9px] tracking-[0.1em]',
+    bg: 'bg-status-completed-bg',
+    border: 'border-status-completed-text/20',
+    badgeBg: 'bg-status-completed-text',
+    badgeText: 'text-status-completed-bg font-mono text-[9px] tracking-[0.1em]',
     badgeLabel: 'COMPLETED',
-    titleColor: 'text-[#3B6150]',
-    subtitleColor: 'text-[#3B6150]/80',
+    titleColor: 'text-status-completed-text',
+    subtitleColor: 'text-status-completed-text/80',
     iconColor: 'text-sage',
     icon: CheckCircleIcon,
   },
@@ -155,10 +162,10 @@ export default function StatusBanner({
           {/* Right indicator */}
           {phase === 'pre-trip' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="text-2xl font-bold text-forest leading-none">
+              <div className="text-2xl font-bold text-ink leading-none">
                 {daysUntil}
               </div>
-              <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-[#3B6150] mt-0.5">
+              <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-status-planning-text mt-0.5">
                 days to go
               </div>
             </div>
@@ -166,12 +173,12 @@ export default function StatusBanner({
 
           {phase === 'active' && (
             <div className="flex-shrink-0 text-right hidden sm:block">
-              <div className="font-mono text-[9px] tracking-[0.1em] text-[#3B6150] mb-1">
+              <div className="font-mono text-[9px] tracking-[0.1em] text-ink mb-1">
                 {progressPct}% through
               </div>
-              <div className="w-28 bg-[#DDD8CE] rounded-full h-[3px] overflow-hidden">
+              <div className="w-28 bg-card-border rounded-full h-[3px] overflow-hidden">
                 <motion.div
-                  className="bg-gold h-[3px] rounded-full"
+                  className="bg-marigold h-[3px] rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPct}%` }}
                   transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}

@@ -1,4 +1,4 @@
-# TripMind Backend
+# Tagalong Backend
 
 FastAPI backend with LangChain agent for trip planning.
 

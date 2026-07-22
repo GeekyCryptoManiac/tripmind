@@ -153,13 +153,13 @@ function ToolSection({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-bg transition-colors"
       >
-        <span className="flex items-center gap-2.5 text-sm font-semibold text-ink">
-          <div className="text-ink-tertiary">
+        <span className="flex items-center gap-2.5 text-sm font-semibold text-inkText">
+          <div className="text-inkText-tertiary">
             <Icon />
           </div>
           {title}
         </span>
-        <div className={`text-ink-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+        <div className={`text-inkText-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
           <ChevronIcon />
         </div>
       </button>
@@ -224,20 +224,20 @@ function CurrencyConverter({ destination }: { destination: string }) {
   };
 
   const selectClass =
-    'flex-1 border border-surface-muted rounded-xl px-3 py-2 text-sm bg-surface-bg text-ink ' +
-    'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white';
+    'flex-1 border border-surface-muted rounded-xl px-3 py-2 text-sm bg-surface-bg text-inkText ' +
+    'focus:outline-none focus:ring-2 focus:ring-ink focus:bg-white';
 
   return (
     <div className="space-y-4 pt-2">
       {/* Amount */}
       <div>
-        <label className="text-xs font-medium text-ink-tertiary mb-1.5 block">Amount</label>
+        <label className="text-xs font-medium text-inkText-tertiary mb-1.5 block">Amount</label>
         <input
           type="number"
           min={0}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full border border-surface-muted rounded-xl px-3 py-2.5 text-sm bg-surface-bg text-ink focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white"
+          className="w-full border border-surface-muted rounded-xl px-3 py-2.5 text-sm bg-surface-bg text-inkText focus:outline-none focus:ring-2 focus:ring-ink focus:bg-white"
           placeholder="100"
         />
       </div>
@@ -245,7 +245,7 @@ function CurrencyConverter({ destination }: { destination: string }) {
       {/* From / To */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="text-xs font-medium text-ink-tertiary mb-1.5 block">From</label>
+          <label className="text-xs font-medium text-inkText-tertiary mb-1.5 block">From</label>
           <select value={fromCurrency} onChange={(e) => setFromCurrency(e.target.value)} className={selectClass}>
             {Object.keys(CURRENCY_LABELS).map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -255,14 +255,14 @@ function CurrencyConverter({ destination }: { destination: string }) {
 
         <button
           onClick={() => { setFromCurrency(toCurrency); setToCurrency(fromCurrency); }}
-          className="mt-5 p-2 text-ink-tertiary hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors"
+          className="mt-5 p-2 text-inkText-tertiary hover:text-marigold hover:bg-marigold/10 rounded-xl transition-colors"
           title="Swap currencies"
         >
           <SwapIcon />
         </button>
 
         <div className="flex-1">
-          <label className="text-xs font-medium text-ink-tertiary mb-1.5 block">To</label>
+          <label className="text-xs font-medium text-inkText-tertiary mb-1.5 block">To</label>
           <select value={toCurrency} onChange={(e) => setToCurrency(e.target.value)} className={selectClass}>
             {Object.keys(CURRENCY_LABELS).map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -273,20 +273,20 @@ function CurrencyConverter({ destination }: { destination: string }) {
 
       {/* Result */}
       <div
-        className="bg-brand-50 border border-brand-200 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-brand-100 transition-colors"
+        className="bg-terrain/30 border border-card-border rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-terrain transition-colors"
         onClick={handleCopyResult}
         title="Click to copy"
       >
         <div>
-          <p className="text-xs text-brand-600 font-medium mb-0.5">
+          <p className="text-xs text-ink font-medium mb-0.5">
             {formatAmount(numericAmount, fromCurrency)} {fromCurrency} =
           </p>
-          <p className="text-2xl font-bold text-brand-700">
+          <p className="text-2xl font-bold text-ink">
             {formatAmount(result, toCurrency)}{' '}
             <span className="text-base font-semibold">{toCurrency}</span>
           </p>
         </div>
-        <span className="text-brand-500 text-sm">
+        <span className="text-ink text-sm">
           {copied ? '✓ Copied' : (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -299,22 +299,22 @@ function CurrencyConverter({ destination }: { destination: string }) {
       {/* Rate indicator */}
       <div className="flex items-center justify-between">
         {ratesLoading ? (
-          <span className="text-xs text-ink-tertiary animate-pulse">Fetching live rates…</span>
+          <span className="text-xs text-inkText-tertiary animate-pulse">Fetching live rates…</span>
         ) : ratesLive ? (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="flex items-center gap-1.5 text-xs text-sage font-medium">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-sage" />
             Live rates
             {lastUpdated && (
-              <span className="text-ink-tertiary font-normal ml-0.5">· updated {lastUpdated}</span>
+              <span className="text-inkText-tertiary font-normal ml-0.5">· updated {lastUpdated}</span>
             )}
           </span>
         ) : (
-          <span className="flex items-center gap-1.5 text-xs text-ink-tertiary">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-ink-tertiary" />
+          <span className="flex items-center gap-1.5 text-xs text-inkText-tertiary">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-inkText-tertiary" />
             Estimated rates
           </span>
         )}
-        <p className="text-xs text-ink-tertiary">Check your bank for exact rates.</p>
+        <p className="text-xs text-inkText-tertiary">Check your bank for exact rates.</p>
       </div>
     </div>
   );
@@ -340,8 +340,8 @@ function EmergencyContacts({ destination }: { destination: string }) {
   return (
     <div className="space-y-3 pt-2">
       {info.note && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-          <p className="text-xs text-amber-700 font-medium">{info.note}</p>
+        <div className="bg-poppy-tint border border-poppy/30 rounded-xl px-3 py-2">
+          <p className="text-xs text-poppy font-medium">{info.note}</p>
         </div>
       )}
 
@@ -349,26 +349,26 @@ function EmergencyContacts({ destination }: { destination: string }) {
         <button
           key={label}
           onClick={() => copyNumber(number)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-surface-bg hover:bg-amber-50 hover:border-amber-200 border border-surface-muted rounded-xl transition-colors group"
+          className="w-full flex items-center justify-between px-4 py-3 bg-surface-bg hover:bg-marigold/10 hover:border-marigold/40 border border-surface-muted rounded-xl transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <div className="text-ink-tertiary group-hover:text-amber-600">
+            <div className="text-inkText-tertiary group-hover:text-marigold">
               <Icon />
             </div>
             <div className="text-left">
-              <p className="text-xs text-ink-tertiary font-medium">{label}</p>
-              <p className="text-base font-bold text-ink group-hover:text-amber-800">
+              <p className="text-xs text-inkText-tertiary font-medium">{label}</p>
+              <p className="text-base font-bold text-inkText group-hover:text-marigold">
                 {number}
               </p>
             </div>
           </div>
-          <span className="text-xs text-ink-tertiary group-hover:text-amber-600">
+          <span className="text-xs text-inkText-tertiary group-hover:text-marigold">
             {copiedNumber === number ? '✓ Copied' : 'Tap to copy'}
           </span>
         </button>
       ))}
 
-      <p className="text-xs text-ink-tertiary">
+      <p className="text-xs text-inkText-tertiary">
         Numbers for {destination}. Save them offline in case you lose data.
       </p>
     </div>
@@ -400,17 +400,17 @@ function QuickNotes({ trip }: { trip: Trip }) {
   return (
     <div className="pt-2">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-ink-tertiary">Jot down quick thoughts, addresses, tips…</p>
-        {saveStatus === 'saving' && <span className="text-xs text-ink-tertiary animate-pulse">Saving…</span>}
-        {saveStatus === 'saved'  && <span className="text-xs text-emerald-600 font-medium">✓ Saved</span>}
-        {saveStatus === 'error'  && <span className="text-xs text-amber-600">Failed to save</span>}
+        <p className="text-xs text-inkText-tertiary">Jot down quick thoughts, addresses, tips…</p>
+        {saveStatus === 'saving' && <span className="text-xs text-inkText-tertiary animate-pulse">Saving…</span>}
+        {saveStatus === 'saved'  && <span className="text-xs text-sage font-medium">✓ Saved</span>}
+        {saveStatus === 'error'  && <span className="text-xs text-poppy">Failed to save</span>}
       </div>
       <textarea
         value={text}
         onChange={(e) => handleChange(e.target.value)}
         placeholder="e.g. Hotel address: 123 Main St &#10;Restaurant tip: try the ramen near the station"
         rows={5}
-        className="w-full border border-surface-muted rounded-xl p-3 text-sm text-ink bg-surface-bg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white resize-none transition-colors"
+        className="w-full border border-surface-muted rounded-xl p-3 text-sm text-inkText bg-surface-bg focus:outline-none focus:ring-2 focus:ring-ink focus:bg-white resize-none transition-colors"
       />
     </div>
   );
@@ -430,14 +430,14 @@ export default function LiveToolsPanel({ trip }: LiveToolsPanelProps) {
       className="space-y-3"
     >
       {/* Header */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+      <div className="bg-sage-tint border border-sage/30 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-1">
-          <div className="text-emerald-600">
+          <div className="text-sage">
             <WrenchIcon />
           </div>
-          <h3 className="text-base font-semibold text-emerald-800">Live Travel Tools</h3>
+          <h3 className="text-base font-semibold text-sage">Live Travel Tools</h3>
         </div>
-        <p className="text-xs text-emerald-700">
+        <p className="text-xs text-sage">
           You're in {trip.destination} right now — here are your on-the-ground essentials.
         </p>
       </div>

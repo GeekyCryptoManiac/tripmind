@@ -14,34 +14,13 @@ import { apiService } from '../../services/api';
 import type { Trip } from '../../types';
 import type { TripPhase } from '../../utils/tripStatus';
 import { formatDateShort } from './helpers';
+import TripStatusBadge from '../../components/TripStatusBadge';
 
 interface TripDetailsHeroProps {
   trip: Trip;
   phase: TripPhase;
   onBack: () => void;
   onTripUpdate?: (trip: Trip) => void;
-}
-
-// Status badge config
-const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  planning:  { label: 'Planning',  dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
-  'pre-trip': { label: 'Pre-Trip', dot: 'bg-gold',  badge: 'bg-terrain text-ink ring-card-border' },
-  booked:    { label: 'Booked',   dot: 'bg-gold',   badge: 'bg-terrain text-ink ring-card-border' },
-  active:    { label: 'Active',   dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
-  completed: { label: 'Completed', dot: 'bg-forest', badge: 'bg-terrain text-ink ring-card-border' },
-  cancelled: { label: 'Cancelled', dot: 'bg-sage',  badge: 'bg-terrain text-ink ring-card-border' },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? {
-    label: status, dot: 'bg-sage', badge: 'bg-terrain text-ink ring-card-border',
-  };
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${cfg.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
 }
 
 const CameraIcon = () => (
@@ -80,6 +59,16 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
       ? `${trip.origin} → ${trip.destination}`
       : null;
 
+  // Hero stat row — same "$" + toLocaleString budget convention used
+  // everywhere else in the app (TripSummaryCard, OverviewTab, TripCard);
+  // no currency-aware or abbreviated ("k") formatting exists anywhere in
+  // the codebase to match instead. Null budget falls back to "—" rather
+  // than the sidebar's full "No budget set" sentence, since this is a
+  // compact stat slot, not a sentence-length label.
+  const activitiesCount = trip.activities.length;
+  const checkedInCount = trip.activities.filter((a) => a.checked_in_at).length;
+  const budgetDisplay = trip.budget ? `$${trip.budget.toLocaleString()}` : '—';
+
   // Build absolute photo URL from the stored relative path
   const apiBase = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000';
   const photoUrl = trip.cover_image_url ? `${apiBase}${trip.cover_image_url}` : null;
@@ -117,7 +106,7 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
   };
 
   return (
-    <div className="relative w-full overflow-hidden group/hero" style={{ minHeight: '260px' }}>
+    <div className="relative w-full overflow-hidden group/hero" style={{ minHeight: '300px' }}>
 
       {/* Hidden file input — use label htmlFor to trigger it reliably */}
       <input
@@ -140,7 +129,7 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
       ) : (
         // Cartographic placeholder
         <>
-          <div className="absolute inset-0 bg-forest" />
+          <div className="absolute inset-0 bg-ink" />
           <div className="absolute inset-0 carto-grid opacity-30 pointer-events-none" />
         </>
       )}
@@ -153,7 +142,7 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
         <div className="absolute top-4 right-16 flex gap-2 opacity-0 group-hover/hero:opacity-100 transition-opacity duration-200 z-10">
           <label
             htmlFor={`photo-upload-${trip.id}`}
-            className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-ink text-xs font-semibold rounded-xl ring-1 ring-black/10 hover:bg-white transition-colors shadow-sm cursor-pointer ${isUploading || isDeleting ? 'opacity-60 pointer-events-none' : ''}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-inkText text-xs font-semibold rounded-xl ring-1 ring-black/10 hover:bg-white transition-colors shadow-sm cursor-pointer ${isUploading || isDeleting ? 'opacity-60 pointer-events-none' : ''}`}
           >
             <CameraIcon />
             {isUploading ? 'Uploading…' : 'Change'}
@@ -161,7 +150,7 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
           <button
             onClick={handleDelete}
             disabled={isDeleting || isUploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-red-600 text-xs font-semibold rounded-xl ring-1 ring-black/10 hover:bg-white transition-colors shadow-sm disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-poppy text-xs font-semibold rounded-xl ring-1 ring-black/10 hover:bg-white transition-colors shadow-sm disabled:opacity-60"
           >
             <TrashIcon />
             {isDeleting ? 'Removing…' : 'Remove'}
@@ -172,15 +161,15 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
       {/* ── Upload CTA (shown only when no photo yet) ─────── */}
       {!photoUrl && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-forest/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 ring-1 ring-[#E8DECE]/20">
+          <div className="w-16 h-16 rounded-full bg-ink/60 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 ring-1 ring-cream/20">
             <div className="text-sage">
               <CameraIcon />
             </div>
           </div>
-          <p className="text-[#E8DECE]/70 text-sm font-medium">Add Your Trip Photos</p>
+          <p className="text-cream/70 text-sm font-medium">Add Your Trip Photos</p>
           <label
             htmlFor={`photo-upload-${trip.id}`}
-            className={`mt-3 px-4 py-2 bg-forest/40 backdrop-blur-sm text-[#E8DECE] text-xs font-semibold rounded-xl ring-1 ring-[#E8DECE]/20 hover:bg-forest/60 transition-colors shadow-sm cursor-pointer ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
+            className={`mt-3 px-4 py-2 bg-ink/40 backdrop-blur-sm text-cream text-xs font-semibold rounded-xl ring-1 ring-cream/20 hover:bg-ink/60 transition-colors shadow-sm cursor-pointer ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {isUploading ? 'Uploading…' : '+ Upload Photo'}
           </label>
@@ -189,12 +178,12 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
 
       {/* ── Error banner ─────────────────────────────────── */}
       {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-4 py-2 rounded-xl shadow-sm">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-poppy-tint border border-poppy/30 text-poppy text-xs font-medium px-4 py-2 rounded-xl shadow-sm">
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {error}
-          <button onClick={() => setError(null)} className="ml-1 hover:text-red-900">✕</button>
+          <button onClick={() => setError(null)} className="ml-1 hover:text-poppy/70">✕</button>
         </div>
       )}
 
@@ -210,21 +199,51 @@ export default function TripDetailsHero({ trip, phase, onBack, onTripUpdate }: T
                 {routeLabel}
               </p>
             )}
-            <h1 className="font-display text-[2rem] drop-shadow-sm text-[#E8DECE]">
+            <h1 className="font-display text-[2rem] drop-shadow-sm text-cream">
               {trip.destination}
             </h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <StatusBadge status={phase} />
-              <span className="text-sm font-medium drop-shadow-sm text-[#E8DECE]/70">
+              <TripStatusBadge status={phase} />
+              <span className="text-sm font-medium drop-shadow-sm text-cream/70">
                 {formatDateShort(trip.start_date)}
                 {trip.end_date && ` – ${formatDateShort(trip.end_date)}`}
                 {endYear && `, ${endYear}`}
               </span>
             </div>
+
+            {/* Stat row — reuses the same bottom gradient overlay as the rest of
+                this block, so it stays legible against both an uploaded photo
+                and the ink placeholder background without any extra handling. */}
+            <div className="flex items-center gap-6 mt-3">
+              <div>
+                <p className="font-display text-2xl font-semibold text-marigold leading-none drop-shadow-sm">
+                  {activitiesCount}
+                </p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-cream/60 mt-1">
+                  Activities
+                </p>
+              </div>
+              <div>
+                <p className="font-display text-2xl font-semibold text-marigold leading-none drop-shadow-sm">
+                  {budgetDisplay}
+                </p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-cream/60 mt-1">
+                  Budgeted
+                </p>
+              </div>
+              <div>
+                <p className="font-display text-2xl font-semibold text-marigold leading-none drop-shadow-sm">
+                  {checkedInCount}
+                </p>
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-cream/60 mt-1">
+                  Checked In
+                </p>
+              </div>
+            </div>
           </div>
           <button
             onClick={onBack}
-            className="pointer-events-auto font-mono text-[10px] tracking-[0.1em] uppercase text-sage hover:text-[#E8DECE] transition-colors flex items-center gap-1 bg-forest/40 backdrop-blur-sm px-3 py-1.5 rounded-xl ring-1 ring-[#E8DECE]/10"
+            className="pointer-events-auto font-mono text-[10px] tracking-[0.1em] uppercase text-sage hover:text-cream transition-colors flex items-center gap-1 bg-ink/40 backdrop-blur-sm px-3 py-1.5 rounded-xl ring-1 ring-cream/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
