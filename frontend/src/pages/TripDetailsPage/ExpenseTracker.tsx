@@ -142,14 +142,6 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
   const spentPct = budget > 0 ? Math.min(100, Math.round((totalSpentUSD / budget) * 100)) : 0;
   const overBudget = budget > 0 && totalSpentUSD > budget;
 
-  const categoryTotals = CATEGORIES.map((cat) => ({
-    ...cat,
-    ...getExpenseCategoryStyle(cat.value),
-    totalUSD: expenses
-      .filter((e) => e.category === cat.value)
-      .reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0),
-  })).filter((c) => c.totalUSD > 0);
-
   const setSaved = () => {
     setSaveStatus('saved');
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
@@ -366,30 +358,6 @@ export default function ExpenseTracker({ trip, onTripUpdate }: ExpenseTrackerPro
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Category breakdown */}
-      {categoryTotals.length > 0 && (
-        <div>
-          <p className="font-mono text-[11px] uppercase text-sage tracking-[0.1em] mb-2">By Category</p>
-          <div className="flex flex-wrap gap-2">
-            {categoryTotals.map((cat) => (
-              <div
-                key={cat.value}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-                style={{ backgroundColor: cat.bg }}
-              >
-                <div style={{ color: cat.text }}>
-                  <cat.Icon className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-xs font-semibold" style={{ color: cat.text }}>{cat.label}</span>
-                <span className="text-xs font-bold" style={{ color: cat.text }}>
-                  ${cat.totalUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Expense list */}
       {expenses.length > 0 && (

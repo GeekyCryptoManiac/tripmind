@@ -96,9 +96,18 @@ export default function ActivityTimeline({
 
       {/* Timeline */}
       {day.activities.length > 0 ? (
-        <div className="relative pl-20">
-          {/* Vertical line */}
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-card-border" />
+        <div className="relative pl-8">
+          {/* Vertical connector — dashed, matching the dashed-stitch motif
+              established in Navbar.tsx (border-dashed, not a filled bar);
+              recolored for this light bg-cream context (ink/20 instead of
+              cream/15, since Navbar's version sits on a dark nav bar).
+              left-8 matches ActivityCard's icon circle center exactly
+              (icon is w-10 at -left-5 off the card edge, so its center sits
+              at the card edge itself — i.e. at this container's pl value) —
+              the line passes behind each icon node, not just alongside it.
+              Gutter shrunk from pl-20 to pl-8 now that the time label has
+              moved inside the card and no longer needs gutter space. */}
+          <div className="absolute left-8 top-0 bottom-0 border-l-2 border-dashed border-ink/20" />
 
           {/* Activity cards */}
           <motion.div

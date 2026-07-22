@@ -102,6 +102,17 @@ export interface ActivityCreateRequest {
   sort_order?:  number;
 }
 
+// Partial prefill for AddActivityModal — e.g. from an AI recommendation card.
+// `day` and `time` are deliberately excluded: `day` still comes from context
+// (which day's "+ Add" was clicked), `time` keeps its existing required-field
+// behavior unchanged.
+export interface ActivityPrefill {
+  title?:       string;
+  type?:        ActivityType;
+  description?: string;
+  notes?:       string;
+}
+
 export interface ActivityUpdateRequest {
   time?:           string;
   type?:           ActivityType;
