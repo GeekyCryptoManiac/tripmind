@@ -13,7 +13,8 @@ import { motion } from 'framer-motion';
 import { apiService } from '../services/api';
 import { getExpenseCategoryStyle } from '../utils/categoryStyles';
 import { FanCarousel, type FanCarouselItem } from '../components/FanCarousel';
-import type { Activity, ActivityMedia, Trip } from '../types';
+import AddExpenseModal from '../components/AddExpenseModal';
+import type { Activity, ActivityMedia, Trip, WeatherData } from '../types';
 
 // ─────────────────────────────────────────────────────────────
 // Types / helpers
@@ -39,6 +40,20 @@ function computeTemporalState(tripStartDate: string | null, activityDay: number)
   if (actDate < today) return 'after';
   if (actDate.getTime() === today.getTime()) return 'today';
   return 'before';
+}
+
+// Signed day-count from today to the activity's date (negative = past,
+// 0 = today, positive = future). Used to gate AI tip generation to the
+// documented "within 7 days before the activity date" window.
+function daysUntilActivity(tripStartDate: string | null, activityDay: number): number | null {
+  if (!tripStartDate) return null;
+  const start = toUTCMidnight(tripStartDate);
+  const actMs = start.getTime() + (activityDay - 1) * 86_400_000;
+
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+
+  return Math.round((actMs - today.getTime()) / 86_400_000);
 }
 
 function formatDate(tripStartDate: string | null, day: number): string {
@@ -177,6 +192,29 @@ function Skeleton() {
 // ─────────────────────────────────────────────────────────────
 // Shared sections
 // ─────────────────────────────────────────────────────────────
+
+function weatherEmoji(condition: WeatherData['condition']): string {
+  if (condition === 'sunny') return '☀️';
+  if (condition === 'cloudy') return '☁️';
+  return '🌧️';
+}
+
+// Renders nothing until weather_data is actually populated — covers both
+// "not yet fetched" (still pending) and "not available" (no source for
+// this date) with the same simple absence, rather than a broken/stale
+// placeholder. source distinguishes an archived reading from a forecast
+// via the tooltip, since a future forecast is inherently less certain.
+function WeatherPill({ weather }: { weather: WeatherData | null }) {
+  if (!weather) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain/40 border border-card-border rounded-full text-xs text-sage"
+      title={weather.source === 'archive' ? 'Historical reading' : 'Forecast'}
+    >
+      {weatherEmoji(weather.condition)} {Math.round(weather.temp_c)}°C
+    </span>
+  );
+}
 
 function DescriptionBlock({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -347,7 +385,15 @@ function BookingSection({ activity }: { activity: Activity }) {
   );
 }
 
-function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity }) {
+function ExpensesSection({
+  trip,
+  activity,
+  onAddExpense,
+}: {
+  trip: Trip;
+  activity: Activity;
+  onAddExpense: () => void;
+}) {
   const activityExpenses = (trip.expenses ?? []).filter(
     (e) => e.activity_id === activity.id
   );
@@ -358,11 +404,9 @@ function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity })
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">
           Expenses at this stop
         </h3>
-        {/* TODO: open add-expense modal pre-filled with activity_id={activity.id} */}
         <button
-          disabled
-          title="Coming soon — expense linking from activity page"
-          className="flex items-center gap-1 text-xs text-sage/40 cursor-not-allowed"
+          onClick={onAddExpense}
+          className="flex items-center gap-1 text-xs text-sage hover:text-ink transition-colors"
         >
           <PlusIcon />
           Add expense
@@ -611,9 +655,7 @@ function AfterHeader({ activity, trip }: { activity: Activity; trip: Trip }) {
             <MapPinIcon />
             {activity.location}
           </a>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain/40 border border-card-border rounded-full text-xs text-sage">
-            ☀️ -- °C
-          </span>
+          <WeatherPill weather={activity.weather_data} />
         </div>
       )}
 
@@ -702,9 +744,7 @@ function BeforeHeader({
                 <MapPinIcon />
                 {activity.location}
               </a>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-terrain/40 border border-card-border rounded-full text-xs text-sage">
-                ☀️ -- °C
-              </span>
+              <WeatherPill weather={activity.weather_data} />
             </div>
           )}
         </div>
@@ -837,6 +877,7 @@ export default function ActivityDetailPage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [localNotes, setLocalNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initializedNotesRef = useRef<string | null>(null);
@@ -869,6 +910,65 @@ export default function ActivityDetailPage() {
     load();
   }, [tripId, activityId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── AI tip generation trigger — one prompt per day per trip, fired
+  // once per activity on first load when ai_tip is still null and the
+  // activity falls within 7 days before its date (never after — a past
+  // activity's tip is no longer useful and AfterHeader doesn't show it
+  // anyway). tipsRequestedRef guards against refiring on unrelated
+  // re-renders (e.g. trip state updates from other actions on this page).
+  const tipsRequestedRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!activity || !trip) return;
+    if (activity.ai_tip) return;
+    if (tipsRequestedRef.current === activity.id) return;
+
+    const daysUntil = daysUntilActivity(trip.start_date, activity.day);
+    if (daysUntil === null || daysUntil < 0 || daysUntil > 7) return;
+
+    tipsRequestedRef.current = activity.id;
+
+    apiService.generateActivityTips(numTripId, activity.day)
+      .then((dayActivities) => {
+        const mine = dayActivities.find((a) => a.id === activity.id);
+        if (mine?.ai_tip) {
+          setActivity((prev) => (prev && prev.id === mine.id ? { ...prev, ai_tip: mine.ai_tip } : prev));
+        }
+      })
+      .catch((err) => {
+        console.error('[ActivityDetailPage] Tip generation failed:', err);
+      });
+  }, [activity, trip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Weather fetch trigger — fired once per activity when weather_data
+  // is still null and a location exists. The forecast-vs-archive-vs-
+  // unavailable date branching happens entirely server-side (using
+  // trip.start_date, already available to the endpoint), so unlike the
+  // tip trigger this doesn't need its own date-window check here — same
+  // one-shot-per-activity ref guard pattern, though.
+  const weatherRequestedRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!activity) return;
+    if (activity.weather_data) return;
+    if (!activity.location) return;
+    if (weatherRequestedRef.current === activity.id) return;
+
+    weatherRequestedRef.current = activity.id;
+
+    apiService.getActivityWeather(numTripId, activity.id)
+      .then((res) => {
+        if (res.weather) {
+          setActivity((prev) => (prev && prev.id === activity.id ? { ...prev, weather_data: res.weather } : prev));
+        }
+        // not_applicable / not_available — nothing to set; ref guard
+        // already prevents refiring for this activity.
+      })
+      .catch((err) => {
+        console.error('[ActivityDetailPage] Weather fetch failed:', err);
+      });
+  }, [activity]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Notes autosave (1.5 s debounce) ──────────────────────
   useEffect(() => {
     if (initializedNotesRef.current === null) return;
@@ -898,6 +998,15 @@ export default function ActivityDetailPage() {
     } catch {
       // silent — don't overwrite existing data on refresh failure
     }
+  };
+
+  // ── Add-expense submit — same refetch+setTrip pattern this page
+  // already uses for its own initial load (no onTripUpdate prop here,
+  // since this page owns its trip state locally, unlike OverviewTab).
+  const handleAddExpenseSubmit = async (expenseData: Parameters<typeof apiService.addExpense>[1]) => {
+    await apiService.addExpense(numTripId, expenseData);
+    const updatedTrip = await apiService.getTrip(numTripId);
+    setTrip(updatedTrip);
   };
 
   // ── Checkin handler ───────────────────────────────────────
@@ -991,7 +1100,11 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection trip={trip} activity={activity} />
+            <ExpensesSection
+              trip={trip}
+              activity={activity}
+              onAddExpense={() => setAddExpenseModalOpen(true)}
+            />
 
             <BookingSection activity={activity} />
           </>
@@ -1020,7 +1133,11 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection trip={trip} activity={activity} />
+            <ExpensesSection
+              trip={trip}
+              activity={activity}
+              onAddExpense={() => setAddExpenseModalOpen(true)}
+            />
 
             <BookingSection activity={activity} />
           </>
@@ -1032,6 +1149,14 @@ export default function ActivityDetailPage() {
         )}
 
       </div>
+
+      <AddExpenseModal
+        isOpen={addExpenseModalOpen}
+        activityId={activity.id}
+        activityTitle={activity.title}
+        onClose={() => setAddExpenseModalOpen(false)}
+        onSubmit={handleAddExpenseSubmit}
+      />
     </div>
   );
 }

@@ -69,6 +69,21 @@ export interface ActivityMedia {
   created_at:    string;
 }
 
+export interface WeatherData {
+  temp_c:    number;
+  condition: 'sunny' | 'cloudy' | 'rainy';
+  source:    'forecast' | 'archive';
+}
+
+// Distinguishes "haven't tried" states weather_data alone can't:
+// cached (already had it) / fetched (just resolved) / not_applicable
+// (no location) / not_available (geocode failed, or outside both the
+// forecast window and the archive's backfill lag).
+export interface ActivityWeatherResponse {
+  status:  'cached' | 'fetched' | 'not_applicable' | 'not_available';
+  weather: WeatherData | null;
+}
+
 export interface Activity {
   id:             number;           // integer PK — was a uuid string
   trip_id:        number;
@@ -81,6 +96,7 @@ export interface Activity {
   notes:          string | null;    // AI itinerary recommendation
   user_notes:     string | null;    // traveller diary entry
   ai_tip:         string | null;
+  weather_data:   WeatherData | null;
   booking_ref:    string | null;
   booking_url:    string | null;
   checked_in_at:  string | null;    // ISO datetime

@@ -17,7 +17,7 @@ _pg.JSONB = _JSON
 import unittest.mock as _mock
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
@@ -40,6 +40,19 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# SQLite ignores FK constraints per-connection unless explicitly told
+# otherwise, which lets ON DELETE SET NULL/CASCADE behavior silently
+# diverge from production (Postgres, where FKs are always enforced).
+# Attached to this test-only `engine` object (not app.database.engine,
+# which production/Postgres uses), with a dialect check as a second guard.
+@event.listens_for(engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+    if engine.dialect.name == "sqlite":
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 # ── Rate limiter — reset shared in-memory state between tests ─

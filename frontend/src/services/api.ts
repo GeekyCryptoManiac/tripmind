@@ -28,6 +28,7 @@ import type {
   ActivityCreateRequest,
   ActivityUpdateRequest,
   ActivityMediaCreateRequest,
+  ActivityWeatherResponse,
   Expense,
   ExpenseCreateRequest,
   ExpenseUpdateRequest,
@@ -272,6 +273,18 @@ export const apiService = {
   async checkInActivity(tripId: number, activityId: number): Promise<Activity> {
     return (
       await api.post<Activity>(`/api/trips/${tripId}/activities/${activityId}/checkin`)
+    ).data;
+  },
+
+  async generateActivityTips(tripId: number, day: number): Promise<Activity[]> {
+    return (
+      await api.post<Activity[]>(`/api/trips/${tripId}/activities/day/${day}/tips`)
+    ).data;
+  },
+
+  async getActivityWeather(tripId: number, activityId: number): Promise<ActivityWeatherResponse> {
+    return (
+      await api.post<ActivityWeatherResponse>(`/api/trips/${tripId}/activities/${activityId}/weather`)
     ).data;
   },
 
