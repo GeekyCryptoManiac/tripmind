@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { apiService } from '../services/api';
 import { getExpenseCategoryStyle } from '../utils/categoryStyles';
 import { FanCarousel, type FanCarouselItem } from '../components/FanCarousel';
+import AddExpenseModal from '../components/AddExpenseModal';
 import type { Activity, ActivityMedia, Trip } from '../types';
 
 // ─────────────────────────────────────────────────────────────
@@ -347,7 +348,15 @@ function BookingSection({ activity }: { activity: Activity }) {
   );
 }
 
-function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity }) {
+function ExpensesSection({
+  trip,
+  activity,
+  onAddExpense,
+}: {
+  trip: Trip;
+  activity: Activity;
+  onAddExpense: () => void;
+}) {
   const activityExpenses = (trip.expenses ?? []).filter(
     (e) => e.activity_id === activity.id
   );
@@ -358,11 +367,9 @@ function ExpensesSection({ trip, activity }: { trip: Trip; activity: Activity })
         <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-sage">
           Expenses at this stop
         </h3>
-        {/* TODO: open add-expense modal pre-filled with activity_id={activity.id} */}
         <button
-          disabled
-          title="Coming soon — expense linking from activity page"
-          className="flex items-center gap-1 text-xs text-sage/40 cursor-not-allowed"
+          onClick={onAddExpense}
+          className="flex items-center gap-1 text-xs text-sage hover:text-ink transition-colors"
         >
           <PlusIcon />
           Add expense
@@ -837,6 +844,7 @@ export default function ActivityDetailPage() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [localNotes, setLocalNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initializedNotesRef = useRef<string | null>(null);
@@ -898,6 +906,15 @@ export default function ActivityDetailPage() {
     } catch {
       // silent — don't overwrite existing data on refresh failure
     }
+  };
+
+  // ── Add-expense submit — same refetch+setTrip pattern this page
+  // already uses for its own initial load (no onTripUpdate prop here,
+  // since this page owns its trip state locally, unlike OverviewTab).
+  const handleAddExpenseSubmit = async (expenseData: Parameters<typeof apiService.addExpense>[1]) => {
+    await apiService.addExpense(numTripId, expenseData);
+    const updatedTrip = await apiService.getTrip(numTripId);
+    setTrip(updatedTrip);
   };
 
   // ── Checkin handler ───────────────────────────────────────
@@ -991,7 +1008,11 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection trip={trip} activity={activity} />
+            <ExpensesSection
+              trip={trip}
+              activity={activity}
+              onAddExpense={() => setAddExpenseModalOpen(true)}
+            />
 
             <BookingSection activity={activity} />
           </>
@@ -1020,7 +1041,11 @@ export default function ActivityDetailPage() {
               onChange={setLocalNotes}
             />
 
-            <ExpensesSection trip={trip} activity={activity} />
+            <ExpensesSection
+              trip={trip}
+              activity={activity}
+              onAddExpense={() => setAddExpenseModalOpen(true)}
+            />
 
             <BookingSection activity={activity} />
           </>
@@ -1032,6 +1057,14 @@ export default function ActivityDetailPage() {
         )}
 
       </div>
+
+      <AddExpenseModal
+        isOpen={addExpenseModalOpen}
+        activityId={activity.id}
+        activityTitle={activity.title}
+        onClose={() => setAddExpenseModalOpen(false)}
+        onSubmit={handleAddExpenseSubmit}
+      />
     </div>
   );
 }
