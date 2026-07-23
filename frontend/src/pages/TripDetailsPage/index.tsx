@@ -16,7 +16,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUser } from '../../context/UserContext';
 import { apiService } from '../../services/api';
-import type { Trip } from '../../types';
+import type { Trip, ActivityCreateRequest, ActivityPrefill } from '../../types';
 import type { TripChatContext } from '../../types/chat';
 import ChatInterface from '../../components/ChatInterface';
 import TripEditModal from '../../components/TripEditModal';
@@ -30,7 +30,8 @@ import TravelTab from './TravelTab';
 import PhotosTab from './PhotosTab';
 import WaypointEditor from './WaypointEditor';
 import StatusBanner from './StatusBanner';
-import { useTripPhase } from '../../utils/tripStatus';
+import AddActivityModal from './ItineraryTab/AddActivityModal';
+import { useTripPhase, getTripTotalDays } from '../../utils/tripStatus';
 import { exportTripPDF } from '../../utils/exportPDF';
 import { type TabType, type TravelSubTab, getProgressTasks } from './helpers';
 import ErrorBoundary from '../../components/ErrorBoundary';
@@ -275,6 +276,13 @@ export default function TripDetailsPage() {
   const [notes, setNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
+  // ── Shared add-activity modal — owned here (not per-tab) so both
+  // ItineraryTab's manual "+ Add activity" and OverviewTab's recommendation
+  // "+ Add to Day X" open the same instance instead of two parallel flows.
+  const [addActivityModalOpen, setAddActivityModalOpen] = useState(false);
+  const [addActivityDay, setAddActivityDay] = useState(1);
+  const [addActivityPrefill, setAddActivityPrefill] = useState<ActivityPrefill | undefined>(undefined);
+
   const menuRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasInitializedNotes = useRef(false);
@@ -358,6 +366,22 @@ export default function TripDetailsPage() {
     }
   };
 
+  // ── Shared add-activity modal — open + submit ─────────────
+  // Passed to both ItineraryTab (manual add, no prefill) and OverviewTab
+  // (recommendation "+ Add to Day X", with prefill).
+  const handleOpenAddActivity = (day: number, prefill?: ActivityPrefill) => {
+    setAddActivityDay(day);
+    setAddActivityPrefill(prefill);
+    setAddActivityModalOpen(true);
+  };
+
+  const handleAddActivitySubmit = async (activityData: ActivityCreateRequest) => {
+    if (!trip) return;
+    await apiService.addActivity(trip.id, activityData);
+    const updatedTrip = await apiService.getTrip(trip.id);
+    setTrip(updatedTrip);
+  };
+
   // ── Derived state ─────────────────────────────────────────
   const progressTasks = trip ? getProgressTasks(trip) : [];
   const completedCount = progressTasks.filter((t) => t.completed).length;
@@ -386,6 +410,8 @@ export default function TripDetailsPage() {
   const { phase, daysUntil, currentDay } = trip
     ? useTripPhase(trip)
     : { phase: 'planning' as const, daysUntil: 0, currentDay: 1 };
+
+  const totalDays = trip ? getTripTotalDays(trip) : 1;
 
   if (isLoading) return <TripDetailsSkeleton />;
 
@@ -515,7 +541,13 @@ export default function TripDetailsPage() {
                   <motion.div key="overview"
                     initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.2 }}>
-                    <OverviewTab trip={trip} phase={phase} onTripUpdate={setTrip} />
+                    <OverviewTab
+                      trip={trip}
+                      phase={phase}
+                      currentDay={currentDay}
+                      onTripUpdate={setTrip}
+                      onOpenAddActivity={handleOpenAddActivity}
+                    />
                   </motion.div>
                 )}
 
@@ -541,6 +573,7 @@ export default function TripDetailsPage() {
                       onTripUpdate={setTrip}
                       phase={phase}
                       currentDay={currentDay}
+                      onOpenAddActivity={handleOpenAddActivity}
                     />
                   </motion.div>
                 )}
@@ -611,6 +644,20 @@ export default function TripDetailsPage() {
           isOpen={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSave={(updated) => { setTrip(updated); setEditModalOpen(false); }}
+        />
+      )}
+
+      {/* Add Activity Modal — shared by ItineraryTab's manual add and
+          OverviewTab's recommendation "+ Add to Day X" (see handleOpenAddActivity) */}
+      {trip && (
+        <AddActivityModal
+          isOpen={addActivityModalOpen}
+          day={addActivityDay}
+          totalDays={totalDays}
+          tripDestination={trip.destination}
+          prefill={addActivityPrefill}
+          onClose={() => setAddActivityModalOpen(false)}
+          onSubmit={handleAddActivitySubmit}
         />
       )}
 

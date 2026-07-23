@@ -9,17 +9,37 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Trip, TravelAlert, Recommendation, AlertSeverity, AlertCategory, RecommendationCategory } from '../../types';
+import type { Trip, TravelAlert, Recommendation, AlertSeverity, AlertCategory, RecommendationCategory, ActivityPrefill } from '../../types';
 import type { TripPhase } from '../../utils/tripStatus';
 import { apiService } from '../../services/api';
-import { formatDate } from './helpers';
+import { isRecommendationPlanned, findMatchedActivity } from '../../utils/recommendations';
+import { getTotalSpentUSD } from '../../utils/currency';
 import LiveToolsPanel from './LiveToolsPanel';
 import ExpenseTracker from './ExpenseTracker';
 
 interface OverviewTabProps {
   trip: Trip;
   phase: TripPhase;
+  currentDay: number;
   onTripUpdate: (updated: Trip) => void;
+  onOpenAddActivity: (day: number, prefill?: ActivityPrefill) => void;
+}
+
+// AI recommendations carry no day/date of their own — the "+ Add to Day X"
+// action needs some default landing day, and there's nothing in the
+// Recommendation shape to derive a better one from. Note: an activity's
+// `day` cannot be edited after creation (ActivityUpdate has no `day`
+// field), so a recommendation added here always lands on this fixed day —
+// the user would need to delete and re-add to move it, same as any other
+// manually-added activity today.
+const RECOMMENDATION_DEFAULT_DAY = 1;
+
+// Per the task spec: only `food` has an unambiguous activity-type mapping.
+// must_see/hidden_gem/practical are deliberately left unmapped so the
+// backend's existing `type` default ("activity") applies — inventing a
+// forced mapping for those three wasn't part of the ask.
+function categoryToActivityType(category: RecommendationCategory): 'dining' | undefined {
+  return category === 'food' ? 'dining' : undefined;
 }
 
 // ── sessionStorage helpers ────────────────────────────────────
@@ -61,41 +81,6 @@ function TypingDots() {
 }
 
 // ── SVG Icons ─────────────────────────────────────────────────
-const GlobeIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const CurrencyIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const UsersIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-  </svg>
-);
-
 const AlertIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -114,6 +99,12 @@ const RefreshIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
   </svg>
 );
 
@@ -172,8 +163,58 @@ function SeverityIcon({ severity }: { severity: AlertSeverity }) {
   );
 }
 
+const ChevronDownIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+// ── Alert row — collapsible: label + one-line summary, expands on click
+// for full detail. Left-border accent reuses SEVERITY_STYLES' existing
+// `border`/`icon`/`badge` color values exactly as-is (just applied as a
+// border-l-4 accent instead of an all-sides border) — no new severity
+// colors introduced.
+function AlertRow({ alert }: { alert: TravelAlert }) {
+  const [expanded, setExpanded] = useState(false);
+  const styles = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
+
+  return (
+    <div className={`${styles.bg} border-l-4 ${styles.border} rounded-r-lg`}>
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full flex items-start gap-3 p-4 text-left"
+      >
+        <div className={`${styles.icon} mt-0.5 flex-shrink-0`}>
+          <SeverityIcon severity={alert.severity} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <p className="text-sm font-semibold text-inkText">{alert.title}</p>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles.badge}`}>
+              {CATEGORY_LABELS[alert.category] ?? alert.category}
+            </span>
+          </div>
+          {!expanded && (
+            <p className="text-sm text-inkText-secondary leading-relaxed truncate">
+              {alert.description}
+            </p>
+          )}
+        </div>
+        <div className={`flex-shrink-0 text-sage transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <ChevronDownIcon />
+        </div>
+      </button>
+      {expanded && (
+        <div className="pl-[3.25rem] pr-4 pb-4 -mt-1">
+          <p className="text-sm text-inkText-secondary leading-relaxed">{alert.description}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Travel Alerts Panel ───────────────────────────────────────
-function TravelAlertsPanel({ trip }: { trip: Trip }) {
+function TravelAlertsPanel({ trip, phase }: { trip: Trip; phase: TripPhase }) {
   const cacheKey = `tagalong_alerts_${trip.id}`;
 
   // Seed priority: DB-persisted trip.ai_alerts → sessionStorage → empty
@@ -218,7 +259,9 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="text-marigold"><AlertIcon /></div>
-          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Alerts & News</h3>
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">
+            {phase === 'active' ? 'Relevant Right Now' : 'Travel Alerts & News'}
+          </h3>
         </div>
         <button
           onClick={() => fetchAlerts(true)}
@@ -247,28 +290,10 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
           </motion.div>
         ) : alerts.length > 0 ? (
           <motion.div key="alerts" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="space-y-3">
-            {alerts.map((alert) => {
-              const styles = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
-              return (
-                <div key={alert.id} className={`${styles.bg} border ${styles.border} rounded-xl p-4`}>
-                  <div className="flex items-start gap-3">
-                    <div className={`${styles.icon} mt-0.5 flex-shrink-0`}>
-                      <SeverityIcon severity={alert.severity} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-sm font-semibold text-inkText">{alert.title}</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles.badge}`}>
-                          {CATEGORY_LABELS[alert.category] ?? alert.category}
-                        </span>
-                      </div>
-                      <p className="text-sm text-inkText-secondary leading-relaxed">{alert.description}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            className="space-y-2">
+            {alerts.map((alert) => (
+              <AlertRow key={alert.id} alert={alert} />
+            ))}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -277,7 +302,15 @@ function TravelAlertsPanel({ trip }: { trip: Trip }) {
 }
 
 // ── AI Recommendations Panel ──────────────────────────────────
-function AIRecommendationsPanel({ trip }: { trip: Trip }) {
+function AIRecommendationsPanel({
+  trip,
+  phase,
+  onOpenAddActivity,
+}: {
+  trip: Trip;
+  phase: TripPhase;
+  onOpenAddActivity: (day: number, prefill?: ActivityPrefill) => void;
+}) {
   const cacheKey = `tagalong_recommendations_${trip.id}`;
 
   // Seed priority: DB-persisted trip.ai_recommendations → sessionStorage → empty
@@ -321,7 +354,9 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="text-ink"><SparklesIcon /></div>
-          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">AI Recommendations</h3>
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">
+            {phase === 'active' ? 'Nearby & Contextual' : 'AI Recommendations'}
+          </h3>
         </div>
         <button
           onClick={() => fetchRecs(true)}
@@ -353,6 +388,7 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
             className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {recs.map((rec) => {
               const styles = REC_STYLES[rec.category] ?? REC_STYLES.practical;
+              const planned = isRecommendationPlanned(rec, trip.activities);
               return (
                 <div key={rec.id} className={`${styles.bg} border ${styles.border} rounded-xl p-4`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -373,6 +409,32 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
                       </span>
                     </p>
                   )}
+
+                  {/* Actionable: either already planned (exact-title match — see
+                      docs/KNOWN_ISSUES.md for the limitations of this rule), or a
+                      one-click add prefilled from this recommendation. Styling
+                      note: teal-dashed, matching ai_tip's teal = Sherpa/AI-origin
+                      convention from docs/DESIGN.md — this is AI-suggested content. */}
+                  {planned ? (
+                    <p className="mt-2 pt-2 border-t border-black/[0.06] text-xs font-medium text-sage">
+                      ✓ Already planned
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        onOpenAddActivity(RECOMMENDATION_DEFAULT_DAY, {
+                          title: rec.title,
+                          type: categoryToActivityType(rec.category),
+                          description: rec.description,
+                          notes: rec.tip,
+                        })
+                      }
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 border-2 border-dashed border-teal bg-teal/[0.08] hover:bg-teal/[0.15] rounded-lg font-mono text-[9px] uppercase tracking-[0.1em] text-teal transition-colors"
+                    >
+                      <PlusIcon />
+                      Add to Day {RECOMMENDATION_DEFAULT_DAY}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -383,8 +445,102 @@ function AIRecommendationsPanel({ trip }: { trip: Trip }) {
   );
 }
 
+// ── Completed-phase recap ──────────────────────────────────────
+// "Visited" relies entirely on checked_in_at — a same-day, user-initiated
+// confirmation on ActivityDetailPage that most first-time users won't know
+// exists. This undercounts real visits (someone may have genuinely gone
+// without ever tapping "I'm here"), so copy here is deliberately honest
+// about that rather than declarative: "Not confirmed", never "Missed" or
+// "Didn't visit". Consumes isRecommendationPlanned/findMatchedActivity and
+// getTotalSpentUSD as-is — no changes to any of their matching/checked-in
+// semantics, this only reads them.
+function CompletedRecap({ trip }: { trip: Trip }) {
+  const activitiesCount = trip.activities.length;
+  const totalSpentUSD = getTotalSpentUSD(trip);
+
+  const recommendations = trip.ai_recommendations ?? [];
+  const plannedRecs = recommendations.filter((rec) => isRecommendationPlanned(rec, trip.activities));
+  const followThrough = plannedRecs.map((rec) => ({
+    rec,
+    visited: Boolean(findMatchedActivity(rec, trip.activities)?.checked_in_at),
+  }));
+  const confirmedCount = followThrough.filter((item) => item.visited).length;
+  const hasUnconfirmed = followThrough.some((item) => !item.visited);
+
+  return (
+    <>
+      {/* Stat grid */}
+      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4">Trip Recap</h3>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-terrain/30 rounded-xl p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-sage mb-1">Activities</p>
+            <p className="text-sm font-semibold text-ink">{activitiesCount}</p>
+          </div>
+          <div className="bg-terrain/30 rounded-xl p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-sage mb-1">Confirmed Visits</p>
+            <p className="text-sm font-semibold text-ink">
+              {confirmedCount} of {plannedRecs.length}
+            </p>
+          </div>
+          <div className="bg-terrain/30 rounded-xl p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-sage mb-1">Total Spent</p>
+            <p className="text-sm font-semibold text-ink">
+              ${totalSpentUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recommendation follow-through — omitted entirely if nothing was ever planned */}
+      {followThrough.length > 0 && (
+        <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
+          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4">
+            Recommendation Follow-Through
+          </h3>
+          <div className="space-y-2">
+            {followThrough.map(({ rec, visited }) => (
+              <div
+                key={rec.id}
+                className="flex items-center justify-between gap-3 py-2 border-b border-card-border last:border-b-0"
+              >
+                <span className="text-sm text-ink truncate">{rec.title}</span>
+                <span className={`text-xs font-medium flex-shrink-0 ${visited ? 'text-sage' : 'text-inkText-secondary'}`}>
+                  {visited ? '✓ Visited' : 'Not confirmed'}
+                </span>
+              </div>
+            ))}
+          </div>
+          {hasUnconfirmed && (
+            <p className="text-xs text-inkText-tertiary mt-3 pt-3 border-t border-card-border">
+              Check in during your next trip to track what you actually visited.
+            </p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────
-export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabProps) {
+// Phase-aware restructure: Destination/Duration/Budget/Travelers ("Key
+// Details") and Departure/Return ("Travel Dates") were removed entirely —
+// both were confirmed duplicates of TripSummaryCard.tsx's sidebar rows.
+// The static "About This Trip" block is replaced by phase-varying framing
+// text using the same `phase` prop this component already received (no
+// new phase-detection logic).
+//
+// `planning` now gets its own header framing, distinct from `pre-trip` —
+// matching StatusBanner.tsx's precedent that 'planning' deserves different
+// treatment (it renders nothing at all there, vs. a countdown banner for
+// pre-trip). Overview still shows content for planning (Travel Alerts, AI
+// Recommendations — unchanged), just with copy that doesn't assume dates
+// are locked in or reference days-until-departure, since a planning-phase
+// trip may not have real dates yet at all (getTripPhase() falls back to
+// 'planning' specifically when start_date/end_date are unset).
+export default function OverviewTab({ trip, phase, currentDay, onTripUpdate, onOpenAddActivity }: OverviewTabProps) {
+  const isCompleted = phase === 'completed';
+
   return (
     <div className="space-y-5">
 
@@ -392,66 +548,42 @@ export default function OverviewTab({ trip, phase, onTripUpdate }: OverviewTabPr
         <LiveToolsPanel trip={trip} />
       )}
 
-      {/* About This Trip */}
+      {/* Phase-aware header framing (replaces the old static "About This Trip") */}
       <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
-        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-2">About This Trip</h3>
+        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-2">
+          {isCompleted
+            ? 'Trip Complete'
+            : phase === 'active'
+            ? "You're Here"
+            : phase === 'planning'
+            ? 'Still Sketching?'
+            : 'Are You Ready?'}
+        </h3>
         <p className="text-inkText-secondary text-sm leading-relaxed">
-          {`Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${
-            trip.destination
-          }. Use the tabs above to plan your itinerary, book travel, or chat with the AI assistant.`}
+          {isCompleted
+            ? `Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} trip to ${trip.destination} has come to an end.`
+            : phase === 'active'
+            ? `Day ${currentDay}${trip.duration_days ? ` of ${trip.duration_days}` : ''} in ${trip.destination}. Check what's relevant right now below.`
+            : phase === 'planning'
+            ? `Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} trip to ${trip.destination} is still taking shape. Add dates, a budget, or travelers whenever you're ready.`
+            : `Your${trip.duration_days ? ` ${trip.duration_days}-day` : ''} adventure to ${trip.destination} is coming up. Here's what to check before you go.`}
         </p>
-      </div>
-
-      {/* Key Details */}
-      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
-        <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage mb-4">Key Details</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: 'Destination', value: trip.destination, Icon: GlobeIcon },
-            { label: 'Duration', value: trip.duration_days ? `${trip.duration_days} days` : 'Not set', Icon: ClockIcon },
-            { label: 'Budget', value: trip.budget ? `$${trip.budget.toLocaleString()}` : 'Not set', Icon: CurrencyIcon },
-            { label: 'Travelers', value: `${trip.travelers_count}`, Icon: UsersIcon },
-          ].map(({ label, value, Icon }) => (
-            <div key={label} className="bg-terrain/30 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 text-sage mb-1">
-                <Icon />
-                <p className="font-mono text-[9px] uppercase tracking-[0.1em]">{label}</p>
-              </div>
-              <p className="text-sm font-semibold text-ink">{value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Travel Dates */}
-      <div className="bg-cream rounded-2xl border border-card-border shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="text-sage"><CalendarIcon /></div>
-          <h3 className="font-mono text-[11px] tracking-[0.1em] uppercase text-sage">Travel Dates</h3>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
-            <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Departure</p>
-            <p className="font-semibold text-ink">{formatDate(trip.start_date)}</p>
-          </div>
-          <svg className="w-5 h-5 text-sage flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-          <div className="flex-1 bg-terrain/30 rounded-xl p-3 text-center">
-            <p className="font-mono text-[9px] text-sage uppercase tracking-[0.1em] mb-1">Return</p>
-            <p className="font-semibold text-ink">{formatDate(trip.end_date)}</p>
-          </div>
-        </div>
       </div>
 
       {/* Expense Tracker */}
       <ExpenseTracker trip={trip} onTripUpdate={onTripUpdate} />
 
-      {/* Travel Alerts — live */}
-      <TravelAlertsPanel trip={trip} />
+      {!isCompleted && (
+        <>
+          {/* Travel Alerts — live */}
+          <TravelAlertsPanel trip={trip} phase={phase} />
 
-      {/* AI Recommendations — live */}
-      <AIRecommendationsPanel trip={trip} />
+          {/* AI Recommendations — live */}
+          <AIRecommendationsPanel trip={trip} phase={phase} onOpenAddActivity={onOpenAddActivity} />
+        </>
+      )}
+
+      {isCompleted && <CompletedRecap trip={trip} />}
 
     </div>
   );

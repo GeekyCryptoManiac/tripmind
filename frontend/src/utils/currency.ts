@@ -120,7 +120,22 @@ export const RATES_FROM_USD: Record<string, number> = {
     const fromRate = rates[fromCurrency] ?? 1;
     return amount / fromRate;
   }
-  
+
+  /**
+   * A trip's total spend, normalised to USD via convertToUSD.
+   *
+   * Same formula ExpenseTracker.tsx and TripSummaryCard.tsx each already
+   * compute inline (`expenses.reduce((sum, e) => sum + convertToUSD(e.amount,
+   * e.currency), 0)`) — factored out here so a third consumer (the
+   * completed-phase recap) has one canonical source instead of a third
+   * copy of the same expression. Existing call sites in those two files
+   * were left as-is rather than refactored to call this, to avoid
+   * touching their already-working code for this change.
+   */
+  export function getTotalSpentUSD(trip: { expenses: { amount: number; currency: string }[] }): number {
+    return trip.expenses.reduce((sum, e) => sum + convertToUSD(e.amount, e.currency), 0);
+  }
+
   /**
    * Convert a USD amount to any target currency.
    * Inverse of convertToUSD — used when displaying normalised totals

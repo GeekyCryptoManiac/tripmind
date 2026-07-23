@@ -14,23 +14,31 @@
  *   - Fixed: totalDays now uses itinerary.length first, then duration_days
  *
  * Week 8 Feature — Manual activity management:
- *   - handleManualAdd: opens AddActivityModal (replaces the alert)
- *   - handleAddActivity: calls apiService.addActivity, updates local trip state
+ *   - handleManualAdd: calls onOpenAddActivity (shared modal, owned by
+ *     TripDetailsPage/index.tsx so the Overview tab's recommendation
+ *     "+ Add to Day X" can open the same instance — see that file)
  *   - handleDeleteActivity: calls apiService.deleteActivity, updates local trip state
- *   - AddActivityModal threaded in at the bottom of the component
  *   - onAddActivity + onDeleteActivity props passed to ActivityTimeline
+ *
+ * The AddActivityModal itself, its open/close state, and its submit handler
+ * used to live entirely in this file. They were lifted up to
+ * TripDetailsPage/index.tsx so the Overview tab's recommendation cards can
+ * open the same modal instance instead of a second, parallel one. One
+ * side effect: adding an activity from within this tab no longer
+ * automatically jumps `selectedDay` to the day just added to — that jump
+ * was tied to this tab's own local onSubmit handler, which no longer runs
+ * the submit itself (the shared handler in index.tsx does).
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Trip, ActivityCreateRequest } from '../../types';
+import type { Trip } from '../../types';
 import type { TripPhase } from '../../utils/tripStatus';
 import { getChatService } from '../../services/chatService';
 import { apiService } from '../../services/api';
 import DayNavigation from './ItineraryTab/DayNavigation';
 import ActivityTimeline from './ItineraryTab/ActivityTimeline';
 import EmptyDayState from './ItineraryTab/EmptyDayState';
-import AddActivityModal from './ItineraryTab/AddActivityModal';
 import { groupActivitiesByDay } from '../../types';
 import type { Waypoint } from '../../types';
 
@@ -94,6 +102,7 @@ interface ItineraryTabProps {
   onTripUpdate?: (trip: Trip) => void;
   phase: TripPhase;
   currentDay: number;
+  onOpenAddActivity: (day: number) => void;
 }
 
 export default function ItineraryTab({
@@ -104,6 +113,7 @@ export default function ItineraryTab({
   onTripUpdate,
   phase,
   currentDay,
+  onOpenAddActivity,
 }: ItineraryTabProps) {
   const [selectedDay, setSelectedDay] = useState(() =>
     phase === 'active' ? currentDay : 1
@@ -111,10 +121,6 @@ export default function ItineraryTab({
   const [isGenerating, setIsGenerating]       = useState(false);
   const [isRegenerating, setIsRegenerating]   = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
-
-  // ── Week 8: modal state ───────────────────────────────────
-  const [modalOpen, setModalOpen]           = useState(false);
-  const [modalTargetDay, setModalTargetDay] = useState(1);
 
   // ── Derived state ─────────────────────────────────────────
 const itinerary = groupActivitiesByDay(trip.activities);
@@ -233,20 +239,12 @@ const dayToCity         = buildDayToCityMap(trip.waypoints, trip.start_date, tot
     await handleGenerate();
   };
 
-  // ── Week 8: open modal for a specific day ─────────────────
-  // Called from both EmptyDayState and ActivityTimeline's "+ Add activity" button
+  // ── Open the shared add-activity modal for a specific day ─
+  // Called from both EmptyDayState and ActivityTimeline's "+ Add activity"
+  // button. The modal itself is owned by TripDetailsPage/index.tsx.
   const handleManualAdd = (day?: number) => {
-    setModalTargetDay(day ?? selectedDay);
-    setModalOpen(true);
+    onOpenAddActivity(day ?? selectedDay);
   };
-
-  // ── Week 8: submit new activity to backend ────────────────
-const handleAddActivity = async (activityData: ActivityCreateRequest) => {
-  await apiService.addActivity(trip.id, activityData);
-  const updatedTrip = await apiService.getTrip(trip.id);
-  if (onTripUpdate) onTripUpdate(updatedTrip);
-  setSelectedDay(activityData.day);
-};
 
   // ── Week 8: delete activity from backend ──────────────────
 const handleDeleteActivity = async (activityId: number) => {
@@ -417,15 +415,6 @@ const handleDeleteActivity = async (activityId: number) => {
           rows={4}
         />
       </div>
-
-      {/* ── Add Activity Modal ────────────────────────────── */}
-      <AddActivityModal
-        isOpen={modalOpen}
-        day={modalTargetDay}
-        tripDestination={trip.destination}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleAddActivity}
-      />
 
     </div>
   );

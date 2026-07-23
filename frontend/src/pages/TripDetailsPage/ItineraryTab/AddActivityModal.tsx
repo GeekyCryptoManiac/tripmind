@@ -1,30 +1,47 @@
 /**
- * AddActivityModal — Week 8
+ * AddActivityModal — Week 8 + Overview recommendation prefill
  *
  * Modal form for manually adding a single activity to a trip day.
- * Used from both EmptyDayState and the per-day "Add activity" button
- * in ActivityTimeline.
+ * Used from EmptyDayState / ActivityTimeline's "Add activity" button
+ * (no prefill), and from the Overview tab's "+ Add to Day X" action on
+ * AI recommendation cards (with prefill).
  *
  * Fields:
- *   - Title (required)
- *   - Type (required) — drives the icon in ActivityCard
- *   - Time (required)
- *   - Location (optional)
- *   - Description (optional)
- *   - Notes (optional)
+ *   - Title (required) — pre-filled from `prefill.title` if present
+ *   - Type (required) — drives the icon in ActivityCard; pre-filled from
+ *     `prefill.type` if present, otherwise defaults to 'activity' as before
+ *   - Time (required) — unaffected by prefill, still defaults to '09:00'
+ *   - Location (optional) — unaffected by prefill
+ *   - Description (optional) — pre-filled from `prefill.description`
+ *   - Notes (optional) — pre-filled from `prefill.notes`
  *
- * Day is pre-filled from the selectedDay in ItineraryTab and is
- * shown as read-only context, not editable here.
+ * All fields remain freely editable after prefill; nothing is locked.
+ *
+ * Day — `day` prop supplies the *default* selection (context-derived: the
+ * selectedDay in ItineraryTab, the day a per-day "+ Add activity" button
+ * was clicked from, or OverviewTab's fixed recommendation default). It is
+ * now an editable dropdown (1..totalDays), not a read-only label — this is
+ * what makes that default correctable rather than a dead end, most notably
+ * for recommendations, which carry no day/date signal of their own.
+ *
+ * This component is now mounted once (in TripDetailsPage/index.tsx) and
+ * reused across every open, rather than per-tab — so form fields (title,
+ * type, description, notes, and now day) are re-initialized from props in
+ * a useEffect keyed on `isOpen`, not just via useState's initializer,
+ * since a persistent instance won't naturally pick up new prop values on
+ * a later open otherwise.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Activity, ActivityCreateRequest } from '../../../types';
+import type { Activity, ActivityCreateRequest, ActivityPrefill } from '../../../types';
 
 interface AddActivityModalProps {
   isOpen: boolean;
   day: number;
+  totalDays: number;
   tripDestination: string;
+  prefill?: ActivityPrefill;
   onClose: () => void;
   onSubmit: (activity: ActivityCreateRequest) => Promise<void>;
 }
@@ -125,21 +142,46 @@ const inputClass =
 // ── Modal ─────────────────────────────────────────────────────
 export default function AddActivityModal({
   isOpen,
-  day,
+  day: defaultDay,
+  totalDays,
   tripDestination,
+  prefill,
   onClose,
   onSubmit,
 }: AddActivityModalProps) {
-  const [title, setTitle]             = useState('');
-  const [type, setType]               = useState<Activity['type']>('activity');
+  // `day` is now local, editable state — `defaultDay` (the prop) only
+  // supplies its starting value each time the modal opens.
+  const [day, setDay]                 = useState(defaultDay);
+  const [title, setTitle]             = useState(prefill?.title ?? '');
+  const [type, setType]               = useState<Activity['type']>(prefill?.type ?? 'activity');
   const [time, setTime]               = useState('09:00');
   const [location, setLocation]       = useState('');
-  const [description, setDescription] = useState('');
-  const [notes, setNotes]             = useState('');
+  const [description, setDescription] = useState(prefill?.description ?? '');
+  const [notes, setNotes]             = useState(prefill?.notes ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError]             = useState<string | null>(null);
 
+  // This component is now a single persistent instance (mounted once in
+  // TripDetailsPage/index.tsx) reused across every open, not per-tab — so
+  // the useState initializers above only apply on first mount. Re-sync form
+  // fields from props every time the modal actually opens, so a second
+  // open with a different (or absent) prefill/day doesn't show stale values
+  // left over from a previous open.
+  useEffect(() => {
+    if (!isOpen) return;
+    setDay(defaultDay);
+    setTitle(prefill?.title ?? '');
+    setType(prefill?.type ?? 'activity');
+    setTime('09:00');
+    setLocation('');
+    setDescription(prefill?.description ?? '');
+    setNotes(prefill?.notes ?? '');
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   const resetForm = () => {
+    setDay(defaultDay);
     setTitle('');
     setType('activity');
     setTime('09:00');
@@ -216,9 +258,7 @@ export default function AddActivityModal({
             <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-card-border">
               <div>
                 <h2 className="font-display text-xl text-ink">Add Activity</h2>
-                <p className="text-sm text-sage mt-0.5">
-                  Day {day} · {tripDestination}
-                </p>
+                <p className="text-sm text-sage mt-0.5">{tripDestination}</p>
               </div>
               <button
                 onClick={handleClose}
@@ -230,6 +270,21 @@ export default function AddActivityModal({
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="px-7 py-6 space-y-5 max-h-[70vh] overflow-y-auto">
+
+              {/* Day */}
+              <Field label="Day" required>
+                <select
+                  value={day}
+                  onChange={(e) => setDay(Number(e.target.value))}
+                  className={inputClass}
+                >
+                  {Array.from({ length: totalDays }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>
+                      Day {d}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
               {/* Title */}
               <Field label="Title" required>
