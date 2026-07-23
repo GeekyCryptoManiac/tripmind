@@ -457,9 +457,21 @@ export function groupActivitiesByDay(activities: Activity[]): ItineraryDay[] {
     .sort(([a], [b]) => a - b)
     .map(([day, acts]) => ({
       day,
+      // Sort by `time` first, not `sort_order` first — `sort_order` only
+      // reflects creation/insertion order (backend always assigns the next
+      // integer up, see trip_service.py's add_activity), so treating it as
+      // the primary key meant a 9am activity added after existing later
+      // activities landed at the bottom of the list instead of at the top,
+      // regardless of its actual time. `time` is now primary; `sort_order`
+      // only tie-breaks activities that share the same time (or lack one).
+      // Null-time (all-day) activities sort after every timed activity —
+      // a deliberate, consistent choice, not left to chance.
       activities: acts.sort((a, b) => {
-        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-        return (a.time ?? '').localeCompare(b.time ?? '');
+        if (a.time === null && b.time === null) return a.sort_order - b.sort_order;
+        if (a.time === null) return 1;
+        if (b.time === null) return -1;
+        if (a.time !== b.time) return a.time.localeCompare(b.time);
+        return a.sort_order - b.sort_order;
       }),
     }));
 }

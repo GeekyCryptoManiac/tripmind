@@ -98,6 +98,18 @@ def test_update_trip_notes(svc, test_user, trip):
     assert updated.notes == "Great trip"
 
 
+def test_update_trip_can_explicitly_clear_nullable_field(svc, test_user, trip):
+    svc.update_trip(trip.id, test_user.id, TripUpdate(notes="Great trip"))
+    cleared = svc.update_trip(trip.id, test_user.id, TripUpdate(notes=None))
+    assert cleared.notes is None
+
+
+def test_update_trip_omitted_field_is_left_untouched(svc, test_user, trip):
+    svc.update_trip(trip.id, test_user.id, TripUpdate(notes="Great trip"))
+    updated = svc.update_trip(trip.id, test_user.id, TripUpdate(destination="Osaka"))
+    assert updated.notes == "Great trip"
+
+
 # ── delete_trip ───────────────────────────────────────────────
 
 def test_delete_trip_removes_it_from_db(svc, test_user, trip):
