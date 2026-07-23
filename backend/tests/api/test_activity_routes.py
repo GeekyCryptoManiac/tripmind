@@ -390,7 +390,10 @@ def test_get_weather_fetches_and_persists(client, auth_headers, test_trip, fake_
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "fetched"
-    assert data["weather"] == {"temp_c": 22.5, "condition": "cloudy", "source": "forecast"}
+    assert data["weather"] == {
+        "temp_c": 22.5, "condition": "cloudy", "source": "forecast",
+        "location_precision": "exact",
+    }
     assert fake_weather_fetch["count"] == 1
 
 
@@ -407,7 +410,10 @@ def test_get_weather_second_call_uses_cache_not_refetched(
     assert second.status_code == 200
     data = second.json()
     assert data["status"] == "cached"
-    assert data["weather"] == {"temp_c": 22.5, "condition": "cloudy", "source": "forecast"}
+    assert data["weather"] == {
+        "temp_c": 22.5, "condition": "cloudy", "source": "forecast",
+        "location_precision": "exact",
+    }
     assert fake_weather_fetch["count"] == 1  # not called again on the second request
 
 

@@ -123,7 +123,10 @@ async def test_fetch_weather_forecast_branch_returns_fetched(monkeypatch):
     status, weather = await weather_service.fetch_weather_for_activity(today_str, 1, "Tokyo")
 
     assert status == "fetched"
-    assert weather == {"temp_c": 24.3, "condition": "sunny", "source": "forecast"}
+    assert weather == {
+        "temp_c": 24.3, "condition": "sunny", "source": "forecast",
+        "location_precision": "exact",
+    }
     assert weather_service.ARCHIVE_URL not in calls
 
 
@@ -144,7 +147,10 @@ async def test_fetch_weather_archive_branch_returns_archive_source(monkeypatch):
     status, weather = await weather_service.fetch_weather_for_activity(ten_days_ago, 1, "Singapore")
 
     assert status == "fetched"
-    assert weather == {"temp_c": 31.0, "condition": "rainy", "source": "archive"}
+    assert weather == {
+        "temp_c": 31.0, "condition": "rainy", "source": "archive",
+        "location_precision": "exact",
+    }
     assert weather_service.FORECAST_URL not in calls
 
 
@@ -165,3 +171,104 @@ async def test_fetch_weather_date_gap_skips_geocode_entirely(monkeypatch):
     assert status == "not_available"
     assert weather is None
     assert geocode_calls["count"] == 0  # never even attempted geocoding
+
+
+# ── comma-segment geocoding fallback ──────────────────────────────
+
+@pytest.mark.asyncio
+async def test_geocode_fallback_fires_and_marks_approximate(monkeypatch):
+    """'Venue, City' where only the city segment resolves — fallback fires
+    and the result is marked 'approximate', not 'exact'."""
+    geocode_queries = []
+
+    def handler(url, params):
+        if url == weather_service.GEOCODING_URL:
+            geocode_queries.append(params["name"])
+            if params["name"] == "Changi Airport, Singapore":
+                return {}  # Open-Meteo omits "results" entirely on no match
+            assert params["name"] == "Singapore"
+            return {"results": [{"latitude": 1.29, "longitude": 103.85}]}
+        assert url == weather_service.FORECAST_URL
+        return {"daily": {"temperature_2m_max": [30.0], "weathercode": [2]}}
+
+    _install_fake_http(monkeypatch, handler)
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    status, weather = await weather_service.fetch_weather_for_activity(
+        today_str, 1, "Changi Airport, Singapore"
+    )
+
+    assert status == "fetched"
+    assert weather == {
+        "temp_c": 30.0, "condition": "cloudy", "source": "forecast",
+        "location_precision": "approximate",
+    }
+    # both the original and the fallback segment were actually attempted, in order
+    assert geocode_queries == ["Changi Airport, Singapore", "Singapore"]
+
+
+@pytest.mark.asyncio
+async def test_geocode_exact_match_skips_fallback(monkeypatch):
+    """When the full string resolves on the first try, no fallback query
+    is attempted at all, and precision is 'exact'."""
+    geocode_queries = []
+
+    def handler(url, params):
+        if url == weather_service.GEOCODING_URL:
+            geocode_queries.append(params["name"])
+            return {"results": [{"latitude": 1.29, "longitude": 103.85}]}
+        return {"daily": {"temperature_2m_max": [30.0], "weathercode": [0]}}
+
+    _install_fake_http(monkeypatch, handler)
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    status, weather = await weather_service.fetch_weather_for_activity(
+        today_str, 1, "Singapore"
+    )
+
+    assert status == "fetched"
+    assert weather["location_precision"] == "exact"
+    assert geocode_queries == ["Singapore"]  # only one attempt — no fallback needed
+
+
+@pytest.mark.asyncio
+async def test_geocode_fallback_also_fails_is_not_available(monkeypatch):
+    """Comma present, but even the fallback (city-level) segment has no
+    match — still correctly not_available, both attempts made."""
+    geocode_queries = []
+
+    def handler(url, params):
+        geocode_queries.append(params["name"])
+        return {}  # no match for either attempt
+
+    _install_fake_http(monkeypatch, handler)
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    status, weather = await weather_service.fetch_weather_for_activity(
+        today_str, 1, "Nonexistent Ruin, Nonexistent Town"
+    )
+
+    assert status == "not_available"
+    assert weather is None
+    assert geocode_queries == ["Nonexistent Ruin, Nonexistent Town", "Nonexistent Town"]
+
+
+@pytest.mark.asyncio
+async def test_geocode_no_comma_never_attempts_fallback(monkeypatch):
+    """No comma to split on — a single failed attempt, no fallback query."""
+    geocode_queries = []
+
+    def handler(url, params):
+        geocode_queries.append(params["name"])
+        return {"results": []}
+
+    _install_fake_http(monkeypatch, handler)
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    status, weather = await weather_service.fetch_weather_for_activity(
+        today_str, 1, "Nowhereville"
+    )
+
+    assert status == "not_available"
+    assert weather is None
+    assert geocode_queries == ["Nowhereville"]

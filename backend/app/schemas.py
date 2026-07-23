@@ -130,6 +130,14 @@ class WeatherData(BaseModel):
     temp_c:    float
     condition: Literal["sunny", "cloudy", "rainy"]
     source:    Literal["forecast", "archive"]
+    # "exact": geocoded from activity.location as-is.
+    # "approximate": location didn't resolve; fell back to the last
+    # comma-segment (e.g. "Changi Airport, Singapore" -> "Singapore"),
+    # so this is city-level weather, not the specific venue. Defaults to
+    # "exact" so weather_data persisted before this field existed still
+    # validates (every fetch before the fallback existed was a direct
+    # full-string match).
+    location_precision: Literal["exact", "approximate"] = "exact"
 
 
 class ActivityResponse(BaseModel):

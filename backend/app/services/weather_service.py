@@ -77,10 +77,13 @@ def _activity_date_str(trip_start_date: str, activity_day: int) -> str:
     return datetime.fromtimestamp(activity_date, tz=timezone.utc).strftime("%Y-%m-%d")
 
 
-async def _geocode(location: str) -> Optional[tuple[float, float]]:
-    """Resolves free-text location to (lat, lon). None on no-match, ambiguous
-    empty result, or any request failure — treated as 'weather unavailable',
-    never raised as an error."""
+async def _geocode_query(location: str) -> Optional[tuple[float, float]]:
+    """Single geocoding attempt against Open-Meteo — no fallback logic.
+    None on no-match, ambiguous empty result, or any request failure —
+    treated as 'weather unavailable', never raised as an error. Every
+    None path is logged (same traceback.print_exc() convention as
+    overview.py/activities.py) so a silent 'not_available' can still be
+    diagnosed from server output."""
     try:
         async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
             resp = await client.get(
@@ -89,25 +92,79 @@ async def _geocode(location: str) -> Optional[tuple[float, float]]:
             )
             resp.raise_for_status()
             data = resp.json()
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPStatusError as e:
+        import traceback; traceback.print_exc()
+        print(f"[weather_service._geocode_query] Open-Meteo geocoding returned "
+              f"{e.response.status_code} for location={location!r}: {e.response.text}")
+        return None
+    except (httpx.HTTPError, ValueError) as e:
+        import traceback; traceback.print_exc()
+        print(f"[weather_service._geocode_query] Request/parse failure for location={location!r}: {e}")
         return None
 
     results = data.get("results") or []
     if not results:
+        print(f"[weather_service._geocode_query] No geocoding match for location={location!r}. "
+              f"Raw response: {data}")
         return None
 
     top = results[0]
     try:
         return float(top["latitude"]), float(top["longitude"])
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError) as e:
+        import traceback; traceback.print_exc()
+        print(f"[weather_service._geocode_query] Unexpected geocoding result shape for "
+              f"location={location!r}: {top!r} ({e})")
         return None
+
+
+async def _geocode(location: str) -> Optional[tuple[float, float, str]]:
+    """
+    Resolves free-text location to (lat, lon, precision). Open-Meteo's
+    geocoder is a city/place-name gazetteer, not a POI/landmark resolver
+    — it can't find "Changi Airport, Singapore" but can find "Singapore".
+
+    Tries the full string first (precision "exact"). If that fails and
+    the string contains a comma (the common "Venue, City" activity.location
+    format), retries using only the substring after the last comma
+    (precision "approximate") — e.g. "Changi Airport, Singapore" ->
+    "Singapore". No further fallback chains beyond this one retry; a
+    location with no comma, or where even the city-level segment doesn't
+    resolve, correctly returns None (see docs/KNOWN_ISSUES.md).
+    """
+    coords = await _geocode_query(location)
+    if coords is not None:
+        print(f"[weather_service._geocode] Exact match for location={location!r}")
+        return coords[0], coords[1], "exact"
+
+    if "," not in location:
+        return None
+
+    fallback = location.rsplit(",", 1)[-1].strip()
+    if not fallback:
+        return None
+
+    print(f"[weather_service._geocode] No exact match for location={location!r}; "
+          f"retrying fallback segment={fallback!r}")
+    coords = await _geocode_query(fallback)
+    if coords is not None:
+        print(f"[weather_service._geocode] Fallback match for location={location!r} "
+              f"using segment={fallback!r}")
+        return coords[0], coords[1], "approximate"
+
+    print(f"[weather_service._geocode] Fallback segment={fallback!r} also had no match "
+          f"for location={location!r}")
+    return None
 
 
 async def _fetch_daily_weather(
     lat: float, lon: float, date_str: str, branch: str,
 ) -> Optional[dict]:
     """Calls the forecast or archive endpoint for a single date. None on
-    any failure or missing data for that date — never raised."""
+    any failure or missing data for that date — never raised. Every None
+    path is logged (same traceback.print_exc() convention as
+    overview.py/activities.py) so a silent 'not_available' can still be
+    diagnosed from server output."""
     url = FORECAST_URL if branch == "forecast" else ARCHIVE_URL
     try:
         async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
@@ -124,13 +181,23 @@ async def _fetch_daily_weather(
             )
             resp.raise_for_status()
             data = resp.json()
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPStatusError as e:
+        import traceback; traceback.print_exc()
+        print(f"[weather_service._fetch_daily_weather] Open-Meteo {branch} endpoint returned "
+              f"{e.response.status_code} for lat={lat}, lon={lon}, date={date_str}: {e.response.text}")
+        return None
+    except (httpx.HTTPError, ValueError) as e:
+        import traceback; traceback.print_exc()
+        print(f"[weather_service._fetch_daily_weather] Request/parse failure calling {branch} "
+              f"endpoint for lat={lat}, lon={lon}, date={date_str}: {e}")
         return None
 
     daily = data.get("daily") or {}
     temps  = daily.get("temperature_2m_max") or []
     codes  = daily.get("weathercode") or []
     if not temps or temps[0] is None:
+        print(f"[weather_service._fetch_daily_weather] Empty/missing daily data from {branch} "
+              f"endpoint for lat={lat}, lon={lon}, date={date_str}. Raw response: {data}")
         return None
 
     return {
@@ -158,13 +225,15 @@ async def fetch_weather_for_activity(
     if branch is None:
         return "not_available", None
 
-    coords = await _geocode(location)
-    if coords is None:
+    geocoded = await _geocode(location)
+    if geocoded is None:
         return "not_available", None
+    lat, lon, precision = geocoded
 
     date_str = _activity_date_str(trip_start_date, activity_day)
-    weather = await _fetch_daily_weather(coords[0], coords[1], date_str, branch)
+    weather = await _fetch_daily_weather(lat, lon, date_str, branch)
     if weather is None:
         return "not_available", None
 
+    weather["location_precision"] = precision
     return "fetched", weather
