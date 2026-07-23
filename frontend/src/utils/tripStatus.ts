@@ -16,8 +16,22 @@
  */
 
 import type { Trip } from '../types';
+import { groupActivitiesByDay } from '../types';
 
 export type TripPhase = 'planning' | 'pre-trip' | 'active' | 'completed';
+
+/**
+ * Total number of itinerary days for a trip — `duration_days` if set,
+ * otherwise however many distinct days already have activities (so an
+ * itinerary that's grown past its original duration_days isn't truncated).
+ * Same formula ItineraryTab.tsx computes inline for its own day range;
+ * factored out here so anything without `itinerary` already computed
+ * locally (e.g. AddActivityModal's day picker) can reuse it instead of
+ * re-deriving an equivalent but separately-maintained formula.
+ */
+export function getTripTotalDays(trip: Trip): number {
+  return trip.duration_days || groupActivitiesByDay(trip.activities).length || 1;
+}
 
 // ── Private helpers ───────────────────────────────────────────
 

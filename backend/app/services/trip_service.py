@@ -122,16 +122,17 @@ class TripService:
     def update_trip(self, trip_id: int, user_id: int, updates: TripUpdate) -> Trip:
         trip = self.get_trip_or_404(trip_id, user_id)
 
-        # Scalar columns — only write if explicitly provided
-        simple_fields = [
+        # Scalar columns — only write if explicitly provided (exclude_unset
+        # distinguishes "field omitted" from "field explicitly set to null",
+        # so nullable columns like country_code/notes/cover_image_url can be
+        # explicitly cleared via PATCH instead of silently ignoring null)
+        simple_fields = {
             "destination", "origin", "country_code", "start_date", "end_date",
             "duration_days", "budget", "travelers_count", "status",
             "notes", "cover_image_url",
-        ]
-        for field in simple_fields:
-            value = getattr(updates, field)
-            if value is not None:
-                setattr(trip, field, value)
+        }
+        for field, value in updates.model_dump(exclude_unset=True, include=simple_fields).items():
+            setattr(trip, field, value)
 
         # JSONB columns — replace entire array when provided
         if updates.preferences is not None:
@@ -230,14 +231,10 @@ class TripService:
     ) -> TripActivity:
         activity = self.get_activity_or_404(trip_id, activity_id, user_id)
 
-        for field in [
-            "time", "type", "title", "location", "description",
-            "notes", "user_notes", "ai_tip", "booking_ref", "booking_url",
-            "checked_in_at", "checked_out_at", "sort_order",
-        ]:
-            value = getattr(data, field)
-            if value is not None:
-                setattr(activity, field, value)
+        # exclude_unset so an explicit null (e.g. clearing checked_in_at) is
+        # applied, while omitted fields are left untouched
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(activity, field, value)
 
         self.db.commit()
         self.db.refresh(activity)
@@ -368,10 +365,10 @@ class TripService:
         if not expense:
             raise HTTPException(status_code=404, detail="Expense not found")
 
-        for field in ["activity_id", "category", "description", "amount", "currency", "date"]:
-            value = getattr(data, field)
-            if value is not None:
-                setattr(expense, field, value)
+        # exclude_unset so an explicit null (e.g. unlinking activity_id) is
+        # applied, while omitted fields are left untouched
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(expense, field, value)
 
         self.db.commit()
         self.db.refresh(expense)
@@ -551,11 +548,12 @@ class TripService:
         wps = self._ordered_waypoints(trip_id)
         is_origin = bool(wps) and waypoint.id == wps[0].id
 
-        # City / country / dates — allowed on any node
-        for field in ["city", "country", "country_code", "arrival_date", "departure_date", "notes"]:
-            value = getattr(data, field)
-            if value is not None:
-                setattr(waypoint, field, value)
+        # City / country / dates — allowed on any node. exclude_unset so an
+        # explicit null (e.g. clearing arrival_date) is applied, while
+        # omitted fields are left untouched.
+        clearable_fields = {"city", "country", "country_code", "arrival_date", "departure_date", "notes"}
+        for field, value in data.model_dump(exclude_unset=True, include=clearable_fields).items():
+            setattr(waypoint, field, value)
 
         # Reordering — allowed on all nodes except origin
         if data.order_index is not None and not is_origin:

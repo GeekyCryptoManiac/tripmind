@@ -1,16 +1,27 @@
 /**
- * ActivityCard — Redesigned Week 7 + Week 8
+ * ActivityCard — Redesigned Week 7 + Week 8 + Timeline visual redesign
  *
  * Week 8: Delete button is now functional.
  *   - Added `onDelete` prop — called with activity.id when trash is clicked
  *   - Added `isDeleting` local state for spinner feedback during API call
  *   - Removed `disabled` from TrashIcon button
+ *
+ * Timeline visual redesign:
+ *   - Icon circle is now colored per activity.type (ACTIVITY_TYPE_COLORS,
+ *     a documented category-color exception — see utils/activityTypeStyles.ts)
+ *     instead of a uniform bg-ink circle.
+ *   - If the activity has an uploaded photo (activity.media, media_type ===
+ *     'photo' — same check ActivityDetailPage.tsx already uses), that photo
+ *     renders as a rounded-square thumbnail in the exact same slot/size
+ *     instead of the icon circle. No photo → the colored icon circle,
+ *     unchanged in position/dimensions either way.
  */
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Activity } from '../../../types';
+import { ACTIVITY_TYPE_COLORS } from '../../../utils/activityTypeStyles';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -104,7 +115,13 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
   const { tripId } = useParams<{ tripId: string }>();
 
   const Icon = ACTIVITY_ICONS[activity.type];
+  const typeColor = ACTIVITY_TYPE_COLORS[activity.type];
   const shouldShowExpand = activity.description && activity.description.length > 100;
+
+  // Same photo-filtering + URL-preference check ActivityDetailPage.tsx's
+  // PhotosSection already uses — reused here, not reinvented.
+  const photos = (activity.media ?? []).filter((m) => m.media_type === 'photo');
+  const thumbnailUrl = photos[0] ? (photos[0].presigned_url ?? photos[0].storage_url) : null;
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -133,21 +150,38 @@ export default function ActivityCard({ activity, booking, onDelete }: ActivityCa
       onClick={handleNavigate}
       className="relative bg-cream border border-card-border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
     >
-      {/* Time badge */}
-      <div className="absolute -left-16 top-4 text-sm font-medium text-sage">
-        {activity.time}
-      </div>
-
-      {/* Icon circle */}
-      <div className="absolute -left-5 top-3 w-10 h-10 bg-ink rounded-full flex items-center justify-center text-cream shadow-md z-10">
-        <Icon className="w-5 h-5" />
-      </div>
+      {/* Icon circle / photo thumbnail — same slot, same w-10 h-10 size,
+          either way, so rows don't jump depending on whether a photo exists. */}
+      {thumbnailUrl ? (
+        <div className="absolute -left-5 top-3 w-10 h-10 rounded-lg overflow-hidden shadow-md z-10">
+          <img
+            src={thumbnailUrl}
+            alt={activity.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div
+          className="absolute -left-5 top-3 w-10 h-10 rounded-full flex items-center justify-center text-cream shadow-md z-10"
+          style={{ backgroundColor: typeColor }}
+        >
+          <Icon className="w-5 h-5" />
+        </div>
+      )}
 
       {/* Card content */}
       <div className="pl-8">
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
+            {/* Time — moved in-card from the gutter (was colliding with the
+                dashed connector there); nullable for all-day items, so guarded
+                rather than rendering an empty label. */}
+            {activity.time && (
+              <p className="font-mono text-[10px] tracking-[0.08em] text-sage mb-1">
+                {activity.time}
+              </p>
+            )}
             <h4 className="text-base font-semibold text-ink mb-1">{activity.title}</h4>
             {activity.location && (
               <p className="text-sm text-sage flex items-center gap-1">

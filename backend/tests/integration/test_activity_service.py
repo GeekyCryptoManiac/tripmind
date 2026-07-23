@@ -44,6 +44,18 @@ def test_update_activity_changes_title(svc, test_user, trip, activity):
     assert updated.title == "New title"
 
 
+def test_update_activity_can_explicitly_clear_nullable_field(svc, test_user, trip, activity):
+    svc.update_activity(trip.id, activity.id, test_user.id, ActivityUpdate(location="Shibuya"))
+    cleared = svc.update_activity(trip.id, activity.id, test_user.id, ActivityUpdate(location=None))
+    assert cleared.location is None
+
+
+def test_update_activity_omitted_field_is_left_untouched(svc, test_user, trip, activity):
+    svc.update_activity(trip.id, activity.id, test_user.id, ActivityUpdate(location="Shibuya"))
+    updated = svc.update_activity(trip.id, activity.id, test_user.id, ActivityUpdate(title="New title"))
+    assert updated.location == "Shibuya"
+
+
 def test_update_activity_not_found_raises_404(svc, test_user, trip):
     with pytest.raises(HTTPException) as exc:
         svc.update_activity(trip.id, 99999, test_user.id, ActivityUpdate(title="x"))

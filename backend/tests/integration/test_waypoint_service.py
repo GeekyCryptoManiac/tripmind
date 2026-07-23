@@ -62,6 +62,24 @@ def test_update_waypoint_changes_city(svc, test_user, trip, db):
     assert updated.city == "Kyoto"
 
 
+def test_update_waypoint_can_explicitly_clear_nullable_field(svc, test_user, trip, db):
+    from app.models import TripWaypoint
+    wps = db.query(TripWaypoint).filter(TripWaypoint.trip_id == trip.id).order_by(TripWaypoint.order_index).all()
+    dest_wp = wps[1]
+    svc.update_waypoint(trip.id, dest_wp.id, test_user.id, WaypointUpdate(notes="Bring an umbrella"))
+    cleared = svc.update_waypoint(trip.id, dest_wp.id, test_user.id, WaypointUpdate(notes=None))
+    assert cleared.notes is None
+
+
+def test_update_waypoint_omitted_field_is_left_untouched(svc, test_user, trip, db):
+    from app.models import TripWaypoint
+    wps = db.query(TripWaypoint).filter(TripWaypoint.trip_id == trip.id).order_by(TripWaypoint.order_index).all()
+    dest_wp = wps[1]
+    svc.update_waypoint(trip.id, dest_wp.id, test_user.id, WaypointUpdate(notes="Bring an umbrella"))
+    updated = svc.update_waypoint(trip.id, dest_wp.id, test_user.id, WaypointUpdate(city="Kyoto"))
+    assert updated.notes == "Bring an umbrella"
+
+
 def test_delete_origin_waypoint_raises_400(svc, test_user, trip, db):
     from app.models import TripWaypoint
     wps = db.query(TripWaypoint).filter(TripWaypoint.trip_id == trip.id).order_by(TripWaypoint.order_index).all()
