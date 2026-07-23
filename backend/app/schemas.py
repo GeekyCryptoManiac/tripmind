@@ -126,6 +126,12 @@ class ActivityMediaResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class WeatherData(BaseModel):
+    temp_c:    float
+    condition: Literal["sunny", "cloudy", "rainy"]
+    source:    Literal["forecast", "archive"]
+
+
 class ActivityResponse(BaseModel):
     id:             int
     trip_id:        int
@@ -138,6 +144,7 @@ class ActivityResponse(BaseModel):
     notes:          Optional[str]      = None    # AI itinerary recommendation
     user_notes:     Optional[str]      = None    # traveller diary entry
     ai_tip:         Optional[str]      = None
+    weather_data:   Optional[WeatherData] = None
     booking_ref:    Optional[str]      = None
     booking_url:    Optional[str]      = None
     checked_in_at:  Optional[datetime] = None
@@ -147,6 +154,20 @@ class ActivityResponse(BaseModel):
     media:          List[ActivityMediaResponse] = []
 
     model_config = {"from_attributes": True}
+
+
+class ActivityWeatherResponse(BaseModel):
+    """
+    status distinguishes "haven't tried" states the raw column can't:
+      - cached:         weather_data already existed, returned as-is, no external calls
+      - fetched:        just resolved (geocode + forecast/archive) and persisted
+      - not_applicable: activity has no location to look up
+      - not_available:  location exists, but geocoding failed OR the activity's
+                         date falls outside both the forecast window and the
+                         archive's backfill lag — no source can answer this yet
+    """
+    status:  Literal["cached", "fetched", "not_applicable", "not_available"]
+    weather: Optional[WeatherData] = None
 
 
 # ═════════════════════════════════════════════════════════════

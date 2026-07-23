@@ -1,5 +1,8 @@
 """API tests for trip activity routes."""
 
+import json
+import re
+
 import pytest
 
 
@@ -14,6 +17,53 @@ def _create_activity(client, auth_headers, trip_id, **kwargs):
     )
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+# ── fake LLM for AI tip generation tests ───────────────────────
+# Patches langchain_openai.ChatOpenAI (imported locally inside the
+# endpoint at call time) so no real OpenAI call happens. Extracts the
+# activity ids the prompt actually asked about — rather than hardcoding
+# ids — since SQLite reuses row ids across tests once tables are wiped.
+
+@pytest.fixture
+def fake_tip_llm(monkeypatch):
+    calls = {"count": 0}
+
+    class _FakeResult:
+        def __init__(self, content):
+            self.content = content
+
+    class _FakeLLM:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def ainvoke(self, messages):
+            calls["count"] += 1
+            prompt = messages[0].content
+            ids = re.findall(r"id (\d+):", prompt)
+            tips = {i: f"Tip for activity {i}" for i in ids}
+            return _FakeResult(json.dumps({"tips": tips}))
+
+    monkeypatch.setattr("langchain_openai.ChatOpenAI", _FakeLLM)
+    return calls
+
+
+# ── fake weather fetch for weather endpoint tests ──────────────
+# Patches the name bound in app.routers.activities (a `from ... import`
+# binding, not a live reference back to weather_service) so no real
+# Open-Meteo call happens. weather_service's own geocode/date-branch
+# logic is covered separately in tests/unit/test_weather_service.py.
+
+@pytest.fixture
+def fake_weather_fetch(monkeypatch):
+    calls = {"count": 0}
+
+    async def _fake(trip_start_date, activity_day, location):
+        calls["count"] += 1
+        return "fetched", {"temp_c": 22.5, "condition": "cloudy", "source": "forecast"}
+
+    monkeypatch.setattr("app.routers.activities.fetch_weather_for_activity", _fake)
+    return calls
 
 
 # ── existing tests ────────────────────────────────────────────
@@ -238,3 +288,157 @@ def test_delete_media_404_unknown(client, auth_headers, test_trip):
         headers=auth_headers,
     )
     assert resp.status_code == 404
+
+
+# ── POST activity tips (one prompt per day) ────────────────────
+
+def test_generate_tips_persists_for_activities_missing_them(
+    client, auth_headers, test_trip, fake_tip_llm
+):
+    act1 = _create_activity(client, auth_headers, test_trip.id, day=5, title="Shrine visit")
+    act2 = _create_activity(client, auth_headers, test_trip.id, day=5, title="Ramen dinner")
+
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/day/5/tips",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    tips_by_id = {a["id"]: a["ai_tip"] for a in resp.json()}
+    assert tips_by_id[act1["id"]] == f"Tip for activity {act1['id']}"
+    assert tips_by_id[act2["id"]] == f"Tip for activity {act2['id']}"
+    assert fake_tip_llm["count"] == 1  # one prompt for the whole day, not per activity
+
+
+def test_generate_tips_skips_llm_when_all_activities_already_have_one(
+    client, auth_headers, test_trip, fake_tip_llm
+):
+    act = _create_activity(client, auth_headers, test_trip.id, day=2, title="Museum")
+    client.patch(
+        f"/api/trips/{test_trip.id}/activities/{act['id']}",
+        json={"ai_tip": "Already have a tip"},
+        headers=auth_headers,
+    )
+
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/day/2/tips",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()[0]["ai_tip"] == "Already have a tip"
+    assert fake_tip_llm["count"] == 0  # no LLM call — nothing needed a tip
+
+
+def test_generate_tips_only_sends_null_tip_activities_to_llm(
+    client, auth_headers, test_trip, fake_tip_llm
+):
+    has_tip     = _create_activity(client, auth_headers, test_trip.id, day=3, title="Has tip")
+    needs_tip   = _create_activity(client, auth_headers, test_trip.id, day=3, title="Needs tip")
+    client.patch(
+        f"/api/trips/{test_trip.id}/activities/{has_tip['id']}",
+        json={"ai_tip": "Pre-existing tip"},
+        headers=auth_headers,
+    )
+
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/day/3/tips",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    tips_by_id = {a["id"]: a["ai_tip"] for a in resp.json()}
+    assert tips_by_id[has_tip["id"]] == "Pre-existing tip"  # untouched, not overwritten
+    assert tips_by_id[needs_tip["id"]] == f"Tip for activity {needs_tip['id']}"
+    assert fake_tip_llm["count"] == 1
+
+
+def test_generate_tips_rate_limited_like_other_ai_endpoints(
+    client, auth_headers, test_trip, fake_tip_llm
+):
+    _create_activity(client, auth_headers, test_trip.id, day=1, title="Something")
+    url = f"/api/trips/{test_trip.id}/activities/day/1/tips"
+
+    for _ in range(10):
+        resp = client.post(url, headers=auth_headers)
+        assert resp.status_code == 200
+
+    resp = client.post(url, headers=auth_headers)
+    assert resp.status_code == 429
+
+
+# ── POST activity weather ───────────────────────────────────────
+
+def test_get_weather_not_applicable_when_no_location(
+    client, auth_headers, test_trip, fake_weather_fetch
+):
+    act = _create_activity(client, auth_headers, test_trip.id, title="No location activity")
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/{act['id']}/weather",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "not_applicable"
+    assert data["weather"] is None
+    assert fake_weather_fetch["count"] == 0  # never attempted — nothing to look up
+
+
+def test_get_weather_fetches_and_persists(client, auth_headers, test_trip, fake_weather_fetch):
+    act = _create_activity(client, auth_headers, test_trip.id, location="Shibuya, Tokyo")
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/{act['id']}/weather",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "fetched"
+    assert data["weather"] == {"temp_c": 22.5, "condition": "cloudy", "source": "forecast"}
+    assert fake_weather_fetch["count"] == 1
+
+
+def test_get_weather_second_call_uses_cache_not_refetched(
+    client, auth_headers, test_trip, fake_weather_fetch
+):
+    act = _create_activity(client, auth_headers, test_trip.id, location="Shibuya, Tokyo")
+    url = f"/api/trips/{test_trip.id}/activities/{act['id']}/weather"
+
+    first = client.post(url, headers=auth_headers)
+    assert first.json()["status"] == "fetched"
+
+    second = client.post(url, headers=auth_headers)
+    assert second.status_code == 200
+    data = second.json()
+    assert data["status"] == "cached"
+    assert data["weather"] == {"temp_c": 22.5, "condition": "cloudy", "source": "forecast"}
+    assert fake_weather_fetch["count"] == 1  # not called again on the second request
+
+
+def test_get_weather_not_available_distinguished_from_cached_or_applicable(
+    client, auth_headers, test_trip, monkeypatch
+):
+    async def _fake_unavailable(trip_start_date, activity_day, location):
+        return "not_available", None
+
+    monkeypatch.setattr("app.routers.activities.fetch_weather_for_activity", _fake_unavailable)
+
+    act = _create_activity(client, auth_headers, test_trip.id, location="Somewhere too far out")
+    resp = client.post(
+        f"/api/trips/{test_trip.id}/activities/{act['id']}/weather",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "not_available"
+    assert data["weather"] is None
+
+
+def test_get_weather_rate_limited_like_other_ai_endpoints(
+    client, auth_headers, test_trip, fake_weather_fetch
+):
+    act = _create_activity(client, auth_headers, test_trip.id, location="Somewhere")
+    url = f"/api/trips/{test_trip.id}/activities/{act['id']}/weather"
+
+    for _ in range(10):
+        resp = client.post(url, headers=auth_headers)
+        assert resp.status_code == 200
+
+    resp = client.post(url, headers=auth_headers)
+    assert resp.status_code == 429
