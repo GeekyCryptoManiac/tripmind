@@ -197,6 +197,7 @@ class TripActivity(Base):
     notes          = Column(Text, nullable=True)   # AI itinerary recommendation
     user_notes     = Column(Text, nullable=True)   # traveller's personal diary entry
     ai_tip         = Column(Text, nullable=True)
+    weather_data   = Column(JSONB, nullable=True)   # { temp_c, condition, source } — cached, persist-once
     booking_ref    = Column(String(100), nullable=True)
     booking_url    = Column(String(500), nullable=True)
     checked_in_at  = Column(DateTime(timezone=True), nullable=True)

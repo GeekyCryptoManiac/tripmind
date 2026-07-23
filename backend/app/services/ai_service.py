@@ -12,7 +12,7 @@ this service only isolates the prompt-building logic so it can be
 read, tested, and modified independently of the HTTP layer.
 """
 
-from ..models import Trip
+from ..models import Trip, TripActivity
 
 
 class AIService:
@@ -146,3 +146,28 @@ Return ONLY valid JSON, no markdown:
   ]
 }}
 Rules: type must be: taxi | train | bus | rental | ferry | other. Be specific to {dest}."""
+
+    @staticmethod
+    def build_activity_tips_prompt(activities: list[TripActivity]) -> str:
+        """One prompt per day per trip — takes only the activities on that
+        day still missing a tip (caller filters ai_tip IS NULL), not the
+        whole trip. Keyed by activity id so each tip maps back unambiguously."""
+        lines = "\n".join(
+            f"- id {a.id}: {a.title}"
+            + (f" ({a.location})" if a.location else "")
+            + (f" — {a.description}" if a.description else "")
+            for a in activities
+        )
+
+        return f"""You are Sherpa, a knowledgeable local travel guide. Write one short, practical, actionable tip for each activity below — the kind of insider advice a well-traveled friend would give before arriving (best time to go, what to skip, a shortcut, what to bring, etc).
+
+Activities:
+{lines}
+
+Return ONLY valid JSON, no markdown:
+{{
+  "tips": {{
+    "<activity_id>": "One-sentence practical tip, under 160 characters."
+  }}
+}}
+Rules: keys are the exact activity ids listed above, as strings. Provide exactly one tip per activity id listed. Keep each tip to a single sentence — no fluff, no generic advice."""

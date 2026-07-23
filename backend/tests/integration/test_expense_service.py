@@ -2,6 +2,7 @@
 import pytest
 from fastapi import HTTPException
 
+from app.models import TripExpense
 from app.schemas import ActivityCreate, ExpenseCreate, ExpenseUpdate, TripCreate
 from app.services.trip_service import TripService
 
@@ -59,3 +60,22 @@ def test_update_expense_omitted_field_is_left_untouched(svc, test_user, trip, ac
     svc.update_expense(trip.id, expense.id, test_user.id, ExpenseUpdate(activity_id=activity.id))
     updated = svc.update_expense(trip.id, expense.id, test_user.id, ExpenseUpdate(amount=99))
     assert updated.activity_id == activity.id
+
+
+def test_delete_activity_nulls_linked_expense(svc, test_user, trip, activity):
+    """trip_expenses.activity_id has ON DELETE SET NULL — deleting the
+    activity must preserve the expense at the trip level, not cascade
+    the delete. Relies on real FK enforcement (see conftest.py's SQLite
+    PRAGMA foreign_keys=ON hook), not any application-level nulling."""
+    linked = svc.add_expense(
+        trip.id,
+        test_user.id,
+        ExpenseCreate(activity_id=activity.id, amount=10, description="Snacks"),
+    )
+    assert linked.activity_id == activity.id
+
+    svc.delete_activity(trip.id, activity.id, test_user.id)
+
+    survivor = svc.db.query(TripExpense).filter(TripExpense.id == linked.id).first()
+    assert survivor is not None
+    assert survivor.activity_id is None
