@@ -1,7 +1,7 @@
 """normalize_trip_data
 
 Revision ID: a58a4bc70073
-Revises: 
+Revises: d9602e0fa271
 Create Date: 2026-04-11 23:11:22.145039
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'a58a4bc70073'
-down_revision: Union[str, Sequence[str], None] = None
+down_revision: Union[str, Sequence[str], None] = 'd9602e0fa271'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
