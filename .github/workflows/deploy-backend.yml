@@ -117,6 +117,9 @@ jobs:
             SECRET_KEY=$(aws ssm get-parameter --name "/tripmind/prod/SECRET_KEY" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
             DEBUG=$(aws ssm get-parameter --name "/tripmind/prod/DEBUG" --query "Parameter.Value" --output text --region "$REGION")
             FRONTEND_URL=$(aws ssm get-parameter --name "/tripmind/prod/FRONTEND_URL" --query "Parameter.Value" --output text --region "$REGION")
+            POSTGRES_USER=$(aws ssm get-parameter --name "/tripmind/prod/POSTGRES_USER" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
+            POSTGRES_PASSWORD=$(aws ssm get-parameter --name "/tripmind/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text --region "$REGION")
+            POSTGRES_DB=$(aws ssm get-parameter --name "/tripmind/prod/POSTGRES_DB" --query "Parameter.Value" --output text --region "$REGION")
 
             cat > .env.prod << EOF
             DATABASE_URL=$DATABASE_URL
@@ -126,6 +129,9 @@ jobs:
             FRONTEND_URL=$FRONTEND_URL
             AWS_S3_BUCKET=tripmind-media
             AWS_S3_REGION=ap-southeast-2
+            POSTGRES_USER=$POSTGRES_USER
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            POSTGRES_DB=$POSTGRES_DB
             EOF
 
             # Log in to ghcr.io to pull the image the build job just pushed
